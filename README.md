@@ -87,11 +87,11 @@ Typing the long URL with a remote is painful, so bookmark it once, or add a shor
 
 Install it once (sideload, free, about 5 minutes):
 
-1. **Turn on developer mode.** On the Roku remote press Home ×3, Up ×2, Right, Left, Right, Left, Right. Note the IP address shown, accept the agreement, set a password (username is `rokudev`). The Roku restarts.
+1. **Turn on developer mode.** Start on the Roku Home screen and press, at an easy pace, Home ×3, Up ×2, Right, Left, Right, Left, Right (use the physical remote). Note the IP address shown, choose **Enable installer and restart**, accept the license, and set a password (username is `rokudev`). The Roku restarts.
 2. **Upload the app.** On a phone or laptop on the same Wi‑Fi, open `http://<roku-ip>`, sign in as `rokudev`, choose `couchparty-roku.zip`, tap **Install**.
 3. **Play.** CouchParty opens on the TV and stays in your Roku home row as "dev". Scan the QR code with phones to join.
 
 Remote: OK starts or continues, Left/Right move, Play/Pause toggles music, Back exits.
 
 Build the zip: `cd roku && zip -r ../couchparty-roku.zip manifest source components images fonts sounds`.
-Roku only allows one sideloaded app at a time; installing another replaces it.
+Roku only allows one sideloaded app at a time; installing another replaces it. Sideloaded apps are meant for development, and Roku can occasionally drop one, for example after an update. If it disappears, upload the zip again.
