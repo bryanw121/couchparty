@@ -8,7 +8,7 @@ const GAME_LIST = [{ ...poker.meta, options: poker.OPTIONS }, { ...kart.meta, op
 const ROOM_IDLE_MS = 30 * 60 * 1000;
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const COLORS = ['#FFC83D', '#5EE6C8', '#8FB4FF', '#FF9F6B', '#FF7AB6', '#B79CFF', '#9BE36B', '#F4F5FA'];
-const MAX_PLAYERS = 8;
+const MAX_PLAYERS = 12;
 
 const rooms = new Map();
 

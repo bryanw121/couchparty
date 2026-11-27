@@ -2,7 +2,7 @@
 // Hole cards go only to their owner's phone.
 import { best, handName, newDeck } from './handeval.js';
 
-export const meta = { id: 'poker', name: "Texas Hold'em", min: 2, max: 8, blurb: 'Cards on your phone. Chips on the TV. Play money only.' };
+export const meta = { id: 'poker', name: "Texas Hold'em", min: 2, max: 12, blurb: 'Cards on your phone. Chips on the TV. Play money only.' };
 
 // Table options the host picks in the lobby.
 export const OPTIONS = {
@@ -30,7 +30,7 @@ export function start(ctx) {
 
   function seat(p) {
     let s = seats.find((x) => x.pid === p.id);
-    if (!s && seats.length < 8) {
+    if (!s && seats.length < 12) {
       s = { pid: p.id, chips: BUYIN, bought: BUYIN, buyIns: 1, pending: 0, cashed: false, cards: [], bet: 0, total: 0, folded: true, allIn: false, acted: false, dealt: false, last: 'Joins next hand' };
       seats.push(s);
     }
