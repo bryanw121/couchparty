@@ -167,6 +167,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 <div id="kart" class="screen" style="padding:0">
   <div id="kartView" style="position:absolute;inset:0;background:#0E1020"></div>
   <div id="kmenu"></div>
+  <div id="kSound" style="position:absolute;left:50%;bottom:1rem;transform:translateX(-50%);z-index:5;display:none;padding:0.5rem 1.2rem;border-radius:2rem;background:rgba(14,16,32,.8);color:#fff;font-weight:800;font-size:1rem">Sound is off · click or press OK</div>
   <div id="kartMsg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;font-size:1.6rem"></div>
 </div>
 <div id="final" class="screen">
@@ -183,7 +184,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 </div>
 
 <div id="toast"></div>
-<div id="soundHint">Press OK on the remote to turn on sound</div>
+<div id="soundHint">Click or press OK on the remote to turn on sound</div>
 <div id="credits" class="muted">Music: “Airport Lounge” by Kevin MacLeod (incompetech.com), CC BY 4.0 · Card sounds: Kenney.nl (CC0)</div>
 <div id="status"></div>
 
@@ -327,6 +328,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function kartMsg(html) { $('kartMsg').innerHTML = html; $('kartMsg').style.display = html ? 'flex' : 'none'; }
   function stopKart() {
     if (KART.hud) { clearInterval(KART.hud); KART.hud = null; }
+    $('kSound').style.display = 'none';
     if (KART.engine) { try { KART.engine.dispose(); } catch (e) {} KART.engine = null; music(true); }
     KART.raceId = null;
   }
@@ -411,7 +413,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       music(false);
       var raceId = g.raceId;
       KART.engine = window.CouchKart.start($('kartView'), {
-        players: g.racers, laps: g.laps, items: g.items, course: g.course, speed: g.speed, cpus: g.cpus,
+        players: g.racers, laps: g.laps, items: g.items, course: g.course, speed: g.speed, cpus: g.cpus, audioContext: ac() || undefined,
         onEvent: function (e) {
           if (!e || !e.racer) return;
           if (e.racer.indexOf('cpu-') !== 0) gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.racer, e: e.type, item: e.item || null, rank: e.rank || 0, level: e.level || 0, fin: e.final ? 1 : 0 });
@@ -424,7 +426,10 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
           gameMsg({ t: 'tv:game', k: 'done', raceId: raceId, order: order });
         }
       });
-      KART.hud = setInterval(function () { if (KART.engine) gameMsg({ t: 'tv:game', k: 'hud', raceId: raceId, list: KART.engine.hudInfo() }); }, 400);
+      KART.hud = setInterval(function () {
+        if (KART.engine) gameMsg({ t: 'tv:game', k: 'hud', raceId: raceId, list: KART.engine.hudInfo() });
+        $('kSound').style.display = window.CouchKart && window.CouchKart.soundOn && !window.CouchKart.soundOn() ? 'block' : 'none';
+      }, 400);
     };
     if (window.CouchKart) { startRace(); return; }
     kartMsg('<div style="font-size:2.4rem;font-weight:800">Loading ' + esc(kById(g.lists.courses, g.course).name) + '…</div><div class="muted">' + g.racers.length + ' racer' + (g.racers.length > 1 ? 's' : '') + ' · ' + g.laps + ' laps</div>');

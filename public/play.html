@@ -80,30 +80,36 @@ button { font-family: inherit; cursor: pointer; }
 
 /* Gamepad face buttons */
 .kface { position: relative; min-height: 0; }
-.kbtn2 { position: absolute; width: 33%; aspect-ratio: 1; max-width: 132px; border-radius: 50%; border: 0; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #0E1020; font: italic 900 17px 'Space Grotesk', Inter, sans-serif; box-shadow: inset 0 -6px 0 rgba(0,0,0,.25), 0 6px 14px rgba(0,0,0,.4); user-select: none; -webkit-user-select: none; transform: translate(-50%, -50%); }
+.kbtn2 { position: absolute; width: auto; height: 44%; aspect-ratio: 1; max-height: 140px; border-radius: 50%; border: 0; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #0E1020; font: italic 900 17px 'Space Grotesk', Inter, sans-serif; box-shadow: inset 0 -6px 0 rgba(0,0,0,.25), 0 6px 14px rgba(0,0,0,.4); user-select: none; -webkit-user-select: none; transform: translate(-50%, -50%); }
 .kbtn2.on { filter: brightness(1.25); box-shadow: inset 0 3px 0 rgba(0,0,0,.25); transform: translate(-50%, -50%) scale(.95); }
-.kbtn2.item { left: 50%; top: 18%; background: #1A1D33; color: #F4F5FA; border: 4px solid #3A3F63; }
+.kbtn2.item { left: 30%; top: 27%; background: #1A1D33; color: #F4F5FA; border: 4px solid #3A3F63; }
 .kbtn2.item.has { border-color: #FFC83D; }
 .kbtn2.item.rolling { border-color: #FFC83D; animation: kroll .3s infinite alternate; }
 .kbtn2.item .ic { width: 52%; height: 52%; display: flex; align-items: center; justify-content: center; }
 .kbtn2.item .ic span { width: 100% !important; height: 100% !important; }
 .kbtn2.item .lb { font-size: 12px; }
-.kbtn2.brake { left: 20%; top: 50%; background: linear-gradient(160deg, #ff9b9b, #f05b5b); }
-.kbtn2.gas { left: 80%; top: 50%; background: linear-gradient(160deg, #7ff0d6, #3fcfae); }
+.kbtn2.brake { left: 75%; top: 75%; background: linear-gradient(160deg, #ff9b9b, #f05b5b); }
+.kbtn2.gas { left: 75%; top: 27%; background: linear-gradient(160deg, #7ff0d6, #3fcfae); }
 .kbtn2.gas.auto { opacity: .45; }
-.kbtn2.drift { left: 50%; top: 82%; background: linear-gradient(160deg, #a9c4ff, #6f95f2); }
+.kbtn2.drift { left: 30%; top: 75%; background: linear-gradient(160deg, #a9c4ff, #6f95f2); }
 .kitemhint { position: absolute; left: 0; right: 0; top: 0; text-align: center; font: 700 12px Inter, sans-serif; color: #A9AEC8; pointer-events: none; }
-.kstick .base { position: absolute; left: 50%; top: 50%; width: min(78%, 220px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, #23284A 0 55%, #1A1D33 56%); border: 3px solid #3A3F63; }
-.kstick .ring { position: absolute; inset: 18%; border-radius: 50%; border: 2px dashed #3A3F63; }
-.kstick .knob { left: 50%; top: 50%; }
-/* Tilt: you hold the phone like a wheel, so buttons sit at the two edges under your thumbs */
+.kstick .base { position: absolute; left: 50%; top: 50%; width: min(80%, 230px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 50% 45%, #2b3166 0%, #1c2046 60%, #141734 100%); border: 3px solid #3A3F63; box-shadow: inset 0 6px 18px rgba(0,0,0,.55), 0 0 0 6px rgba(255,255,255,.03); }
+.kstick .ring { position: absolute; inset: 14%; border-radius: 50%; border: 2px solid rgba(143,180,255,.18); }
+.kstick .arrow { position: absolute; top: 50%; width: 0; height: 0; margin-top: -10px; border-top: 10px solid transparent; border-bottom: 10px solid transparent; opacity: .55; transition: opacity .1s, transform .1s; }
+.kstick .arrow.l { left: 7%; border-right: 14px solid #8fb4ff; }
+.kstick .arrow.r { right: 7%; border-left: 14px solid #8fb4ff; }
+.kstick .arrow.on { opacity: 1; transform: scale(1.25); }
+.kstick .knob { left: 50%; top: 50%; width: 42%; height: auto; aspect-ratio: 1; margin: 0; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #ffffff 0%, #dfe3f5 35%, #9aa0c4 100%); box-shadow: 0 8px 18px rgba(0,0,0,.5), inset 0 -4px 8px rgba(0,0,0,.18); }
+.kstick .knob::after { content: ''; position: absolute; inset: 24%; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f5fa, #c9cde6); box-shadow: inset 0 2px 4px rgba(0,0,0,.18); }
+.kstick.held .knob { box-shadow: 0 0 0 4px #FFC83D, 0 8px 18px rgba(0,0,0,.5); }
+.kstick.held .base { border-color: #FFC83D; }
 .kc.tiltmode #kLeft { display: none; }
 .kc.tiltmode .kpads { grid-template-columns: 1fr; }
 .kc.tiltmode .kbtn2 { width: auto; height: 44%; max-width: none; max-height: 150px; }
-.kc.tiltmode .kbtn2.brake { left: 12%; top: 26%; }
+.kc.tiltmode .kbtn2.item { left: 12%; top: 26%; }
 .kc.tiltmode .kbtn2.drift { left: 12%; top: 76%; }
-.kc.tiltmode .kbtn2.item { left: 88%; top: 26%; }
-.kc.tiltmode .kbtn2.gas { left: 88%; top: 76%; }
+.kc.tiltmode .kbtn2.gas { left: 88%; top: 26%; }
+.kc.tiltmode .kbtn2.brake { left: 88%; top: 76%; }
 .kc.tiltmode .kitemhint { top: auto; bottom: 4px; }
 
 /* Kart menus (phone) */
@@ -214,7 +220,7 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
       </div>
       <div class="kpads">
         <div class="kzone" id="kLeft">
-          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><div class="knob" id="kKnob"></div></div><div class="hint">Thumb anywhere · slide ◀ ▶</div></div>
+          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><i class="arrow l" id="kArrL"></i><i class="arrow r" id="kArrR"></i><div class="knob" id="kKnob"></div></div><div class="hint">Thumb anywhere · slide ◀ ▶</div></div>
         </div>
         <div class="kface" id="kRight">
           <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
@@ -336,7 +342,7 @@ const K = {
   gas: false, brake: false, drift: false, item: false, left: false, right: false,
   lastSent: '', lastAt: 0, timer: null, motionOn: false,
 };
-const ITEM_NAMES = { banana: 'Banana peel', green: 'Bouncer', red: 'Homing rocket', blue: 'Leader zapper', boost: 'Turbo', star: 'Star power', bolt: 'Lightning', rolling: '…' };
+const ITEM_NAMES = { banana: 'Banana peel', green: 'Bouncer', red: 'Homing rocket', blue: 'Leader zapper', boost: 'Turbo', star: 'Star power', bolt: 'Lightning', fake: 'Decoy box', coin: 'Coins', horn: 'Air horn', bomb: 'Bomb', ink: 'Ink splat', golden: 'Golden turbo', ride: 'Rocket ride', ghost: 'Ghost', rolling: '…' };
 const ITEM_SVG = {
   banana: '<svg viewBox="0 0 40 40"><path d="M7 12 C8 30 28 36 35 22 C25 25 15 22 12 9 Z" fill="#ffd93b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 9 L10 4" stroke="#5a3a12" stroke-width="3" stroke-linecap="round"/><path d="M14 20 C18 26 24 28 30 26" fill="none" stroke="#fff6b0" stroke-width="2" stroke-linecap="round"/></svg>',
   green: '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="36" rx="10" ry="2.5" fill="rgba(0,0,0,.35)"/><circle cx="20" cy="20" r="14" fill="#3ddc84" stroke="#1b1b3a" stroke-width="2.5"/><circle cx="14" cy="14" r="4" fill="#fff" opacity=".85"/><circle cx="16" cy="21" r="2.2" fill="#1b1b3a"/><circle cx="24" cy="21" r="2.2" fill="#1b1b3a"/><path d="M16 26 Q20 29 24 26" fill="none" stroke="#1b1b3a" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -345,6 +351,14 @@ const ITEM_SVG = {
   boost: '<svg viewBox="0 0 40 40"><rect x="12" y="8" width="16" height="24" rx="5" fill="#ff7a00" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="4" width="10" height="5" rx="2" fill="#c9d3e6" stroke="#1b1b3a" stroke-width="2"/><path d="M21 12 L15 21 H19 L17 28 L25 18 H21 Z" fill="#ffe14d" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 33 L20 39 L25 33 Z" fill="#ffd34d"/></svg>',
   star: '<svg viewBox="0 0 40 40"><defs><linearGradient id="psg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7ac6"/><stop offset=".5" stop-color="#ffd34d"/><stop offset="1" stop-color="#5ee6c8"/></linearGradient></defs><path d="M20 3 L25 14.5 L37.5 15.5 L28 23.5 L31 36 L20 29.5 L9 36 L12 23.5 L2.5 15.5 L15 14.5 Z" fill="url(#psg)" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="34" cy="6" r="2" fill="#fff"/><circle cx="6" cy="31" r="1.5" fill="#fff"/></svg>',
   bolt: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#2b2f6b" stroke="#1b1b3a" stroke-width="2"/><path d="M24 4 L9 22 H18 L14 37 L31 16 H22 Z" fill="#fff15a" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/></svg>',
+  fake: '<svg viewBox="0 0 40 40"><rect x="7" y="13" width="26" height="22" rx="3" fill="#ff5d8f" stroke="#1b1b3a" stroke-width="2.5"/><rect x="17.5" y="13" width="5" height="22" fill="#d62839"/><rect x="7" y="21" width="26" height="5" fill="#d62839"/><path d="M20 13 C14 4 8 9 14 13 M20 13 C26 4 32 9 26 13" fill="none" stroke="#d62839" stroke-width="3" stroke-linecap="round"/><text x="20" y="31" text-anchor="middle" font-family="Inter,sans-serif" font-weight="900" font-size="9" fill="#fff">!</text></svg>',
+  coin: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#ffc83d" stroke="#1b1b3a" stroke-width="2.5"/><circle cx="20" cy="20" r="10.5" fill="none" stroke="#e0a400" stroke-width="2"/><path d="M20 12 L22.4 17.2 L28 17.6 L23.8 21.2 L25.1 26.6 L20 23.7 L14.9 26.6 L16.2 21.2 L12 17.6 L17.6 17.2 Z" fill="#fff6c2"/></svg>',
+  horn: '<svg viewBox="0 0 40 40"><path d="M6 17 h6 l12 -9 v24 l-12 -9 h-6 z" fill="#ff5d5d" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="23" width="4" height="8" rx="1.5" fill="#c9d3e6" stroke="#1b1b3a" stroke-width="2"/><path d="M29 14 Q33 20 29 26 M32.5 10 Q39 20 32.5 30" fill="none" stroke="#1b1b3a" stroke-width="2.5" stroke-linecap="round"/></svg>',
+  bomb: '<svg viewBox="0 0 40 40"><circle cx="18" cy="24" r="12" fill="#23233a" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="9" width="7" height="5" rx="1.5" fill="#8a8fa8" stroke="#1b1b3a" stroke-width="2"/><path d="M20 9 Q22 4 27 5" fill="none" stroke="#c9a46a" stroke-width="2.5"/><path d="M29 2 l1.5 3 3 0.5 -2.3 2 0.6 3.2 -2.8 -1.6 -2.8 1.6 0.6 -3.2 -2.3 -2 3 -0.5 z" fill="#ffd34d"/><circle cx="13" cy="19" r="3" fill="#fff" opacity=".6"/></svg>',
+  ink: '<svg viewBox="0 0 40 40"><path d="M20 6 C26 6 25 12 30 11 C36 10 36 17 32 19 C37 22 34 29 28 27 C28 33 22 36 18 31 C13 35 7 31 10 26 C4 25 4 18 9 17 C6 12 12 8 15 11 C15 7 17 6 20 6 Z" fill="#7b4cc9" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="34" cy="31" r="2.5" fill="#7b4cc9"/><circle cx="6" cy="9" r="2" fill="#7b4cc9"/><circle cx="16" cy="17" r="3" fill="#fff" opacity=".5"/></svg>',
+  golden: '<svg viewBox="0 0 40 40"><rect x="12" y="8" width="16" height="24" rx="5" fill="#ffc83d" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="4" width="10" height="5" rx="2" fill="#fff1a8" stroke="#1b1b3a" stroke-width="2"/><path d="M21 12 L15 21 H19 L17 28 L25 18 H21 Z" fill="#fff" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M33 8 l1 2.5 2.5 1 -2.5 1 -1 2.5 -1 -2.5 -2.5 -1 2.5 -1 z M7 26 l0.8 2 2 0.8 -2 0.8 -0.8 2 -0.8 -2 -2 -0.8 2 -0.8 z" fill="#fff"/><path d="M15 33 L20 39 L25 33 Z" fill="#ff7a00"/></svg>',
+  ride: '<svg viewBox="0 0 40 40"><g transform="rotate(-35 20 20)"><path d="M20 3 C26 9 26 22 25 29 H15 C14 22 14 9 20 3 Z" fill="#f4f5fa" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="20" cy="15" r="3.5" fill="#4cc9f0" stroke="#1b1b3a" stroke-width="2"/><path d="M15 21 L9 30 L15 28 Z M25 21 L31 30 L25 28 Z" fill="#ff7a00" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/><path d="M16 30 L20 39 L24 30 Z" fill="#ffd34d"/></g></svg>',
+  ghost: '<svg viewBox="0 0 40 40"><path d="M8 34 V18 C8 10 13 5 20 5 C27 5 32 10 32 18 V34 L28 31 L24 34 L20 31 L16 34 L12 31 Z" fill="#f4f5fa" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><ellipse cx="15.5" cy="17" rx="2.5" ry="3.5" fill="#1b1b3a"/><ellipse cx="24.5" cy="17" rx="2.5" ry="3.5" fill="#1b1b3a"/><ellipse cx="20" cy="25" rx="3" ry="2" fill="#1b1b3a"/></svg>',
 };
 const ITEM_DOT = { banana: '#FFE14D', green: '#22C55E', red: '#EF4444', blue: '#3B82F6', boost: '#FB923C', star: '#FACC15', bolt: '#FDE047', rolling: '#A9AEC8' };
 const ordinal = (n) => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
@@ -503,7 +517,7 @@ function renderKart() {
   if (YOU.g.hud) kartHud(YOU.g.hud);
 }
 function kartStop() { if (K.active) { K.active = false; clearInterval(K.timer); K.raceId = null; } }
-const TRAIL = ['banana', 'green', 'red'];
+const TRAIL = ['banana', 'green', 'red', 'fake', 'bomb'];
 function kartItem(kind, n) {
   const el = $('kItem');
   el.classList.toggle('has', !!kind && kind !== 'rolling');
@@ -570,13 +584,14 @@ $('kMode').onclick = (e) => { const b = e.target.closest('button'); if (b && b.d
     e.preventDefault();
     const dx = Math.max(-RANGE, Math.min(RANGE, e.clientX - K.stickX));
     K.stick = -dx / RANGE; // left is positive
-    knob.style.transform = `translateX(${dx}px)`;
+    knob.style.transform = `translateX(${dx}px) rotate(${(dx / RANGE) * 12}deg)`;
+    $('kArrL').classList.toggle('on', K.stick > 0.2); $('kArrR').classList.toggle('on', K.stick < -0.2);
     kartSend();
   };
   const end = (e) => {
     if (e.pointerId !== K.stickId) return;
     K.stickId = null; K.stick = 0; pad.classList.remove('held');
-    knob.style.transform = ''; kartSend(true);
+    knob.style.transform = ''; $('kArrL').classList.remove('on'); $('kArrR').classList.remove('on'); kartSend(true);
   };
   pad.addEventListener('pointerdown', (e) => {
     e.preventDefault(); pad.setPointerCapture(e.pointerId);

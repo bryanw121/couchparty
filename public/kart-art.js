@@ -74,6 +74,6 @@ var KA = (function () {
         '<g transform="translate(14 -8) scale(.42)">' + driver({ color: '#4CC9F0', topper: 'antenna' }).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g>' +
       '</g></svg>';
   }
-  var GAMEINFO = { poker: { tag: 'Bluff your friends', players: '2–8 players' }, kart: { tag: '3D kart racing', players: '1–4 racers' } };
+  var GAMEINFO = { poker: { tag: 'Bluff your friends', players: '2–8 players' }, kart: { tag: '3D kart racing', players: '1–4 players · 8 karts' } };
   return { driver: driver, mode: mode, speed: speed, course: course, bars: bars, game: game, info: function (id) { return GAMEINFO[id] || { tag: '', players: '' }; } };
 })();
