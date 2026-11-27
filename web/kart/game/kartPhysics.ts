@@ -3,6 +3,7 @@ import { RacerState, InputState } from '../types';
 import { TrackSystem } from './track';
 import { ParticleSystem } from './particles';
 import { soundEngine } from './audio';
+import { sfx } from './sfx';
 import { KartMeshHandles } from './kartModel';
 
 export class KartPhysicsEngine {
@@ -251,8 +252,8 @@ export class KartPhysicsEngine {
         // brush along the edge: a gentle scrub instead of a dead stop
         state.speed *= Math.pow(0.6, delta);
         const now = performance.now();
-        if (state.config.isPlayer && (!state.bumpedAt || now - state.bumpedAt > 400)) {
-          soundEngine.playCollisionSound(0.35);
+        if (state.config.isPlayer && !state.isFinished && (!state.bumpedAt || now - state.bumpedAt > 400)) {
+          sfx.wall(); state.bumpedAt = now;
         }
       }
     }
@@ -274,7 +275,9 @@ export class KartPhysicsEngine {
     this.syncMesh(state, meshHandles, delta);
 
     // 12. Audio Updates (for the lead player only, so several humans don't fight over the engine sound)
+    if (state.config.isPlayer && !state.isFinished && state.speed < -2) sfx.reverse();
     if (state.config.isPlayer && state.config.audioLead !== false) {
+      if (state.isFinished) { soundEngine.stopEngine(); return; }
       soundEngine.updateEngine(
         state.speed / config.topSpeed,
         input.throttle,
@@ -349,7 +352,7 @@ export class KartPhysicsEngine {
           other.bumpX = (other.bumpX || 0) - nx * closing * 0.55 * shareB * star(state) / star(other);
           other.bumpZ = (other.bumpZ || 0) - nz * closing * 0.55 * shareB * star(state) / star(other);
           state.bumpedAt = other.bumpedAt = now;
-          if (state.config.isPlayer || other.config.isPlayer) soundEngine.playCollisionSound(0.7);
+          if ((state.config.isPlayer && !state.isFinished) || (other.config.isPlayer && !other.isFinished)) sfx.bump();
         }
 
         // Exchange some speed (light karts lose more)

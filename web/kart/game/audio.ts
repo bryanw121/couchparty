@@ -130,6 +130,9 @@ class SoundEngine {
    * Updates continuous engine pitch and volume based on kart speed and throttle.
    */
   public updateEngine(speedNormalized: number, throttle: boolean, isBoosted: boolean) {
+    // Engine hum removed (players found it annoying); keep it silent.
+    if (this.ctx && this.engineGain) this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+    return;
     if (!this.ctx || !this.engineGain || !this.engineOsc1 || !this.engineOsc2 || !this.engineFilter) return;
 
     const t = this.ctx.currentTime;
@@ -159,7 +162,7 @@ class SoundEngine {
 
     const t = this.ctx.currentTime;
     if (isDrifting && Math.abs(speed) > 5) {
-      const targetGain = 0.1 + driftLevel * 0.08;
+      const targetGain = 0.05 + driftLevel * 0.04;
       const targetFreq = 1200 + driftLevel * 500;
       this.screechGain.gain.setTargetAtTime(targetGain, t, 0.05);
       this.screechFilter.frequency.setTargetAtTime(targetFreq, t, 0.05);

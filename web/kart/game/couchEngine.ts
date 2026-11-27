@@ -9,6 +9,7 @@ import { CameraController } from './camera';
 import { soundEngine } from './audio';
 import { ItemSystem, ItemEvent, ItemKind } from './items';
 import { courseById } from './tracks';
+import { sfx } from './sfx';
 import { TrackMusic, preloadCourseTrack } from './music';
 import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
 
@@ -16,7 +17,7 @@ import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from '
 // The race runs here on the TV; phones only send their controls.
 
 export interface CouchPlayer { id: string; name: string; color: string; topper?: string; driver?: string; stats?: { spd: number; acc: number; hnd: number } }
-export interface PadInput { steer: number; gas: boolean; brake: boolean; drift: boolean; item: boolean }
+export interface PadInput { steer: number; gas: boolean; brake: boolean; drift: boolean; item: boolean; aim?: 'front' | 'back' }
 export interface CouchResult { id: string; name: string; color: string; human: boolean; rank: number; time: number | null; bestLap: number | null }
 export interface CouchOptions {
   players: CouchPlayer[];
@@ -345,8 +346,8 @@ export class CouchEngine {
           if (r.state.isFinished) input = r.ai ? r.ai.update(delta, states) : { ...idle, throttle: true };
           else input = { throttle: p.gas, brake: p.brake, steerLeft: false, steerRight: false, steer: p.steer, drift: p.drift, respawn: false, cameraToggle: false };
           if (this.items && this.phase === 'racing') {
-            if (p.item && !r.human.itemWas) this.items.press(r.state.config.id, states);
-            if (!p.item && r.human.itemWas) this.items.release(r.state.config.id, states);
+            if (p.item && !r.human.itemWas) this.items.press(r.state.config.id, states, p.aim);
+            if (!p.item && r.human.itemWas) this.items.release(r.state.config.id, states, p.aim);
           }
           r.human.itemWas = p.item;
         } else if (r.ai) {
@@ -673,19 +674,24 @@ export class CouchEngine {
     this.opts.onEvent?.(e);
     const me = this.humans.find((r) => r.state.config.id === e.racer);
     const by = e.by ? this.humans.find((r) => r.state.config.id === e.by) : undefined;
+    const topper = (r?: Racer) => r && r.state.config.topper;
+    const human = (r?: Racer) => !!r && !r.state.isFinished;
     if (e.type === 'hit') {
-      if (me) this.say(me, e.item === 'blue' ? 'ZAPPED!' : 'HIT!', '#ff5d5d');
-      if (by && by !== me) this.say(by, 'NICE HIT!', '#5ee6c8');
-    } else if (e.type === 'block' && me) this.say(me, 'BLOCKED!', '#8fb4ff', 900);
+      if (me) { this.say(me, e.item === 'blue' ? 'ZAPPED!' : 'HIT!', '#ff5d5d'); if (human(me)) sfx.ouch(topper(me)); }
+      if (by && by !== me) { this.say(by, 'NICE HIT!', '#5ee6c8'); setTimeout(() => sfx.cheer(topper(by)), me ? 450 : 0); }
+    } else if (e.type === 'use' && human(me) && ['banana', 'fake', 'green', 'red', 'blue', 'bomb'].includes(e.item || '')) {
+      sfx.throwItem(e.item, e.aim === 'back' || ((e.item === 'banana' || e.item === 'fake') && e.aim !== 'front'));
+    } else if (e.type === 'pickup' && human(me)) sfx.pickup(); else if (e.type === 'block' && me) this.say(me, 'BLOCKED!', '#8fb4ff', 900);
     else if (e.type === 'bolt') { for (const r of this.humans) if (r !== me && !((r.state.starTimer || 0) > 0)) this.say(r, 'SHRUNK!', '#fff15a'); }
-    else if (e.type === 'use' && me && e.item === 'star') this.say(me, 'STAR POWER!', '#ffd34d');
+    else if (e.type === 'use' && me && e.item === 'star') { this.say(me, 'STAR POWER!', '#ffd34d'); sfx.star(); }
     else if (e.type === 'use' && me && e.item === 'ride') this.say(me, 'ROCKET RIDE!', '#ff7a00');
     else if (e.type === 'use' && me && e.item === 'ghost') this.say(me, 'GHOST!', '#e8ecff');
     else if (e.type === 'use' && me && e.item === 'coin') this.say(me, '+2 COINS', '#ffc83d', 700);
     else if (e.type === 'use' && me && e.item === 'golden') this.say(me, 'GOLDEN TURBO!', '#ffc83d', 700);
-    else if (e.type === 'ink' && me) this.say(me, 'SPLAT!', '#c9a8ff');
-    else if (e.type === 'steal') { if (me) this.say(me, 'STOLEN!', '#ff5d5d'); if (by && by !== me) this.say(by, 'GOT IT!', '#5ee6c8'); }
-    else if (e.type === 'horn' && me) this.say(me, 'HONK!', '#ffffff', 700);
+    else if (e.type === 'ink' && me) { this.say(me, 'SPLAT!', '#c9a8ff'); sfx.splat(); }
+    else if (e.type === 'steal') { if (me || by) sfx.steal(); if (me) this.say(me, 'STOLEN!', '#ff5d5d'); if (by && by !== me) this.say(by, 'GOT IT!', '#5ee6c8'); }
+    else if (e.type === 'horn' && me) { this.say(me, 'HONK!', '#ffffff', 700); sfx.horn(); }
+    else if (e.type === 'boom') sfx.boom();
   }
 
   // ---------- drawing ----------
@@ -733,11 +739,12 @@ export class CouchEngine {
       if (s.isFinished) continue;
       // overtakes (debounced so jostling doesn't spam)
       h.rankCalm = (h.rankCalm || 0) - 1;
-      if (h.lastRank !== undefined && s.rank < h.lastRank && h.rankCalm <= 0) { this.say(r, s.rank === 1 ? 'TAKE THE LEAD!' : 'OVERTAKE!', '#5ee6c8'); this.emit({ type: 'overtake', racer: id, rank: s.rank }); h.rankCalm = 45; }
+      if (h.lastRank !== undefined && s.rank < h.lastRank && h.rankCalm <= 0) { sfx.overtake(); this.say(r, s.rank === 1 ? 'TAKE THE LEAD!' : 'OVERTAKE!', '#5ee6c8'); this.emit({ type: 'overtake', racer: id, rank: s.rank }); h.rankCalm = 45; }
       h.lastRank = s.rank;
       // bumps
       if (s.bumpedAt && s.bumpedAt !== h.lastBump) { h.lastBump = s.bumpedAt; this.emit({ type: 'bump', racer: id }); }
       // drift boost level released
+      if (s.isDrifting && s.driftLevel > (h.driftLvl || 0)) sfx.driftLevel(s.driftLevel);
       if (s.isDrifting) h.driftLvl = s.driftLevel;
       if (h.wasDrifting && !s.isDrifting && (h.driftLvl || 0) > 0) {
         const lv = h.driftLvl || 1;

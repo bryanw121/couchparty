@@ -343,7 +343,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
         $('joinUrl').textContent = location.host.length > 30 ? 'this site/play' : location.host + '/play';
       } else if (m.t === 'state') render(m.s);
       else if (m.t === 'fx' && FX[m.n]) FX[m.n]();
-      else if (m.t === 'kin' && KART.engine) KART.engine.setInput(m.p, { steer: m.s, gas: m.g, brake: m.b, drift: m.d, item: m.i });
+      else if (m.t === 'kin' && KART.engine) KART.engine.setInput(m.p, { steer: m.s, gas: m.g, brake: m.b, drift: m.d, item: m.i, aim: m.a });
     };
     ws.onclose = function () { $('status').textContent = 'Reconnecting…'; setTimeout(connect, retry); retry = Math.min(retry * 2, 8000); };
   }

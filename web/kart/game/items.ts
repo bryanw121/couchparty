@@ -24,6 +24,7 @@ const TRAILABLE: ItemKind[] = ['banana', 'green', 'red', 'fake', 'bomb'];
 const TRIPLES: ItemKind[] = ['banana', 'green', 'red', 'boost'];
 
 export interface ItemEvent {
+  aim?: 'front' | 'back';
   type: 'pickup' | 'use' | 'hit' | 'bolt' | 'block' | 'ink' | 'steal' | 'boom' | 'horn' | 'coin';
   racer: string; // who it happened to
   by?: string; // who caused it
@@ -41,6 +42,7 @@ interface Thrown {
   life: number;
   target?: string;
   armed: number; // can't hit its owner until this runs out
+  drag?: number; // slows to a stop (a banana lobbed forward)
 }
 
 // Odds by race position: further back, better items. Rows are weights for ITEM_KINDS.
@@ -206,6 +208,8 @@ function makeProjectile(kind: ItemKind): THREE.Object3D {
   return g;
 }
 
+export type Aim = 'front' | 'back';
+
 export class ItemSystem {
   public held = new Map<string, HeldItem>();
   public onEvent?: (e: ItemEvent) => void;
@@ -355,19 +359,19 @@ export class ItemSystem {
 
   // Item button pressed: bananas, bouncers and rockets start trailing behind you as a shield;
   // everything else fires right away.
-  public press(id: string, racers: RacerState[]) {
+  public press(id: string, racers: RacerState[], aim?: Aim) {
     const h = this.held.get(id);
     if (!h || !h.kind) return;
     if (TRAILABLE.includes(h.kind)) { if (!h.trailing) this.startTrail(h); }
-    else this.fire(id, racers);
+    else this.fire(id, racers, aim);
   }
   // Item button released: throw the trailing item (one of a triple).
-  public release(id: string, racers: RacerState[]) {
+  public release(id: string, racers: RacerState[], aim?: Aim) {
     const h = this.held.get(id);
-    if (h && h.kind && h.trailing) this.fire(id, racers);
+    if (h && h.kind && h.trailing) this.fire(id, racers, aim);
   }
   // Fire one item now (computer racers, or a release).
-  private fire(id: string, racers: RacerState[]) {
+  private fire(id: string, racers: RacerState[], aim?: Aim) {
     const h = this.held.get(id);
     const r = racers.find((x) => x.config.id === id);
     if (!h || !h.kind || !r) return;
@@ -382,7 +386,7 @@ export class ItemSystem {
     if (m) this.group.remove(m);
     if (h.count <= 0) { for (const t of h.trail) this.group.remove(t); this.held.delete(id); }
     else if (!r.config.isPlayer) this.aiTimers.set(id, 0.8 + Math.random() * 2);
-    this.use(kind, r, racers);
+    this.use(kind, r, racers, aim);
   }
   private startTrail(h: HeldItem) {
     h.trailing = true;
@@ -447,8 +451,8 @@ export class ItemSystem {
     return true;
   }
 
-  private use(kind: ItemKind, r: RacerState, racers: RacerState[]) {
-    this.onEvent?.({ type: 'use', racer: r.config.id, item: kind });
+  private use(kind: ItemKind, r: RacerState, racers: RacerState[], aim?: Aim) {
+    this.onEvent?.({ type: 'use', racer: r.config.id, item: kind, aim });
     const h = r.rotation.y;
     if (kind === 'boost') {
       r.boostTimer = 1.4;
@@ -524,7 +528,10 @@ export class ItemSystem {
     }
     const mesh = makeProjectile(kind);
     this.group.add(mesh);
-    const behind = kind === 'banana' || kind === 'fake';
+    // Default: peels and decoys drop behind, the rest fly forward. The phone's top/bottom half overrides.
+    const dropper = kind === 'banana' || kind === 'fake';
+    const behind = aim ? aim === 'back' : dropper;
+    const lob = dropper && !behind; // peel/decoy lobbed ahead, lands a little way up the road
     const off = behind ? -2.6 : 2.6;
     const t: Thrown = {
       kind,
@@ -533,12 +540,14 @@ export class ItemSystem {
       x: r.position.x + Math.sin(h) * off,
       y: r.position.y,
       z: r.position.z + Math.cos(h) * off,
-      heading: h,
-      speed: behind ? 0 : kind === 'bomb' ? 42 : kind === 'green' ? 62 : 58,
-      life: behind ? 60 : kind === 'bomb' ? 1.3 : kind === 'green' ? 3.5 : 8,
+      heading: behind && !dropper ? h + Math.PI : h,
+      speed: lob ? 46 : dropper ? 0 : kind === 'bomb' ? (behind ? 14 : 42) : kind === 'green' ? 62 : 58,
+      life: dropper ? 60 : kind === 'bomb' ? 1.3 : kind === 'green' ? 3.5 : 8,
       armed: 0.4,
+      drag: lob ? 1 : undefined,
     };
-    if (kind === 'red') {
+    if (kind === 'red' && behind) t.kind = 'green'; // thrown backwards: no homing, flies straight
+    else if (kind === 'red') {
       const ahead = racers.filter((o) => o.rank === r.rank - 1)[0];
       t.target = ahead ? ahead.config.id : undefined;
       if (!ahead) t.kind = 'green'; // nobody ahead: flies straight
@@ -588,6 +597,7 @@ export class ItemSystem {
       t.mesh.position.set(t.x, t.y, t.z);
 
       if (t.kind === 'bomb' && t.speed > 0) t.speed = Math.max(0, t.speed - 30 * delta);
+      if (t.drag && t.speed > 0) { t.speed = Math.max(0, t.speed - 55 * delta); if (t.speed === 0) t.mesh.rotation.y = t.heading; }
       let done = t.life <= 0;
       if (done && t.kind === 'bomb') this.explode(t, racers);
       if (!done) {

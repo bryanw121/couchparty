@@ -158,7 +158,7 @@ export function start(ctx) {
     input(p, m) {
       if (m.t === 'kin') {
         if (st.phase !== 'race' || !isRacer(p)) return;
-        ctx.toTv({ t: 'kin', p: p.id, s: clamp(Number(m.s) || 0, -1, 1), g: !!m.g, b: !!m.b, d: !!m.d, i: !!m.i });
+        ctx.toTv({ t: 'kin', p: p.id, s: clamp(Number(m.s) || 0, -1, 1), g: !!m.g, b: !!m.b, d: !!m.d, i: !!m.i, a: m.a === 'back' ? 'back' : 'front' });
         return;
       }
       if (m.t !== 'kmenu' || !isRacer(p)) return;
