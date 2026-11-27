@@ -41,6 +41,11 @@ function createRoom(code) {
   return room;
 }
 
+// Used by the cross-copy relay: make sure a room exists here under a given code, and check if it still does.
+export function ensureRoom(code) { return rooms.get(code) || createRoom(code); }
+export function roomExists(code) { return rooms.has(code); }
+export function newCode() { return makeCode(); }
+
 function hostId(room) {
   for (const p of room.players.values()) if (p.connected) return p.id;
   return null;

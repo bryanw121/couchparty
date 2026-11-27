@@ -83,7 +83,7 @@ Typing the long URL with a remote is painful, so bookmark it once, or add a shor
 
 ## Roku app (play straight from the TV)
 
-`roku/` is a native Roku channel. It talks to the same server over HTTP long-polling (`/api/tv/*`), so no computer or screen casting is needed.
+`roku/` is a native Roku channel, so no computer or screen casting is needed. It connects over a secure WebSocket like the phones do, and falls back to HTTP long-polling (`/api/tv/*`) on Rokus whose OS lacks `roWebSocket`.
 
 Install it once (sideload, free, about 5 minutes):
 
@@ -95,3 +95,15 @@ Remote: OK starts or continues, Left/Right move, Play/Pause toggles music, Back 
 
 Build the zip: `cd roku && zip -r ../couchparty-roku.zip manifest source components images fonts sounds`.
 Roku only allows one sideloaded app at a time; installing another replaces it. Sideloaded apps are meant for development, and Roku can occasionally drop one, for example after an update. If it disappears, upload the zip again.
+
+## Running across several server copies
+
+Neon can run more than one copy of the function at once, each with its own memory. `src/relay.js` keeps that from splitting a game:
+
+- Each room lives in memory on one copy, its owner, recorded in Postgres (`cp_rooms`, with a heartbeat every 5 s).
+- A phone or TV that lands on another copy is relayed: its messages go to the owner through `cp_msgs`, and replies come back the same way (polled every 120 ms while relaying).
+- When everyone lands on the owner, the usual case, messages never touch the database.
+- If an owner stops heartbeating for 20 s, the next join or TV reconnect takes the room over. The game in progress is lost, and players rejoin the lobby.
+- Long-poll TVs always go through the database, since each poll can land on any copy.
+
+Without `DATABASE_URL` (local `npm start`) everything stays in memory. Test with two simulated copies: `CP_FAST=1 node test/relay.mjs` (needs `@electric-sql/pglite`).

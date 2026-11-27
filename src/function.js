@@ -1,8 +1,16 @@
 // Neon Function entry: serves the pages and the /ws WebSocket.
 import { upgradeWebSocket } from '@neon/functions';
-import { handleSocket } from './game.js';
+import * as game from './game.js';
+import { neonHttp } from './dbhttp.js';
+import { createRelay } from './relay.js';
 import { route } from './routes.js';
-import { tvApi } from './httptv.js';
+import { tvApi as memTvApi } from './httptv.js';
+
+// With Postgres on the branch, rooms work across server copies; otherwise everything stays in memory.
+const db = process.env.DATABASE_URL ? neonHttp(process.env.DATABASE_URL) : null;
+const relay = db ? createRelay({ sql: db, game, log: console.error }) : null;
+const attach = relay ? relay.attach : game.handleSocket;
+const tvApi = relay ? relay.tvApi : memTvApi;
 import tv from '../public/tv.html';
 import play from '../public/play.html';
 
@@ -23,7 +31,7 @@ const handler = {
         return new Response('WebSocket endpoint', { status: 426 });
       }
       const { socket, response } = upgradeWebSocket(request);
-      handleSocket(socket);
+      attach(socket);
       return response;
     }
     const r = url.pathname.startsWith('/api/tv/') ? await tvApi(url, request.method) : await route(url, { tv, play });
