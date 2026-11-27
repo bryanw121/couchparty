@@ -82,6 +82,9 @@ async def main():
             await ph.wait_for_timeout(400)
             await ph.screenshot(path=f'{OUT}/menu-phone-6-race.png')
             await ph.mouse.up()
+            await ph.click('#kMode [data-km="tilt"]')
+            await ph.wait_for_timeout(400)
+            await ph.screenshot(path=f'{OUT}/menu-phone-7-tilt.png')
             g = (state.get('s') or {}).get('g') or {}
             print('race phase', g.get('phase'), 'course', g.get('course'), 'racers', [(r['name'], r['driver']) for r in g.get('racers', [])])
             print('errors', errs[:6])

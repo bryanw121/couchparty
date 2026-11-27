@@ -76,6 +76,29 @@ button { font-family: inherit; cursor: pointer; }
 }
 .steerpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+
+/* Gamepad face buttons */
+.kface { position: relative; min-height: 0; }
+.kbtn2 { position: absolute; width: 33%; aspect-ratio: 1; max-width: 132px; border-radius: 50%; border: 0; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #0E1020; font: italic 900 17px 'Space Grotesk', Inter, sans-serif; box-shadow: inset 0 -6px 0 rgba(0,0,0,.25), 0 6px 14px rgba(0,0,0,.4); user-select: none; -webkit-user-select: none; transform: translate(-50%, -50%); }
+.kbtn2.on { filter: brightness(1.25); box-shadow: inset 0 3px 0 rgba(0,0,0,.25); transform: translate(-50%, -50%) scale(.95); }
+.kbtn2.item { left: 50%; top: 18%; background: #1A1D33; color: #F4F5FA; border: 4px solid #3A3F63; }
+.kbtn2.item.has { border-color: #FFC83D; }
+.kbtn2.item.rolling { border-color: #FFC83D; animation: kroll .3s infinite alternate; }
+.kbtn2.item .ic { width: 52%; height: 52%; display: flex; align-items: center; justify-content: center; }
+.kbtn2.item .ic span { width: 100% !important; height: 100% !important; }
+.kbtn2.item .lb { font-size: 12px; }
+.kbtn2.brake { left: 20%; top: 50%; background: linear-gradient(160deg, #ff9b9b, #f05b5b); }
+.kbtn2.gas { left: 80%; top: 50%; background: linear-gradient(160deg, #7ff0d6, #3fcfae); }
+.kbtn2.gas.auto { opacity: .45; }
+.kbtn2.drift { left: 50%; top: 82%; background: linear-gradient(160deg, #a9c4ff, #6f95f2); }
+.kitemhint { position: absolute; left: 0; right: 0; top: 0; text-align: center; font: 700 12px Inter, sans-serif; color: #A9AEC8; pointer-events: none; }
+.kstick .base { position: absolute; left: 50%; top: 50%; width: min(78%, 220px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, #23284A 0 55%, #1A1D33 56%); border: 3px solid #3A3F63; }
+.kstick .ring { position: absolute; inset: 18%; border-radius: 50%; border: 2px dashed #3A3F63; }
+.kstick .knob { left: 50%; top: 50%; }
+.kpad.drift#kDriftL { display: none; }
+.kc.tiltmode #kDriftL { display: flex; flex: 1; }
+.kc.tiltmode .kstick { display: none; }
+
 /* Kart menus (phone) */
 .kmp { flex: 1; display: none; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-bottom: 8px; }
 .kmh { display: flex; align-items: center; gap: 10px; }
@@ -178,19 +201,21 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
         <span class="kplace" id="kPlace">–</span><span class="muted" id="kLap">Get ready</span>
         <div class="ktm" id="kTiltMeter" aria-hidden="true"><i id="kTiltDot"></i></div>
         <span style="flex:1"></span>
-        <button class="kpill" id="kBrake">Brake</button>
         <button class="kpill" id="kRecenter">Recenter</button>
         <button class="kpill hot" id="kTiltBtn" style="display:none">Turn on tilt</button>
         <div class="kmode" id="kMode"><button data-km="tilt">Tilt</button><button data-km="stick">Stick</button></div>
       </div>
       <div class="kpads">
         <div class="kzone" id="kLeft">
-          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="track"></div><div class="knob" id="kKnob"></div><div class="hint">Thumb anywhere here · slide ◀ ▶</div></div>
+          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><div class="knob" id="kKnob"></div></div><div class="hint">Thumb anywhere · slide ◀ ▶</div></div>
+          <button class="kpad drift" id="kDriftL"><span>DRIFT</span><small>hold</small></button>
         </div>
-        <div class="kzone" id="kRight">
-          <button class="kpad item" id="kItem" aria-label="Use item"><span id="kItemIcon"></span><span class="lbl"><span id="kItemName">No item</span><small id="kItemHint">Drive through a gift box</small></span></button>
-          <button class="kpad drift" id="kDrift"><span>DRIFT</span><small>hold while turning</small></button>
-          <button class="kpad gas" id="kGas"><span>GAS</span></button>
+        <div class="kface" id="kRight">
+          <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
+          <button class="kbtn2 brake" id="kBrake" aria-label="Brake"><span class="lb">BRAKE</span></button>
+          <button class="kbtn2 gas" id="kGas" aria-label="Gas"><span class="lb" id="kGasLbl">GAS</span></button>
+          <button class="kbtn2 drift" id="kDrift" aria-label="Drift"><span class="lb">DRIFT</span></button>
+          <div class="kitemhint" id="kItemHint"></div>
         </div>
       </div>
     </div>
@@ -380,10 +405,8 @@ function kartLayout() {
   $('kMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.km === K.steerMode)));
   // Stick: joystick on the left thumb, Item + Drift on the right.
   // Tilt: both hands hold the phone like a wheel, so Drift goes to the left thumb, Item to the right.
-  const left = $('kLeft'), right = $('kRight'), drift = $('kDrift');
-  if (tilt && drift.parentNode !== left) left.appendChild(drift);
-  if (!tilt && drift.parentNode !== right) right.insertBefore(drift, $('kGas'));
-  $('kGas').style.display = K.autoGas ? 'none' : '';
+  $('kGas').classList.toggle('auto', K.autoGas);
+  $('kGasLbl').textContent = K.autoGas ? 'AUTO' : 'GAS';
   $('kTiltBtn').style.display = tilt && !K.motionOn ? '' : 'none';
 }
 
@@ -479,9 +502,9 @@ function kartItem(kind, n) {
   const el = $('kItem');
   el.classList.toggle('has', !!kind && kind !== 'rolling');
   el.classList.toggle('rolling', kind === 'rolling');
-  $('kItemHint').textContent = !kind ? 'Drive through a gift box' : kind === 'rolling' ? 'Picking…' : TRAIL.includes(kind) ? (n > 1 ? `×${n} trailing · let go to throw one` : 'Hold = shield behind · let go = throw') : 'Tap to use';
-  $('kItemIcon').innerHTML = kind ? (ITEM_SVG[kind] ? `<span style="display:inline-block;width:52px;height:52px">${ITEM_SVG[kind]}</span>` : `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${ITEM_DOT[kind] || '#A9AEC8'}"></span>`) : '';
-  $('kItemName').textContent = (kind ? ITEM_NAMES[kind] || kind : 'No item') + (n > 1 ? ` ×${n}` : '');
+  $('kItemHint').textContent = !kind ? '' : kind === 'rolling' ? '' : (ITEM_NAMES[kind] || kind) + (TRAIL.includes(kind) ? ' · hold = shield, let go = throw' : ' · tap to use');
+  $('kItemIcon').innerHTML = kind ? (ITEM_SVG[kind] ? `<span style="display:inline-block">${ITEM_SVG[kind]}</span>` : `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${ITEM_DOT[kind] || '#A9AEC8'}"></span>`) : '';
+  $('kItemName').textContent = kind && kind !== 'rolling' ? (n > 1 ? `×${n}` : 'ITEM') : kind === 'rolling' ? '…' : 'ITEM';
 }
 function kartHud(h) {
   if (!h) return;
@@ -530,7 +553,7 @@ function holdButton(id, field) {
   el.addEventListener('pointercancel', off);
   el.addEventListener('pointerleave', off);
 }
-holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift'); holdButton('kItem', 'item');
+holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift'); holdButton('kDriftL', 'drift'); holdButton('kItem', 'item');
 $('kMode').onclick = (e) => { const b = e.target.closest('button'); if (b && b.dataset.km !== K.steerMode) setSteerMode(b.dataset.km); };
 // Floating joystick: center is wherever the thumb lands; slide left/right for analog steering
 (function () {
