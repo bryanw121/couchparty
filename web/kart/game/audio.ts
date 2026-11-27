@@ -28,6 +28,20 @@ class SoundEngine {
     // Lazy init on first user interaction
   }
 
+  // Use an audio context the host page already unlocked (TV pages unlock theirs on OK/click)
+  public adopt(ctx: AudioContext) {
+    if (this.ctx === ctx) return;
+    if (this.isInitialized) return;
+    this.ctx = ctx;
+    this.masterGain = ctx.createGain();
+    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, ctx.currentTime);
+    this.masterGain.connect(ctx.destination);
+    this.setupEngineSynth();
+    this.setupScreechSynth();
+    this.isInitialized = true;
+  }
+  public running() { return !!this.ctx && this.ctx.state === 'running'; }
+
   public init() {
     if (this.isInitialized && this.ctx) {
       if (this.ctx.state === 'suspended') {

@@ -7,8 +7,8 @@ import { soundEngine } from './audio';
 // Items: banana (drop behind), green shell (straight), red shell (homes on the racer ahead),
 // blue shell (homes on first place), boost, star (invincible + faster) and bolt (shrinks everyone else).
 
-export type ItemKind = 'banana' | 'green' | 'red' | 'blue' | 'boost' | 'star' | 'bolt';
-export const ITEM_KINDS: ItemKind[] = ['banana', 'green', 'red', 'blue', 'boost', 'star', 'bolt'];
+export type ItemKind = 'banana' | 'green' | 'red' | 'blue' | 'boost' | 'star' | 'bolt' | 'fake' | 'coin' | 'horn' | 'bomb' | 'ink' | 'golden' | 'ride' | 'ghost';
+export const ITEM_KINDS: ItemKind[] = ['banana', 'green', 'red', 'blue', 'boost', 'star', 'bolt', 'fake', 'coin', 'horn', 'bomb', 'ink', 'golden', 'ride', 'ghost'];
 
 export interface HeldItem {
   kind: ItemKind | null; // null while the roulette spins
@@ -17,12 +17,14 @@ export interface HeldItem {
   count: number; // 3 for triples
   trailing: boolean; // dragged behind the kart as a shield
   trail: THREE.Object3D[];
-  justStarted?: boolean; // the press that started trailing shouldn't also throw on release
+  justStarted?: boolean;
+  left?: number; // golden turbo: seconds of unlimited boosts once first used
 }
-const TRAILABLE: ItemKind[] = ['banana', 'green', 'red'];
+const TRAILABLE: ItemKind[] = ['banana', 'green', 'red', 'fake', 'bomb'];
+const TRIPLES: ItemKind[] = ['banana', 'green', 'red', 'boost'];
 
 export interface ItemEvent {
-  type: 'pickup' | 'use' | 'hit' | 'bolt' | 'block';
+  type: 'pickup' | 'use' | 'hit' | 'bolt' | 'block' | 'ink' | 'steal' | 'boom' | 'horn';
   racer: string; // who it happened to
   by?: string; // who caused it
   item?: ItemKind;
@@ -42,21 +44,31 @@ interface Thrown {
 }
 
 // Odds by race position: further back, better items. Rows are weights for ITEM_KINDS.
+// Equalizing odds: the further back you are, the stronger the item. The leader mostly gets
+// defensive items (bananas, decoys, coins, the horn) but can still get something useful.
 function rollFor(rank: number, total: number): ItemKind {
   const t = total <= 1 ? 0 : (rank - 1) / (total - 1); // 0 = first place, 1 = last
-  const w = [
-    6 - 4 * t, // banana
-    5 - 2 * t, // green
-    1 + 4 * t, // red
-    t > 0.6 ? 1.2 : 0, // blue
-    2 + 3 * t, // boost
-    t > 0.4 ? 2 * t : 0, // star
-    t > 0.75 ? 1 : 0, // bolt
-  ];
+  const w: Record<ItemKind, number> = {
+    banana: 5 - 4 * t,
+    green: 3.5 - 2 * t,
+    fake: 2.2 * (1 - t),
+    coin: 3 * (1 - t) + 0.3,
+    horn: t < 0.25 ? 1.2 : 0.3,
+    red: t < 0.1 ? 0.4 : 1 + 2.5 * t,
+    bomb: 0.4 + 1.8 * t,
+    ink: t > 0.3 ? 1.2 : 0,
+    boost: 1 + 3 * t,
+    golden: t > 0.5 ? 2.2 * t : 0,
+    star: t > 0.45 ? 2 * t : 0,
+    ride: t > 0.7 ? 2.6 * t : 0,
+    ghost: t > 0.3 ? 0.8 : 0,
+    blue: t > 0.5 ? 1 : 0,
+    bolt: t > 0.8 ? 0.9 : 0,
+  };
   let sum = 0;
-  for (const v of w) sum += v;
+  for (const k of ITEM_KINDS) sum += w[k];
   let r = Math.random() * sum;
-  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return ITEM_KINDS[i]; }
+  for (const k of ITEM_KINDS) { r -= w[k]; if (r <= 0) return k; }
   return 'banana';
 }
 
@@ -101,6 +113,27 @@ function sparkleMat(color: number) {
 
 function makeProjectile(kind: ItemKind): THREE.Object3D {
   const g = new THREE.Group();
+  if (kind === 'bomb') {
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 12), new THREE.MeshStandardMaterial({ color: 0x23233a, roughness: 0.35, metalness: 0.2 }));
+    ball.position.y = 0.6; g.add(ball);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.18, 10), new THREE.MeshStandardMaterial({ color: 0x8a8fa8 }));
+    cap.position.y = 1.15; g.add(cap);
+    const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.35, 6), new THREE.MeshStandardMaterial({ color: 0xc9a46a }));
+    fuse.position.set(0.06, 1.38, 0); fuse.rotation.z = -0.4; g.add(fuse);
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffd34d }));
+    spark.position.set(0.14, 1.55, 0); spark.name = 'flame'; g.add(spark);
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    shine.position.set(-0.22, 0.85, 0.35); g.add(shine);
+    return g;
+  }
+  if (kind === 'fake') {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), new THREE.MeshStandardMaterial({ map: giftTexture('#ff5d8f'), roughness: 0.35 }));
+    box.position.y = 0.75; g.add(box);
+    const rib = new THREE.MeshStandardMaterial({ color: 0xd62839 });
+    const bow = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.07, 8, 12), rib);
+    bow.position.y = 1.5; bow.rotation.y = Math.PI / 2; g.add(bow);
+    return g;
+  }
   if (kind === 'banana') {
     // Curved peel with three flaps flopped open
     const peelMat = new THREE.MeshStandardMaterial({ color: 0xffd93b, roughness: 0.55 });
@@ -248,7 +281,7 @@ export class ItemSystem {
         h.kind = rollFor(r ? r.rank : racers.length, racers.length);
         h.shown = h.kind;
         // Sometimes a triple: all three trail behind you, one per tap
-        if (TRAILABLE.includes(h.kind) && Math.random() < 0.22) { h.count = 3; this.startTrail(h); }
+        if (TRIPLES.includes(h.kind) && Math.random() < 0.22) { h.count = 3; if (TRAILABLE.includes(h.kind)) this.startTrail(h); }
         if (r && !r.config.isPlayer) this.aiTimers.set(id, 0.6 + Math.random() * 3.5);
       }
     }
@@ -260,6 +293,14 @@ export class ItemSystem {
     }
 
     for (const id of useRequests) this.fire(id, racers);
+    for (const [id, h] of this.held) {
+      if (h.kind === 'golden' && h.left !== undefined) {
+        h.left -= delta;
+        if (h.left <= 0) this.held.delete(id);
+        else if (!racers.find((x) => x.config.id === id)?.config.isPlayer && Math.random() < delta * 3) useRequests.add(id);
+      }
+    }
+    this.updateFx(delta);
     this.updateTrails(racers);
 
     this.updateThrown(delta, racers, time);
@@ -296,6 +337,11 @@ export class ItemSystem {
     const r = racers.find((x) => x.config.id === id);
     if (!h || !h.kind || !r) return;
     const kind = h.kind;
+    if (kind === 'golden') {
+      if (h.left === undefined) h.left = 7; // unlimited boosts for 7 seconds after the first
+      this.use('boost', r, racers);
+      return;
+    }
     h.count--;
     const m = h.trail.pop();
     if (m) this.group.remove(m);
@@ -311,6 +357,34 @@ export class ItemSystem {
       this.group.add(m);
       h.trail.push(m);
     }
+  }
+  private fx: Array<{ mesh: THREE.Mesh; life: number; max: number; grow: number }> = [];
+  private ring(x: number, y: number, z: number, color: number, size: number) {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.25, 8, 32), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 }));
+    m.rotation.x = Math.PI / 2; m.position.set(x, y + 0.6, z);
+    this.group.add(m); this.fx.push({ mesh: m, life: 0.45, max: 0.45, grow: size });
+  }
+  private boom(x: number, y: number, z: number) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({ color: 0xff8a1f, transparent: true, opacity: 0.85 }));
+    m.position.set(x, y + 1, z);
+    this.group.add(m); this.fx.push({ mesh: m, life: 0.6, max: 0.6, grow: 8 });
+  }
+  private updateFx(delta: number) {
+    for (let i = this.fx.length - 1; i >= 0; i--) {
+      const f = this.fx[i]; f.life -= delta;
+      const k = 1 - f.life / f.max;
+      f.mesh.scale.setScalar(0.5 + k * f.grow);
+      (f.mesh.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - k);
+      if (f.life <= 0) { this.group.remove(f.mesh); this.fx.splice(i, 1); }
+    }
+  }
+  private explode(t: Thrown, racers: RacerState[]) {
+    this.boom(t.x, t.y, t.z);
+    for (const o of racers) {
+      const dx = o.position.x - t.x, dz = o.position.z - t.z;
+      if (dx * dx + dz * dz < 64) this.hit(o, t.owner, 'bomb');
+    }
+    this.onEvent?.({ type: 'boom', racer: t.owner });
   }
   private updateTrails(racers: RacerState[]) {
     for (const [id, h] of this.held) {
@@ -366,9 +440,56 @@ export class ItemSystem {
       this.onEvent?.({ type: 'bolt', racer: r.config.id });
       return;
     }
+    if (kind === 'coin') {
+      r.coins = Math.min(10, (r.coins || 0) + 2);
+      r.boostTimer = Math.max(r.boostTimer, 0.35); r.boostMultiplier = Math.max(r.boostMultiplier, 1.15);
+      return;
+    }
+    if (kind === 'horn') {
+      // shockwave: knocks back anyone close and destroys anything flying at you
+      for (const o of racers) {
+        if (o === r) continue;
+        const dx = o.position.x - r.position.x, dz = o.position.z - r.position.z;
+        if (dx * dx + dz * dz < 90) this.hit(o, r.config.id, 'horn');
+      }
+      for (let i = this.thrown.length - 1; i >= 0; i--) {
+        const t = this.thrown[i];
+        const dx = t.x - r.position.x, dz = t.z - r.position.z;
+        if (dx * dx + dz * dz < 180) { this.group.remove(t.mesh); this.thrown.splice(i, 1); }
+      }
+      this.ring(r.position.x, r.position.y, r.position.z, 0xffffff, 10);
+      this.onEvent?.({ type: 'horn', racer: r.config.id });
+      return;
+    }
+    if (kind === 'ink') {
+      for (const o of racers) if (o.rank < r.rank && !((o.starTimer || 0) > 0)) { o.inkTimer = 4.5; this.onEvent?.({ type: 'ink', racer: o.config.id, by: r.config.id }); }
+      return;
+    }
+    if (kind === 'ride') {
+      r.rideTimer = 3.4; r.invulnerableTimer = Math.max(r.invulnerableTimer, 3.6);
+      r.boostTimer = 3.4; r.boostMultiplier = 1.6;
+      return;
+    }
+    if (kind === 'ghost') {
+      r.ghostTimer = 5; r.invulnerableTimer = Math.max(r.invulnerableTimer, 5);
+      // steal an item from someone ahead
+      const marks = racers.filter((o) => o.rank < r.rank && this.held.get(o.config.id)?.kind);
+      const victim = marks[Math.floor(Math.random() * marks.length)];
+      if (victim) {
+        const vh = this.held.get(victim.config.id)!;
+        for (const m of vh.trail) this.group.remove(m);
+        this.held.delete(victim.config.id);
+        const got: HeldItem = { kind: vh.kind, rollLeft: 0, shown: vh.kind!, count: vh.count, trailing: false, trail: [] };
+        this.held.set(r.config.id, got);
+        if (TRAILABLE.includes(got.kind!) && got.count > 1) this.startTrail(got);
+        if (!r.config.isPlayer) this.aiTimers.set(r.config.id, 1 + Math.random() * 2);
+        this.onEvent?.({ type: 'steal', racer: victim.config.id, by: r.config.id, item: got.kind! });
+      }
+      return;
+    }
     const mesh = makeProjectile(kind);
     this.group.add(mesh);
-    const behind = kind === 'banana';
+    const behind = kind === 'banana' || kind === 'fake';
     const off = behind ? -2.6 : 2.6;
     const t: Thrown = {
       kind,
@@ -378,8 +499,8 @@ export class ItemSystem {
       y: r.position.y,
       z: r.position.z + Math.cos(h) * off,
       heading: h,
-      speed: behind ? 0 : kind === 'green' ? 62 : 58,
-      life: behind ? 60 : kind === 'green' ? 3.5 : 8,
+      speed: behind ? 0 : kind === 'bomb' ? 42 : kind === 'green' ? 62 : 58,
+      life: behind ? 60 : kind === 'bomb' ? 1.3 : kind === 'green' ? 3.5 : 8,
       armed: 0.4,
     };
     if (kind === 'red') {
@@ -431,7 +552,9 @@ export class ItemSystem {
       t.y = THREE.MathUtils.lerp(t.y, ground + (t.kind === 'blue' ? 1.4 : 0.1), delta * 10);
       t.mesh.position.set(t.x, t.y, t.z);
 
+      if (t.kind === 'bomb' && t.speed > 0) t.speed = Math.max(0, t.speed - 30 * delta);
       let done = t.life <= 0;
+      if (done && t.kind === 'bomb') this.explode(t, racers);
       if (!done) {
         for (const r of racers) {
           if (r.config.id === t.owner && t.armed > 0) continue;
@@ -439,6 +562,7 @@ export class ItemSystem {
           const radius = t.kind === 'blue' && r.config.id === t.target ? 2.6 : 1.7;
           if (dx * dx + dz * dz < radius * radius) {
             if (t.kind === 'blue' && t.target && r.config.id !== t.target) continue; // flies over everyone else
+            if (t.kind === 'bomb') { this.explode(t, racers); done = true; break; }
             if (t.kind !== 'blue' && r.config.id !== t.owner && this.shield(r)) { done = true; break; }
             this.hit(r, t.owner, t.kind);
             done = true;
@@ -454,7 +578,8 @@ export class ItemSystem {
   }
 
   private hit(r: RacerState, by: string, kind: ItemKind) {
-    if (r.invulnerableTimer > 0 || (r.starTimer || 0) > 0) return;
+    if (r.invulnerableTimer > 0 || (r.starTimer || 0) > 0 || (r.ghostTimer || 0) > 0 || (r.rideTimer || 0) > 0) return;
+    r.coins = Math.max(0, (r.coins || 0) - 3);
     r.spinOutTimer = kind === 'blue' ? 1.8 : 1.1;
     r.invulnerableTimer = 2.2;
     r.boostTimer = 0;

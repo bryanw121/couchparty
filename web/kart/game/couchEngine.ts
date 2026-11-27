@@ -47,7 +47,7 @@ function tune(spd: number, acc: number, hnd: number, mult: number) {
   return { weight: spd >= 5 ? 3 : acc >= 5 ? 1 : 2, topSpeed: (41.5 + (spd - 3) * 1.1) * mult, acceleration: (30 + (acc - 3) * 2.6) * mult, handling: (3.2 + (hnd - 3) * 0.18) * (mult > 1 ? 1.08 : 1) };
 }
 const TOPPERS = ['cap', 'cat', 'bunny', 'crown', 'horns', 'bow', 'antenna'];
-const GRID = 6;
+const GRID = 8;
 
 const ICONS: Record<ItemKind, string> = {
   banana: '<svg viewBox="0 0 40 40"><path d="M7 12 C8 30 28 36 35 22 C25 25 15 22 12 9 Z" fill="#ffd93b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 9 L10 4" stroke="#5a3a12" stroke-width="3" stroke-linecap="round"/><path d="M14 20 C18 26 24 28 30 26" fill="none" stroke="#fff6b0" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -57,6 +57,14 @@ const ICONS: Record<ItemKind, string> = {
   boost: '<svg viewBox="0 0 40 40"><rect x="12" y="8" width="16" height="24" rx="5" fill="#ff7a00" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="4" width="10" height="5" rx="2" fill="#c9d3e6" stroke="#1b1b3a" stroke-width="2"/><path d="M21 12 L15 21 H19 L17 28 L25 18 H21 Z" fill="#ffe14d" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 33 L20 39 L25 33 Z" fill="#ffd34d"/></svg>',
   star: '<svg viewBox="0 0 40 40"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7ac6"/><stop offset=".5" stop-color="#ffd34d"/><stop offset="1" stop-color="#5ee6c8"/></linearGradient></defs><path d="M20 3 L25 14.5 L37.5 15.5 L28 23.5 L31 36 L20 29.5 L9 36 L12 23.5 L2.5 15.5 L15 14.5 Z" fill="url(#sg)" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="34" cy="6" r="2" fill="#fff"/><circle cx="6" cy="31" r="1.5" fill="#fff"/></svg>',
   bolt: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#2b2f6b" stroke="#1b1b3a" stroke-width="2"/><path d="M24 4 L9 22 H18 L14 37 L31 16 H22 Z" fill="#fff15a" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/></svg>',
+  fake: '<svg viewBox="0 0 40 40"><rect x="7" y="13" width="26" height="22" rx="3" fill="#ff5d8f" stroke="#1b1b3a" stroke-width="2.5"/><rect x="17.5" y="13" width="5" height="22" fill="#d62839"/><rect x="7" y="21" width="26" height="5" fill="#d62839"/><path d="M20 13 C14 4 8 9 14 13 M20 13 C26 4 32 9 26 13" fill="none" stroke="#d62839" stroke-width="3" stroke-linecap="round"/><text x="20" y="31" text-anchor="middle" font-family="Inter,sans-serif" font-weight="900" font-size="9" fill="#fff">!</text></svg>',
+  coin: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#ffc83d" stroke="#1b1b3a" stroke-width="2.5"/><circle cx="20" cy="20" r="10.5" fill="none" stroke="#e0a400" stroke-width="2"/><path d="M20 12 L22.4 17.2 L28 17.6 L23.8 21.2 L25.1 26.6 L20 23.7 L14.9 26.6 L16.2 21.2 L12 17.6 L17.6 17.2 Z" fill="#fff6c2"/></svg>',
+  horn: '<svg viewBox="0 0 40 40"><path d="M6 17 h6 l12 -9 v24 l-12 -9 h-6 z" fill="#ff5d5d" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="23" width="4" height="8" rx="1.5" fill="#c9d3e6" stroke="#1b1b3a" stroke-width="2"/><path d="M29 14 Q33 20 29 26 M32.5 10 Q39 20 32.5 30" fill="none" stroke="#1b1b3a" stroke-width="2.5" stroke-linecap="round"/></svg>',
+  bomb: '<svg viewBox="0 0 40 40"><circle cx="18" cy="24" r="12" fill="#23233a" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="9" width="7" height="5" rx="1.5" fill="#8a8fa8" stroke="#1b1b3a" stroke-width="2"/><path d="M20 9 Q22 4 27 5" fill="none" stroke="#c9a46a" stroke-width="2.5"/><path d="M29 2 l1.5 3 3 0.5 -2.3 2 0.6 3.2 -2.8 -1.6 -2.8 1.6 0.6 -3.2 -2.3 -2 3 -0.5 z" fill="#ffd34d"/><circle cx="13" cy="19" r="3" fill="#fff" opacity=".6"/></svg>',
+  ink: '<svg viewBox="0 0 40 40"><path d="M20 6 C26 6 25 12 30 11 C36 10 36 17 32 19 C37 22 34 29 28 27 C28 33 22 36 18 31 C13 35 7 31 10 26 C4 25 4 18 9 17 C6 12 12 8 15 11 C15 7 17 6 20 6 Z" fill="#7b4cc9" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="34" cy="31" r="2.5" fill="#7b4cc9"/><circle cx="6" cy="9" r="2" fill="#7b4cc9"/><circle cx="16" cy="17" r="3" fill="#fff" opacity=".5"/></svg>',
+  golden: '<svg viewBox="0 0 40 40"><rect x="12" y="8" width="16" height="24" rx="5" fill="#ffc83d" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="4" width="10" height="5" rx="2" fill="#fff1a8" stroke="#1b1b3a" stroke-width="2"/><path d="M21 12 L15 21 H19 L17 28 L25 18 H21 Z" fill="#fff" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M33 8 l1 2.5 2.5 1 -2.5 1 -1 2.5 -1 -2.5 -2.5 -1 2.5 -1 z M7 26 l0.8 2 2 0.8 -2 0.8 -0.8 2 -0.8 -2 -2 -0.8 2 -0.8 z" fill="#fff"/><path d="M15 33 L20 39 L25 33 Z" fill="#ff7a00"/></svg>',
+  ride: '<svg viewBox="0 0 40 40"><g transform="rotate(-35 20 20)"><path d="M20 3 C26 9 26 22 25 29 H15 C14 22 14 9 20 3 Z" fill="#f4f5fa" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="20" cy="15" r="3.5" fill="#4cc9f0" stroke="#1b1b3a" stroke-width="2"/><path d="M15 21 L9 30 L15 28 Z M25 21 L31 30 L25 28 Z" fill="#ff7a00" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/><path d="M16 30 L20 39 L24 30 Z" fill="#ffd34d"/></g></svg>',
+  ghost: '<svg viewBox="0 0 40 40"><path d="M8 34 V18 C8 10 13 5 20 5 C27 5 32 10 32 18 V34 L28 31 L24 34 L20 31 L16 34 L12 31 Z" fill="#f4f5fa" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><ellipse cx="15.5" cy="17" rx="2.5" ry="3.5" fill="#1b1b3a"/><ellipse cx="24.5" cy="17" rx="2.5" ry="3.5" fill="#1b1b3a"/><ellipse cx="20" cy="25" rx="3" ry="2" fill="#1b1b3a"/></svg>',
 };
 
 function ordinal(n: number) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
@@ -71,7 +79,7 @@ interface Racer {
   state: RacerState;
   handles: KartMeshHandles;
   ai?: AIController;
-  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; banner: HTMLElement; finishedShown: boolean; lastRank?: number; lastBump?: number; driftLvl?: number; wasDrifting?: boolean; onDirt?: boolean; rankCalm?: number };
+  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; banner: HTMLElement; ink: HTMLElement; finishedShown: boolean; lastRank?: number; lastBump?: number; driftLvl?: number; wasDrifting?: boolean; onDirt?: boolean; rankCalm?: number };
 }
 
 export class CouchEngine {
@@ -190,7 +198,7 @@ export class CouchEngine {
       this.shadows.set(cfg.id, shadow);
       const state: RacerState = {
         config: cfg,
-        position: { x: idx % 2 ? 3.5 : -3.5, y: 0.1, z: -6 - idx * 7 },
+        position: { x: idx % 2 ? 3.5 : -3.5, y: 0.1, z: -6 - idx * 5.5 },
         rotation: { y: Math.PI, pitch: 0, roll: 0 },
         speed: 0, angularVelocity: 0, steerAngle: 0, isDrifting: false, driftDirection: 0, driftTime: 0, driftLevel: 0,
         boostTimer: 0, boostMultiplier: 1, currentLap: 1, lapDistance: 0, totalDistance: 0, splineProgress: 0,
@@ -206,10 +214,14 @@ export class CouchEngine {
         map.width = map.height = 256;
         map.style.cssText = 'position:absolute;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))';
         this.overlay.appendChild(map);
+        const ink = document.createElement('div');
+        ink.style.cssText = 'position:absolute;pointer-events:none;opacity:0;background:' +
+          'radial-gradient(circle at 30% 40%, #3b1f6e 0 12%, transparent 13%),radial-gradient(circle at 62% 55%, #4a2a85 0 16%, transparent 17%),radial-gradient(circle at 45% 70%, #2e1957 0 10%, transparent 11%),radial-gradient(circle at 75% 30%, #3b1f6e 0 9%, transparent 10%),radial-gradient(circle at 20% 75%, #4a2a85 0 8%, transparent 9%)';
+        this.overlay.appendChild(ink);
         const banner = document.createElement('div');
         banner.style.cssText = 'position:absolute;pointer-events:none;text-align:center;font:italic 900 64px/1 "Space Grotesk",Inter,sans-serif;color:#fff;-webkit-text-stroke:5px #1b1b3a;paint-order:stroke fill;opacity:0;white-space:nowrap';
         this.overlay.appendChild(banner);
-        r.human = { idx: this.humans.length, cam: new CameraController(1), pad: { steer: 0, gas: false, brake: false, drift: false, item: false }, itemWas: false, gasAt: -1, hud, map, banner, finishedShown: false };
+        r.human = { idx: this.humans.length, cam: new CameraController(1), pad: { steer: 0, gas: false, brake: false, drift: false, item: false }, itemWas: false, gasAt: -1, hud, map, banner, ink, finishedShown: false };
         this.humans.push(r);
       } else {
         r.ai = new AIController(this.track, state);
@@ -283,6 +295,7 @@ export class CouchEngine {
       const size = Math.round(Math.min(v.h * 0.36, v.w * 0.2, 210));
       const pad = Math.round(Math.min(v.w, v.h) * 0.03);
       const nameTag = this.humans.length > 1 ? 44 : 60;
+      Object.assign(r.human!.ink.style, { left: v.x + 'px', top: H - v.y - v.h + 'px', width: v.w + 'px', height: v.h + 'px' });
       Object.assign(r.human!.banner.style, { left: v.x + 'px', width: v.w + 'px', top: H - v.y - v.h + v.h * 0.26 + 'px', fontSize: Math.round(Math.min(v.h * 0.13, 72)) + 'px' });
       Object.assign(r.human!.map.style, { width: size + 'px', height: size + 'px', left: v.x + pad + 'px', top: H - v.y - size - pad - nameTag + 'px' });
     });
@@ -312,7 +325,10 @@ export class CouchEngine {
     for (const r of this.racers) {
       let input = idle;
       if (this.phase !== 'countdown') {
-        if (r.human && this.opts.autopilot) {
+        if ((r.state.rideTimer || 0) > 0) {
+          if (!r.ai) r.ai = new AIController(this.track, r.state);
+          input = r.ai.update(delta, states);
+        } else if (r.human && this.opts.autopilot) {
           if (!r.ai) r.ai = new AIController(this.track, r.state);
           input = r.ai.update(delta, states);
         } else if (r.human) {
@@ -326,6 +342,7 @@ export class CouchEngine {
           r.human.itemWas = p.item;
         } else if (r.ai) {
           input = r.ai.update(delta, states);
+          if ((r.state.inkTimer || 0) > 0) input = { ...input, steer: (input.steer || 0) + Math.sin(this.elapsed * 3 + r.state.position.x) * 0.5 };
         }
       }
       const lapBefore = r.state.currentLap;
@@ -377,6 +394,17 @@ export class CouchEngine {
     }
     this.style.update(this.elapsed);
     for (const r of this.racers) {
+      const ghost = (r.state.ghostTimer || 0) > 0;
+      if (ghost !== !!r.handles.rootGroup.userData.ghost) {
+        r.handles.rootGroup.userData.ghost = ghost;
+        r.handles.rootGroup.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.Material & { opacity: number }; if (m) { m.transparent = ghost || m.transparent; m.opacity = ghost ? 0.25 : 1; } });
+      }
+      if (r.human) {
+        const ink = (r.state.inkTimer || 0) > 0;
+        const el = r.human.ink;
+        if (ink && el.style.opacity !== '1') { el.style.transition = 'opacity .15s'; el.style.opacity = '1'; }
+        else if (!ink && el.style.opacity === '1') { el.style.transition = 'opacity 1.2s'; el.style.opacity = '0'; }
+      }
       const sh = this.shadows.get(r.state.config.id);
       if (sh) { sh.position.set(r.state.position.x, r.state.position.y + 0.06, r.state.position.z); sh.rotation.z = r.state.rotation.y; sh.scale.setScalar(r.handles.rootGroup.scale.x); }
       const cd = (this.padCooldown.get(r.state.config.id) || 0) - delta;
@@ -601,6 +629,13 @@ export class CouchEngine {
     } else if (e.type === 'block' && me) this.say(me, 'BLOCKED!', '#8fb4ff', 900);
     else if (e.type === 'bolt') { for (const r of this.humans) if (r !== me && !((r.state.starTimer || 0) > 0)) this.say(r, 'SHRUNK!', '#fff15a'); }
     else if (e.type === 'use' && me && e.item === 'star') this.say(me, 'STAR POWER!', '#ffd34d');
+    else if (e.type === 'use' && me && e.item === 'ride') this.say(me, 'ROCKET RIDE!', '#ff7a00');
+    else if (e.type === 'use' && me && e.item === 'ghost') this.say(me, 'GHOST!', '#e8ecff');
+    else if (e.type === 'use' && me && e.item === 'coin') this.say(me, '+2 COINS', '#ffc83d', 700);
+    else if (e.type === 'use' && me && e.item === 'golden') this.say(me, 'GOLDEN TURBO!', '#ffc83d', 700);
+    else if (e.type === 'ink' && me) this.say(me, 'SPLAT!', '#c9a8ff');
+    else if (e.type === 'steal') { if (me) this.say(me, 'STOLEN!', '#ff5d5d'); if (by && by !== me) this.say(by, 'GOT IT!', '#5ee6c8'); }
+    else if (e.type === 'horn' && me) this.say(me, 'HONK!', '#ffffff', 700);
   }
 
   // ---------- drawing ----------
@@ -746,6 +781,7 @@ export class CouchEngine {
           '<div style="display:flex;align-items:center;gap:10px;background:rgba(14,16,32,.6);border-radius:999px;padding:6px 14px 6px 6px">' +
             '<span style="width:' + (small ? 22 : 30) + 'px;height:' + (small ? 22 : 30) + 'px;border-radius:50%;background:' + s.config.color + ';box-shadow:0 0 0 3px ' + spark + '"></span>' +
             '<span style="font:700 ' + (small ? 16 : 22) + 'px Inter,sans-serif">' + escapeHtml(s.config.name) + '</span>' +
+            '<span style="display:inline-flex;align-items:center;gap:4px;font:800 ' + (small ? 15 : 20) + 'px Inter,sans-serif;color:#ffc83d"><span style="width:' + (small ? 14 : 18) + 'px;height:' + (small ? 14 : 18) + 'px;border-radius:50%;background:#ffc83d;border:2px solid #1b1b3a;box-sizing:border-box"></span>' + (s.coins || 0) + '</span>' +
           '</div>' +
           '<div style="position:relative;font:italic 900 ' + big + 'px/0.9 \'Space Grotesk\',Inter,sans-serif;transform:skewX(-6deg)">' +
             '<span style="position:absolute;inset:0;-webkit-text-stroke:' + (small ? 8 : 12) + 'px #1b1b3a;color:#1b1b3a">' + ordinal(s.rank) + '</span>' +

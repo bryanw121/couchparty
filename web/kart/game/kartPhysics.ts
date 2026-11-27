@@ -63,13 +63,19 @@ export class KartPhysicsEngine {
     let effectiveTopSpeed = config.topSpeed * state.boostMultiplier;
     if (state.shrinkTimer && state.shrinkTimer > 0) { state.shrinkTimer -= delta; effectiveTopSpeed *= 0.72; }
     if (state.starTimer && state.starTimer > 0) { state.starTimer -= delta; effectiveTopSpeed *= 1.18; }
+    // coins: each one adds a little top speed
+    effectiveTopSpeed *= 1 + 0.012 * (state.coins || 0);
+    if (state.rideTimer && state.rideTimer > 0) { state.rideTimer -= delta; effectiveTopSpeed *= 1.35; state.speed = Math.max(state.speed, config.topSpeed * 1.45); }
+    if (state.ghostTimer && state.ghostTimer > 0) state.ghostTimer -= delta;
+    if (state.inkTimer && state.inkTimer > 0) state.inkTimer -= delta;
     let accelRate = config.acceleration;
     // Shortcut dirt: slow, unless you're boosting through it
     if (onDirt && state.boostTimer <= 0 && !(state.starTimer && state.starTimer > 0)) { effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.66); }
 
     if (isOffTrack) {
-      effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.45);
-      accelRate *= 0.6;
+      // grass slows you down, but never to a crawl (boosts power through it)
+      if (state.boostTimer <= 0) effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.66);
+      accelRate *= 0.8;
       // Emit grass dust
       if (Math.abs(state.speed) > 5 && Math.random() < 0.4) {
         this.particles.emitTireSmoke(
@@ -97,7 +103,7 @@ export class KartPhysicsEngine {
       }
     } else {
       // Natural rolling drag
-      const drag = isOffTrack ? 22 : 9;
+      const drag = isOffTrack ? 13 : 9;
       if (state.speed > 0) {
         state.speed = Math.max(0, state.speed - drag * delta);
       } else if (state.speed < 0) {
@@ -233,18 +239,20 @@ export class KartPhysicsEngine {
     state.position.y = THREE.MathUtils.lerp(state.position.y, (onDirt ? scY! : closest.point.y) + 0.1, delta * 12);
 
     // 7. Track Wall / Outer Boundary Soft Barrier Physics
-    const maxBound = halfW + 6;
+    const maxBound = halfW + 10;
     if (closest.distanceToCenter > maxBound && !onDirt) {
       // Push back towards track center
       const toTrackX = closest.point.x - state.position.x;
       const toTrackZ = closest.point.z - state.position.z;
       const dist = Math.sqrt(toTrackX * toTrackX + toTrackZ * toTrackZ);
       if (dist > 0.01) {
-        state.position.x += (toTrackX / dist) * (closest.distanceToCenter - maxBound) * 0.8;
-        state.position.z += (toTrackZ / dist) * (closest.distanceToCenter - maxBound) * 0.8;
-        state.speed *= 0.6; // Bump slowdown
-        if (state.config.isPlayer) {
-          soundEngine.playCollisionSound(0.5);
+        state.position.x += (toTrackX / dist) * (closest.distanceToCenter - maxBound);
+        state.position.z += (toTrackZ / dist) * (closest.distanceToCenter - maxBound);
+        // brush along the edge: a gentle scrub instead of a dead stop
+        state.speed *= Math.pow(0.6, delta);
+        const now = performance.now();
+        if (state.config.isPlayer && (!state.bumpedAt || now - state.bumpedAt > 400)) {
+          soundEngine.playCollisionSound(0.35);
         }
       }
     }
@@ -311,6 +319,7 @@ export class KartPhysicsEngine {
 
     for (const other of allRacers) {
       if (other.config.id === state.config.id) continue;
+      if ((state.ghostTimer || 0) > 0 || (other.ghostTimer || 0) > 0) continue;
 
       const dx = state.position.x - other.position.x;
       const dz = state.position.z - other.position.z;
