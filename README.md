@@ -122,6 +122,9 @@ Kario Mart's roster is Mario, Luigi, Peach, Daisy, Yoshi, Toad, Bowser and Donke
 costumes and facial features. TV/phone character selection uses studio-lit PNG portraits rendered from
 the same character sculptures, with smooth shading instead of flat SVG faces. Rounded karts race past
 spotted mushrooms, festival flags and course-colored hills.
+Each character has a matching kart body: Mario/Luigi racers, Peach/Daisy royal roadsters, Yoshi's egg
+fairing, Toad's spotted hood, Bowser's spiked armor, and Donkey Kong's barrel body. Raised emblems,
+rounded tire profiles, spokes, treads, rear number plates, and modeled engines/exhausts are 3D geometry.
 Items use mystery cubes, segmented shells (including a winged spiny shell) and mushroom boost icons.
 All artwork is generated locally in code, without external model downloads.
 
@@ -134,6 +137,9 @@ Verify geometry, menu flow and audio scheduling with `npm run test:kart`; build 
 Regenerate character portraits with `npm run build:portraits`. The offline renderer needs no browser or GPU;
 it writes individual PNGs and a roster contact sheet under `public/kart-portraits`, plus the embedded
 portrait data used by both TV and phone pages. Rebuild pages after regenerating portraits.
+`npm run build:kart-previews` renders the actual race kart assemblies to `public/kart-models` for review.
+Add `--rear` to `node scripts/render-kart-portraits.mjs --karts` for the rear view. These are offline model
+renders, not gameplay screenshots.
 
 ## Deploying page changes
 

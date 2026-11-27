@@ -10,10 +10,11 @@ export { CourseMusic } from './web/kart/game/music';
 export { soundEngine } from './web/kart/game/audio';
 export { ItemSystem } from './web/kart/game/items';
 export { TrackSystem } from './web/kart/game/track';
+export { KartPhysicsEngine } from './web/kart/game/kartPhysics';
 export { applyCartoonStyle } from './web/kart/game/style';
 export { COURSES } from './web/kart/game/tracks';`, resolveDir: process.cwd(), loader: 'ts' },
   bundle: true, platform: 'node', format: 'esm', packages: 'external', outfile: 'dist/kart-test.mjs' });
-const { createKartMesh, CourseMusic, soundEngine, ItemSystem, TrackSystem, applyCartoonStyle, COURSES } = await import('../dist/kart-test.mjs');
+const { createKartMesh, CourseMusic, soundEngine, ItemSystem, TrackSystem, KartPhysicsEngine, applyCartoonStyle, COURSES } = await import('../dist/kart-test.mjs');
 
 // Texture generation uses canvas drawing only; geometry remains real Three.js geometry.
 const drawing = new Proxy({}, { get: (_, key) => key === 'createLinearGradient' || key === 'createRadialGradient'
@@ -52,6 +53,21 @@ for (const d of DRIVERS) {
     for (const v of [...bounds.min.toArray(), ...bounds.max.toArray()]) assert.ok(Number.isFinite(v));
   });
   assert.ok(meshes > 40, d.id + ' has a complete driver and kart');
+  // A public physics update must rotate every part of each wheel, including rims and treads.
+  const wheels=[kart.frontLeftWheel,kart.frontRightWheel,kart.rearLeftWheel,kart.rearRightWheel];
+  const orientations=()=>{
+    kart.rootGroup.updateMatrixWorld(true);
+    const result=new Map();
+    for(const wheel of wheels){
+      const inverse=wheel.getWorldQuaternion(new THREE.Quaternion()).invert();
+      wheel.traverse(o=>{if(o.isMesh)result.set(o.uuid,inverse.clone().multiply(o.getWorldQuaternion(new THREE.Quaternion())));});
+    }
+    return result;
+  };
+  const beforeSpin=orientations();
+  const physics=new KartPhysicsEngine(null,null); // spin-out rendering does not query the track
+  physics.updateRacer({spinOutTimer:.3,speed:15,position:{x:0,y:.1,z:0},rotation:{y:0,pitch:0,roll:0},angularVelocity:.2,isDrifting:false}, {}, kart, .016, []);
+  for(const [id,rotation] of orientations())assert.ok(rotation.angleTo(beforeSpin.get(id))>.01,'the full wheel assembly spins');
   const size = new THREE.Box3().setFromObject(kart.driverHead).getSize(new THREE.Vector3());
   silhouettes.add(size.toArray().map(n => n.toFixed(3)).join(','));
   const portrait = artContext.KA.driver(d);

@@ -6,14 +6,16 @@ import * as THREE from 'three';
 import { DRIVERS } from '../src/games/kart.js';
 
 fs.mkdirSync('dist', { recursive: true });
-await build({ entryPoints: ['web/kart/game/driverModel.ts'], bundle: true, platform: 'node', format: 'esm', packages: 'external', outfile: 'dist/portrait-model.mjs' });
-const { createDriver } = await import('../dist/portrait-model.mjs');
-const SIZE = 256, SS = 2, W = SIZE * SS;
+await build({ stdin: { contents: "export { createDriver } from './web/kart/game/driverModel'; export { createKartMesh } from './web/kart/game/kartModel';", resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: 'node', format: 'esm', packages: 'external', outfile: 'dist/portrait-model.mjs' });
+const { createDriver, createKartMesh } = await import('../dist/portrait-model.mjs');
+const karts = process.argv.includes('--karts'), rear = process.argv.includes('--rear');
+const SIZE = karts ? 384 : 256, SS = 2, W = SIZE * SS;
 const light = new THREE.Vector3(-2.5, 4, 5).normalize();
 const fill = new THREE.Vector3(3, 1, 1).normalize();
-const camera = new THREE.OrthographicCamera(-.62,.62,.63,-.63,.1,10);
-camera.position.set(.85,1.24,3.5); camera.lookAt(0,1.16,0); camera.updateMatrixWorld();
-const shadowCamera = new THREE.OrthographicCamera(-.85,.85,1,-1,.1,10);
+const camera = karts ? new THREE.OrthographicCamera(-1.7,1.7,1.7,-1.7,.1,15) : new THREE.OrthographicCamera(-.62,.62,.63,-.63,.1,10);
+camera.position.copy(karts ? new THREE.Vector3(3.5,2.7,rear ? -4.6 : 4.6) : new THREE.Vector3(.85,1.24,3.5));
+camera.lookAt(0,karts ? .72 : 1.16,0); camera.updateMatrixWorld();
+const shadowCamera = karts ? new THREE.OrthographicCamera(-2.2,2.2,2.2,-2.2,.1,10) : new THREE.OrthographicCamera(-.85,.85,1,-1,.1,10);
 shadowCamera.position.copy(light.clone().multiplyScalar(4).add(new THREE.Vector3(0,1,0))); shadowCamera.lookAt(0,1,0); shadowCamera.updateMatrixWorld();
 const viewProjection = c => new THREE.Matrix4().multiplyMatrices(c.projectionMatrix,c.matrixWorldInverse);
 const mainVP = viewProjection(camera), shadowVP = viewProjection(shadowCamera);
@@ -54,10 +56,13 @@ function raster(tris,m,size,shade) {
 }
 const aces = x => Math.max(0,Math.min(1,(x*(2.51*x+.03))/(x*(2.43*x+.59)+.14)));
 const srgb = x => x<=.0031308?x*12.92:1.055*Math.pow(x,1/2.4)-.055;
-const outputDir='public/kart-portraits';fs.mkdirSync(outputDir,{recursive:true});
+const outputDir=karts ? 'public/kart-models' + (rear ? '/rear' : '') : 'public/kart-portraits';fs.mkdirSync(outputDir,{recursive:true});
 const atlas=new Uint8Array(SIZE*4*SIZE*2*4),embedded={};
 for(const [index,d] of DRIVERS.entries()) {
-  const group=new THREE.Group();const head=createDriver(group,{...d,accentColor:'#ffffff'},'portrait');head.scale.setScalar(1.18);
+  const config={...d,accentColor:'#ffffff',number:index+1};
+  let group;
+  if(karts){const kart=createKartMesh(config);kart.driverHead.scale.setScalar(1.18);group=kart.rootGroup;}
+  else{group=new THREE.Group();const head=createDriver(group,config,'portrait');head.scale.setScalar(1.18);}
   const tris=triangles(group),shadow=raster(tris,shadowVP,512),rgb=new Float32Array(W*W*4);
   // Studio backdrop with a low-key character-color halo.
   const accent=new THREE.Color(d.color);
@@ -94,7 +99,7 @@ for(const [index,d] of DRIVERS.entries()) {
   console.log(d.name,Math.round(png.length/1024)+' KB',tris.length+' triangles');
 }
 fs.writeFileSync(`${outputDir}/roster.png`,encodePNG(SIZE*4,SIZE*2,atlas));
-fs.writeFileSync('public/kart-portraits.js','var KARIO_PORTRAITS = '+JSON.stringify(embedded)+';\n');
+if(!karts)fs.writeFileSync('public/kart-portraits.js','var KARIO_PORTRAITS = '+JSON.stringify(embedded)+';\n');
 
 function encodePNG(width,height,pixels) {
   const table=Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
