@@ -298,6 +298,14 @@ function addTopper(head: THREE.Group, kind: string | undefined, accent: THREE.Co
     mesh.castShadow = true;
     head.add(mesh);
   };
+  if (kind === 'bear') {
+    const ear = new THREE.MeshStandardMaterial({ color: main, roughness: 0.6 });
+    for (const sx of [-1, 1]) {
+      add(new THREE.SphereGeometry(0.1, 10, 8), ear, sx * 0.17, 0.2, -0.02);
+      add(new THREE.SphereGeometry(0.055, 8, 6), inner, sx * 0.17, 0.2, 0.05);
+    }
+    return;
+  }
   if (kind === 'cat') {
     add(new THREE.ConeGeometry(0.09, 0.2, 4), mat, -0.13, 0.27, 0, 0, 0.35);
     add(new THREE.ConeGeometry(0.09, 0.2, 4), mat, 0.13, 0.27, 0, 0, -0.35);

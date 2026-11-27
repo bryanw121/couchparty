@@ -8,43 +8,53 @@ import { AIController } from './aiController';
 import { CameraController } from './camera';
 import { soundEngine } from './audio';
 import { ItemSystem, ItemEvent, ItemKind } from './items';
+import { courseById } from './tracks';
 import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
 
 // One TV, up to four players on phones, split screen like a console kart racer.
 // The race runs here on the TV; phones only send their controls.
 
-export interface CouchPlayer { id: string; name: string; color: string; topper?: string }
+export interface CouchPlayer { id: string; name: string; color: string; topper?: string; driver?: string; stats?: { spd: number; acc: number; hnd: number } }
 export interface PadInput { steer: number; gas: boolean; brake: boolean; drift: boolean; item: boolean }
 export interface CouchResult { id: string; name: string; color: string; human: boolean; rank: number; time: number | null; bestLap: number | null }
 export interface CouchOptions {
   players: CouchPlayer[];
   laps?: number;
   items?: boolean;
+  course?: string; // meadow | sunset | frosty | neon
+  speed?: 'chill' | 'fast' | 'turbo';
+  cpus?: boolean; // false for Time Trial
   quality?: 'low' | 'high';
   autopilot?: boolean; // demo / attract mode: the computer drives the player karts too
   onFinish?: (results: CouchResult[]) => void;
   onEvent?: (e: ItemEvent | { type: 'lap' | 'finish'; racer: string; lap?: number; rank?: number }) => void;
 }
 
-const CPU: Array<{ name: string; color: string; accent: string; topper: string }> = [
-  { name: 'Turbo Tabby', color: '#f97316', accent: '#fde68a', topper: 'cat' },
-  { name: 'Bun Bun', color: '#f472b6', accent: '#fdf2f8', topper: 'bunny' },
-  { name: 'Duke Dash', color: '#7c3aed', accent: '#fcd34d', topper: 'crown' },
-  { name: 'Grizz', color: '#78350f', accent: '#f4f1e6', topper: 'horns' },
-  { name: 'Zippy', color: '#06b6d4', accent: '#f0f9ff', topper: 'antenna' },
-  { name: 'Lulu', color: '#ef4444', accent: '#fecaca', topper: 'bow' },
+const CPU: Array<{ id: string; name: string; color: string; accent: string; topper: string; spd: number; acc: number; hnd: number }> = [
+  { id: 'tabby', name: 'Tabby', color: '#FF9F43', accent: '#fff3d6', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
+  { id: 'bunbun', name: 'Bun Bun', color: '#FF7AC6', accent: '#fdf2f8', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
+  { id: 'duke', name: 'Duke', color: '#9B6BFF', accent: '#fcd34d', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
+  { id: 'rex', name: 'Rex', color: '#3DDC84', accent: '#ecfdf5', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
+  { id: 'lulu', name: 'Lulu', color: '#FF5D8F', accent: '#ffe4ec', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
+  { id: 'zippy', name: 'Zippy', color: '#4CC9F0', accent: '#f0f9ff', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
+  { id: 'ace', name: 'Ace', color: '#FFC83D', accent: '#fff7d6', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
+  { id: 'grizz', name: 'Grizz', color: '#B07A4F', accent: '#f4f1e6', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
 ];
+const SPEED_MULT = { chill: 0.8, fast: 1, turbo: 1.2 };
+function tune(spd: number, acc: number, hnd: number, mult: number) {
+  return { topSpeed: (41.5 + (spd - 3) * 1.1) * mult, acceleration: (30 + (acc - 3) * 2.6) * mult, handling: (3.2 + (hnd - 3) * 0.18) * (mult > 1 ? 1.08 : 1) };
+}
 const TOPPERS = ['cap', 'cat', 'bunny', 'crown', 'horns', 'bow', 'antenna'];
 const GRID = 6;
 
 const ICONS: Record<ItemKind, string> = {
-  banana: '<svg viewBox="0 0 40 40"><path d="M8 10 C10 30 30 34 34 22 C24 26 14 22 12 8 Z" fill="#ffe14d" stroke="#8a6b12" stroke-width="2"/></svg>',
-  green: '<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="13" fill="#22c55e" stroke="#fff" stroke-width="4"/></svg>',
-  red: '<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="13" fill="#ef4444" stroke="#fff" stroke-width="4"/></svg>',
-  blue: '<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="11" fill="#3b82f6" stroke="#fff" stroke-width="4"/><path d="M2 16 L12 20 M38 16 L28 20" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>',
-  boost: '<svg viewBox="0 0 40 40"><path d="M22 4 L8 24 H19 L16 36 L32 14 H21 Z" fill="#fb923c" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>',
-  star: '<svg viewBox="0 0 40 40"><path d="M20 3 L25 15 L38 15 L27 23 L31 36 L20 28 L9 36 L13 23 L2 15 L15 15 Z" fill="#facc15" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>',
-  bolt: '<svg viewBox="0 0 40 40"><path d="M24 2 L8 22 H18 L14 38 L32 16 H22 Z" fill="#fde047" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/></svg>',
+  banana: '<svg viewBox="0 0 40 40"><path d="M7 12 C8 30 28 36 35 22 C25 25 15 22 12 9 Z" fill="#ffd93b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 9 L10 4" stroke="#5a3a12" stroke-width="3" stroke-linecap="round"/><path d="M14 20 C18 26 24 28 30 26" fill="none" stroke="#fff6b0" stroke-width="2" stroke-linecap="round"/></svg>',
+  green: '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="36" rx="10" ry="2.5" fill="rgba(0,0,0,.35)"/><circle cx="20" cy="20" r="14" fill="#3ddc84" stroke="#1b1b3a" stroke-width="2.5"/><circle cx="14" cy="14" r="4" fill="#fff" opacity=".85"/><circle cx="16" cy="21" r="2.2" fill="#1b1b3a"/><circle cx="24" cy="21" r="2.2" fill="#1b1b3a"/><path d="M16 26 Q20 29 24 26" fill="none" stroke="#1b1b3a" stroke-width="2" stroke-linecap="round"/></svg>',
+  red: '<svg viewBox="0 0 40 40"><g transform="rotate(45 20 20)"><path d="M20 3 C26 9 26 22 25 28 H15 C14 22 14 9 20 3 Z" fill="#ff3b3b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 C23 6 24.5 9 25 12 H15 C15.5 9 17 6 20 3 Z" fill="#fff" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/><rect x="15" y="17" width="10" height="3" fill="#ffc83d"/><path d="M15 22 L10 30 L15 28 Z M25 22 L30 30 L25 28 Z" fill="#fff" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/><path d="M17 29 L20 37 L23 29 Z" fill="#ffa31a"/></g></svg>',
+  blue: '<svg viewBox="0 0 40 40"><path d="M10 24 A6 6 0 0 1 11 13 A8 8 0 0 1 26 10 A7 7 0 0 1 31 24 Z" fill="#5b6bd6" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M15 17 L18 18.5 M25 17 L22 18.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M21 24 L16 31 H20 L17 38 L25 28 H21 L23 24 Z" fill="#fff15a" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  boost: '<svg viewBox="0 0 40 40"><rect x="12" y="8" width="16" height="24" rx="5" fill="#ff7a00" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="4" width="10" height="5" rx="2" fill="#c9d3e6" stroke="#1b1b3a" stroke-width="2"/><path d="M21 12 L15 21 H19 L17 28 L25 18 H21 Z" fill="#ffe14d" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 33 L20 39 L25 33 Z" fill="#ffd34d"/></svg>',
+  star: '<svg viewBox="0 0 40 40"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7ac6"/><stop offset=".5" stop-color="#ffd34d"/><stop offset="1" stop-color="#5ee6c8"/></linearGradient></defs><path d="M20 3 L25 14.5 L37.5 15.5 L28 23.5 L31 36 L20 29.5 L9 36 L12 23.5 L2.5 15.5 L15 14.5 Z" fill="url(#sg)" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="34" cy="6" r="2" fill="#fff"/><circle cx="6" cy="31" r="1.5" fill="#fff"/></svg>',
+  bolt: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#2b2f6b" stroke="#1b1b3a" stroke-width="2"/><path d="M24 4 L9 22 H18 L14 37 L31 16 H22 Z" fill="#fff15a" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/></svg>',
 };
 
 function ordinal(n: number) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
@@ -59,7 +69,7 @@ interface Racer {
   state: RacerState;
   handles: KartMeshHandles;
   ai?: AIController;
-  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; finishedShown: boolean };
+  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; finishedShown: boolean };
 }
 
 export class CouchEngine {
@@ -101,19 +111,18 @@ export class CouchEngine {
     container.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.display = 'block';
 
-    this.scene.background = new THREE.Color(0x7dd3fc);
-    this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0025);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const sun = new THREE.DirectionalLight(0xfff4e0, 1.7);
+    const th = courseById(opts.course).theme;
+    this.scene.add(new THREE.AmbientLight(0xffffff, th.ambient));
+    const sun = new THREE.DirectionalLight(th.sunColor, th.sun);
     sun.position.set(100, 150, 80);
     sun.castShadow = this.renderer.shadowMap.enabled;
     sun.shadow.mapSize.set(1024, 1024);
     const d = 160;
     Object.assign(sun.shadow.camera, { left: -d, right: d, top: d, bottom: -d, near: 10, far: 400 });
     this.scene.add(sun);
-    this.scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x5ccf45, 0.55));
+    this.scene.add(new THREE.HemisphereLight(th.hemiSky, th.ground, 0.55));
 
-    this.track = new TrackSystem(this.scene);
+    this.track = new TrackSystem(this.scene, opts.course);
     this.scene.add(this.particles.group);
     this.physics = new KartPhysicsEngine(this.track, this.particles);
     if (opts.items !== false) {
@@ -142,23 +151,26 @@ export class CouchEngine {
   private build() {
     const players = this.opts.players.slice(0, 4);
     const configs: RacerConfig[] = [];
+    const mult = SPEED_MULT[this.opts.speed || 'fast'] || 1;
     players.forEach((p, i) => {
+      const st = p.stats || { spd: 3, acc: 3, hnd: 3 };
       configs.push({
         id: p.id, name: p.name, isPlayer: true, audioLead: i === 0,
         color: p.color, accentColor: '#ffffff', helmetColor: p.color, visorColor: '#0f172a',
-        number: i + 1, topSpeed: 41.5, acceleration: 30, handling: 3.2, driftMultiplier: 1.35,
+        number: i + 1, ...tune(st.spd, st.acc, st.hnd, mult), driftMultiplier: 1.35,
         topper: p.topper || TOPPERS[i % TOPPERS.length],
       });
     });
-    const used = new Set(players.map((p) => p.color.toLowerCase()));
-    for (const c of CPU) {
+    const used = new Set(players.map((p) => (p.driver || p.color).toLowerCase()));
+    for (const c of this.opts.cpus === false ? [] : CPU) {
       if (configs.length >= GRID) break;
-      if (used.has(c.color)) continue;
+      if (used.has(c.id) || used.has(c.color.toLowerCase())) continue;
+      const t = tune(c.spd, c.acc, c.hnd, mult);
       configs.push({
-        id: 'cpu-' + c.name, name: c.name, isPlayer: false,
-        color: c.color, accentColor: c.accent, helmetColor: c.accent, visorColor: '#0f172a',
-        number: configs.length + 1, topSpeed: 39.5 + Math.random() * 2, acceleration: 28 + Math.random() * 3,
-        handling: 3 + Math.random() * 0.4, driftMultiplier: 1.3, aiAggression: 0.9 + Math.random() * 0.3, topper: c.topper,
+        id: 'cpu-' + c.id, name: c.name, isPlayer: false,
+        color: c.color, accentColor: c.accent, helmetColor: c.color, visorColor: '#0f172a',
+        number: configs.length + 1, topSpeed: t.topSpeed * (0.95 + Math.random() * 0.04), acceleration: t.acceleration * 0.95,
+        handling: t.handling, driftMultiplier: 1.3, aiAggression: 0.9 + Math.random() * 0.3, topper: c.topper,
       });
     }
     // Humans start at the back like a console Grand Prix
@@ -185,7 +197,11 @@ export class CouchEngine {
         const hud = document.createElement('div');
         hud.style.cssText = 'position:absolute;box-sizing:border-box;padding:2.2vh 2vw;display:flex;flex-direction:column;justify-content:space-between';
         this.overlay.appendChild(hud);
-        r.human = { idx: this.humans.length, cam: new CameraController(1), pad: { steer: 0, gas: false, brake: false, drift: false, item: false }, itemWas: false, gasAt: -1, hud, finishedShown: false };
+        const map = document.createElement('canvas');
+        map.width = map.height = 256;
+        map.style.cssText = 'position:absolute;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))';
+        this.overlay.appendChild(map);
+        r.human = { idx: this.humans.length, cam: new CameraController(1), pad: { steer: 0, gas: false, brake: false, drift: false, item: false }, itemWas: false, gasAt: -1, hud, map, finishedShown: false };
         this.humans.push(r);
       } else {
         r.ai = new AIController(this.track, state);
@@ -253,6 +269,11 @@ export class CouchEngine {
       const v = vs[i];
       r.human!.cam.onResize(v.w, v.h);
       Object.assign(r.human!.hud.style, { left: v.x + 'px', top: H - v.y - v.h + 'px', width: v.w + 'px', height: v.h + 'px' });
+      // Mini map: lower left, above the name tag
+      const size = Math.round(Math.min(v.h * 0.36, v.w * 0.2, 210));
+      const pad = Math.round(Math.min(v.w, v.h) * 0.03);
+      const nameTag = this.humans.length > 1 ? 44 : 60;
+      Object.assign(r.human!.map.style, { width: size + 'px', height: size + 'px', left: v.x + pad + 'px', top: H - v.y - size - pad - nameTag + 'px' });
     });
     if (vs[3] && this.humans.length === 3) this.overview.onResize(vs[3].w, vs[3].h);
     this.banner.style.fontSize = (this.humans.length > 2 ? 80 : 120) + 'px';
@@ -355,6 +376,7 @@ export class CouchEngine {
     for (const r of this.humans) r.human!.cam.update(r.state, delta);
     if (this.humans.length === 3) this.overview.update(sorted[0].state, delta);
     this.drawHud();
+    this.drawMaps();
 
     // End: every human finished, or 25 s after the first one did
     if (this.phase === 'racing') {
@@ -418,6 +440,60 @@ export class CouchEngine {
       this.renderer.setViewport(v.x, v.y, v.w, v.h);
       this.renderer.setScissor(v.x, v.y, v.w, v.h);
       this.renderer.render(this.scene, this.overview.camera);
+    }
+  }
+
+  // ---------- mini map ----------
+  private mapBase: HTMLCanvasElement | null = null;
+  private mapXf = { cx: 0, cz: 0, k: 1 };
+  private toMap(x: number, z: number): [number, number] { return [128 + (x - this.mapXf.cx) * this.mapXf.k, 128 + (z - this.mapXf.cz) * this.mapXf.k]; }
+  private buildMapBase() {
+    const pts = this.track.trackPoints;
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    for (const p of pts) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+    this.mapXf = { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, k: 220 / Math.max(x1 - x0, z1 - z0) };
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d')!;
+    const path = () => { g.beginPath(); pts.forEach((p, i) => { const [x, y] = this.toMap(p.x, p.z); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.closePath(); };
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    path(); g.strokeStyle = '#1b1b3a'; g.lineWidth = 22; g.stroke();
+    path(); g.strokeStyle = '#ffffff'; g.lineWidth = 15; g.stroke();
+    path(); g.strokeStyle = '#c9d3e6'; g.lineWidth = 9; g.stroke();
+    // checkered start line
+    const p0 = pts[0], [sx, sy] = this.toMap(p0.x, p0.z);
+    const ang = Math.atan2(p0.normalZ, p0.normalX);
+    g.save(); g.translate(sx, sy); g.rotate(ang);
+    for (let i = -3; i < 3; i++) for (let j = 0; j < 2; j++) { g.fillStyle = (i + j) % 2 ? '#1b1b3a' : '#ffffff'; g.fillRect(i * 3, j * 3 - 3, 3, 3); }
+    g.restore();
+    this.mapBase = c;
+  }
+  private drawMaps() {
+    if (!this.mapBase) this.buildMapBase();
+    const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 6);
+    // back to front: CPUs, then other players, then the leader on top
+    const order = [...this.racers].sort((a, b) => (a.human ? 1 : 0) - (b.human ? 1 : 0) || b.state.rank - a.state.rank);
+    for (const me of this.humans) {
+      const g = me.human!.map.getContext('2d')!;
+      g.clearRect(0, 0, 256, 256);
+      g.drawImage(this.mapBase!, 0, 0);
+      for (const r of order) {
+        if (r === me) continue;
+        const [x, y] = this.toMap(r.state.position.x, r.state.position.z);
+        const rad = r.human ? 9 : 6.5;
+        g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2);
+        g.fillStyle = r.state.config.color; g.fill();
+        g.lineWidth = r.human ? 3.5 : 2.5; g.strokeStyle = r.human ? '#ffffff' : '#1b1b3a'; g.stroke();
+      }
+      // you: biggest dot, pulsing ring, pointer for your heading
+      const [x, y] = this.toMap(me.state.position.x, me.state.position.z);
+      const h = me.state.rotation.y;
+      g.beginPath(); g.arc(x, y, 15 + pulse * 5, 0, Math.PI * 2); g.strokeStyle = 'rgba(255,200,61,' + (0.9 - pulse * 0.6) + ')'; g.lineWidth = 4; g.stroke();
+      g.save(); g.translate(x, y); g.rotate(Math.atan2(Math.cos(h), Math.sin(h)));
+      g.beginPath(); g.moveTo(21, 0); g.lineTo(9, -8); g.lineTo(9, 8); g.closePath(); g.fillStyle = '#ffc83d'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#1b1b3a'; g.stroke();
+      g.restore();
+      g.beginPath(); g.arc(x, y, 11, 0, Math.PI * 2); g.fillStyle = me.state.config.color; g.fill(); g.lineWidth = 4; g.strokeStyle = '#ffffff'; g.stroke();
+      g.beginPath(); g.arc(x, y, 13.5, 0, Math.PI * 2); g.lineWidth = 2; g.strokeStyle = '#1b1b3a'; g.stroke();
     }
   }
 

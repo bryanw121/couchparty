@@ -106,12 +106,21 @@ export class KartPhysicsEngine {
     if (input.steerLeft) rawSteer += 1;
     if (input.steerRight) rawSteer -= 1;
     rawSteer = Math.max(-1, Math.min(1, rawSteer));
-    if (Math.abs(rawSteer) < 0.06) rawSteer = 0; // tilt dead zone
+    if (Math.abs(rawSteer) < 0.05) rawSteer = 0; // dead zone
+    // Softer near center, full lock at the ends: small corrections stay small
+    rawSteer = Math.sign(rawSteer) * (0.35 * Math.abs(rawSteer) + 0.65 * rawSteer * rawSteer);
+    // Smooth the wheel: phone input arrives in bursts, so ease toward it instead of snapping
+    const prev = state.steerSmooth || 0;
+    const rate = (Math.abs(rawSteer) < Math.abs(prev) || Math.sign(rawSteer) !== Math.sign(prev)) ? 14 : 9;
+    state.steerSmooth = prev + (rawSteer - prev) * Math.min(1, delta * rate);
+    if (Math.abs(state.steerSmooth) < 0.002 && rawSteer === 0) state.steerSmooth = 0;
+    const steerIn = rawSteer;
+    rawSteer = state.steerSmooth;
 
     // Initiate Drift
-    if (input.drift && !state.isDrifting && Math.abs(state.speed) > 12 && Math.abs(rawSteer) > 0.25) {
+    if (input.drift && !state.isDrifting && Math.abs(state.speed) > 12 && Math.abs(steerIn) > 0.2) {
       state.isDrifting = true;
-      state.driftDirection = Math.sign(rawSteer);
+      state.driftDirection = Math.sign(steerIn);
       state.driftTime = 0;
       state.driftLevel = 0;
     }
@@ -143,7 +152,7 @@ export class KartPhysicsEngine {
         // Steer dynamics inside drift: player can counter-steer to adjust radius
         const driftSteerMod = rawSteer * state.driftDirection;
         const driftAngularSpeed = (1.5 + driftSteerMod * 0.6) * baseSteerSpeed * state.driftDirection;
-        state.angularVelocity = driftAngularSpeed;
+        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, driftAngularSpeed, Math.min(1, delta * 8));
 
         // Visual roll & slide angle
         state.rotation.roll = THREE.MathUtils.lerp(
@@ -167,9 +176,9 @@ export class KartPhysicsEngine {
       // Normal standard steering
       if (rawSteer !== 0 && Math.abs(state.speed) > 0.5) {
         const reverseFactor = state.speed < 0 ? -1 : 1;
-        state.angularVelocity = rawSteer * baseSteerSpeed * reverseFactor;
+        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, rawSteer * baseSteerSpeed * reverseFactor, Math.min(1, delta * 12));
       } else {
-        state.angularVelocity = 0;
+        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, 0, Math.min(1, delta * 14));
       }
 
       state.rotation.roll = THREE.MathUtils.lerp(
@@ -183,11 +192,9 @@ export class KartPhysicsEngine {
     state.rotation.y += state.angularVelocity * delta;
 
     // 6. Forward Velocity & Slide Vector
-    let heading = state.rotation.y;
-    // Add visual drift angle offset to vehicle forward motion
-    if (state.isDrifting) {
-      heading += state.driftDirection * 0.38;
-    }
+    // Ease into and out of the drift slide instead of jumping sideways
+    state.slideAngle = THREE.MathUtils.lerp(state.slideAngle || 0, state.isDrifting ? state.driftDirection * 0.38 : 0, Math.min(1, delta * 6));
+    const heading = state.rotation.y + state.slideAngle;
 
     const vx = Math.sin(heading) * state.speed;
     const vz = Math.cos(heading) * state.speed;

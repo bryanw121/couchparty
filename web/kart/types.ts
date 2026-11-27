@@ -27,6 +27,8 @@ export interface RacerState {
   speed: number;
   angularVelocity: number;
   steerAngle: number;
+  steerSmooth?: number;
+  slideAngle?: number;
   isDrifting: boolean;
   driftDirection: number; // -1 left, 1 right, 0 none
   driftTime: number;
@@ -63,7 +65,8 @@ export interface InputState {
   drift: boolean;
   respawn: boolean;
   cameraToggle: boolean;
-  steer?: number; // analog steering from phone tilt, -1 (right) .. 1 (left)
+  steer?: number;
+  // analog steering from phone tilt, -1 (right) .. 1 (left)
 }
 
 export interface TrackPoint {

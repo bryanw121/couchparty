@@ -73,7 +73,7 @@ export function createRoadTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-export function createCurbTexture(): THREE.CanvasTexture {
+export function createCurbTexture(a = '#dc2626', b = '#ffffff'): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
   canvas.height = 256;
@@ -83,7 +83,7 @@ export function createCurbTexture(): THREE.CanvasTexture {
   const segH = canvas.height / segments;
 
   for (let i = 0; i < segments; i++) {
-    ctx.fillStyle = i % 2 === 0 ? '#dc2626' : '#ffffff'; // Vibrant red and white
+    ctx.fillStyle = i % 2 === 0 ? a : b;
     ctx.fillRect(0, i * segH, canvas.width, segH);
   }
 

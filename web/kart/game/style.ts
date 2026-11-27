@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TrackSystem } from './track';
+import { CourseTheme } from './tracks';
 
 // Cartoon look for the whole scene: toon shading, a bright gradient sky with puffy clouds,
 // round candy-colored trees, and glowing boost pads on the road.
@@ -44,9 +45,9 @@ export function toonify(root: THREE.Object3D, gradient: THREE.Texture, cache = n
   });
 }
 
-function skyDome(): THREE.Mesh {
+function skyDome(th: CourseTheme): THREE.Mesh {
   const geo = new THREE.SphereGeometry(520, 32, 16);
-  const top = new THREE.Color(0x2f8cff), mid = new THREE.Color(0x7cc8ff), low = new THREE.Color(0xd8f3ff);
+  const top = new THREE.Color(th.skyTop), mid = new THREE.Color(th.skyMid), low = new THREE.Color(th.skyLow);
   const colors: number[] = [];
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -61,9 +62,9 @@ function skyDome(): THREE.Mesh {
   return mesh;
 }
 
-function cloud(): THREE.Group {
+function cloud(color: number): THREE.Group {
   const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+  const mat = new THREE.MeshBasicMaterial({ color, fog: false });
   const puffs = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < puffs; i++) {
     const r = 6 + Math.random() * 6;
@@ -75,17 +76,13 @@ function cloud(): THREE.Group {
   return g;
 }
 
-const TREE_COLORS = [0x3ec94e, 0x2fb543, 0x7ad94a, 0x52d17a];
-const BLOSSOM_COLORS = [0xff9ccd, 0xffd166, 0xff7a7a];
-
-function roundTree(scale: number): THREE.Group {
+function roundTree(scale: number, th: CourseTheme): THREE.Group {
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 3, 8), new THREE.MeshStandardMaterial({ color: 0x9a5b2c }));
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 3, 8), new THREE.MeshStandardMaterial({ color: th.trunk }));
   trunk.position.y = 1.5;
   g.add(trunk);
-  const blossom = Math.random() < 0.25;
-  const color = blossom ? BLOSSOM_COLORS[Math.floor(Math.random() * BLOSSOM_COLORS.length)] : TREE_COLORS[Math.floor(Math.random() * TREE_COLORS.length)];
-  const leafMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+  const color = th.trees[Math.floor(Math.random() * th.trees.length)];
+  const leafMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8, emissive: th.glow ? color : 0x000000, emissiveIntensity: th.glow ? 0.55 : 0 });
   const blobs: Array<[number, number, number, number]> = [[0, 4.4, 0, 2.4], [1.3, 3.8, 0.3, 1.6], [-1.2, 3.9, -0.2, 1.7], [0.2, 5.6, 0.2, 1.6]];
   for (const [x, y, z, r] of blobs) {
     const s = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), leafMat);
@@ -99,11 +96,11 @@ function roundTree(scale: number): THREE.Group {
 // Glowing chevrons painted on the road; driving over one gives a boost.
 export interface BoostPad { x: number; z: number; heading: number; mesh: THREE.Mesh }
 
-function padTexture(): THREE.Texture {
+function padTexture(base: string): THREE.Texture {
   const c = document.createElement('canvas');
   c.width = 128; c.height = 256;
   const g = c.getContext('2d')!;
-  g.fillStyle = '#ff7a00';
+  g.fillStyle = base;
   g.fillRect(0, 0, 128, 256);
   g.fillStyle = '#ffe14d';
   for (let i = 0; i < 3; i++) {
@@ -119,13 +116,14 @@ function padTexture(): THREE.Texture {
 }
 
 export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pads: BoostPad[]; update: (t: number) => void } {
-  scene.background = new THREE.Color(0x7cc8ff);
-  scene.fog = new THREE.Fog(0xd8f3ff, 140, 480);
-  scene.add(skyDome());
+  const th = track.course.theme;
+  scene.background = new THREE.Color(th.skyMid);
+  scene.fog = new THREE.Fog(th.fog, 140, 480);
+  scene.add(skyDome(th));
 
   const clouds: THREE.Group[] = [];
   for (let i = 0; i < 14; i++) {
-    const c = cloud();
+    const c = cloud(th.clouds);
     const a = (i / 14) * Math.PI * 2;
     const r = 260 + Math.random() * 120;
     c.position.set(Math.cos(a) * r, 70 + Math.random() * 50, Math.sin(a) * r);
@@ -148,7 +146,7 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   for (const p of pines) {
     track.sceneryGroup.remove(p);
     if (nearRoad(p.position.x, p.position.z)) continue; // keep the racing line clear
-    const t = roundTree(p.scale.x * (0.75 + Math.random() * 0.35));
+    const t = roundTree(p.scale.x * (0.75 + Math.random() * 0.35), th);
     t.position.copy(p.position);
     t.rotation.y = Math.random() * Math.PI;
     track.sceneryGroup.add(t);
@@ -158,12 +156,12 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   track.sceneryGroup.traverse((o) => {
     const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
     if (!m || !(m as any).isMeshStandardMaterial) return;
-    if (m.color.getHex() === 0x4d7c0f) { m.color.setHex(0x5ccf45); m.flatShading = false; m.needsUpdate = true; }
+    if (m.color.getHex() === 0x4d7c0f) { m.color.setHex(th.ground); m.flatShading = false; m.needsUpdate = true; }
   });
 
   // Boost pads at a few straights
   const pads: BoostPad[] = [];
-  const padMat = new THREE.MeshBasicMaterial({ map: padTexture(), transparent: true, opacity: 0.95, polygonOffset: true, polygonOffsetFactor: -3 });
+  const padMat = new THREE.MeshBasicMaterial({ map: padTexture(th.padColor), transparent: true, opacity: 0.95, polygonOffset: true, polygonOffsetFactor: -3 });
   const pts = track.trackPoints;
   for (const f of [0.06, 0.3, 0.55, 0.8]) {
     const i = Math.floor(f * pts.length) % pts.length;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Course, courseById } from './tracks';
 import { TrackPoint } from '../types';
 import {
   createRoadTexture,
@@ -20,36 +21,18 @@ export class TrackSystem {
 
   public roadWidth = 18;
 
-  constructor(scene: THREE.Scene) {
+  public course: Course;
+
+  constructor(scene: THREE.Scene, courseId?: string) {
     this.scene = scene;
+    this.course = courseById(courseId);
     this.sceneryGroup = new THREE.Group();
     this.startingLightsGroup = new THREE.Group();
     this.scene.add(this.sceneryGroup);
     this.scene.add(this.startingLightsGroup);
 
     // 1. Define closed 3D circuit curve
-    const controlPoints = [
-      new THREE.Vector3(0, 0, 0),        // Start/Finish straight
-      new THREE.Vector3(0, 0, -80),      // Main straight
-      new THREE.Vector3(25, 2, -140),    // Turn 1 entry (slight incline)
-      new THREE.Vector3(75, 4, -170),    // Turn 1 apex (sweeper right)
-      new THREE.Vector3(130, 2, -140),   // Turn 1 exit
-      new THREE.Vector3(150, 0, -80),    // Short straight
-      new THREE.Vector3(135, -2, -20),   // Turn 2 entry (dip)
-      new THREE.Vector3(95, -3, 25),     // Turn 2 apex (sharp hairpin left)
-      new THREE.Vector3(120, -1, 75),    // Turn 2 exit (acceleration rise)
-      new THREE.Vector3(160, 2, 120),    // Turn 3 entry
-      new THREE.Vector3(140, 4, 180),    // Turn 3 apex
-      new THREE.Vector3(80, 2, 195),     // Chicane entry
-      new THREE.Vector3(30, 0, 160),     // Chicane apex S-curve
-      new THREE.Vector3(-35, -1, 180),   // Chicane exit
-      new THREE.Vector3(-95, 1, 150),    // Back straight entry
-      new THREE.Vector3(-140, 3, 90),    // High-speed carousel
-      new THREE.Vector3(-150, 4, 20),    // Carousel mid
-      new THREE.Vector3(-120, 2, -50),   // Carousel exit
-      new THREE.Vector3(-70, 0, -75),    // Final chicane
-      new THREE.Vector3(-30, 0, -35),    // Final turn leading into straight
-    ];
+    const controlPoints = this.course.points.map(([x, y, z]) => new THREE.Vector3(x, y, z));
 
     this.spline = new THREE.CatmullRomCurve3(controlPoints, true, 'centripetal', 0.4);
     this.totalLength = this.spline.getLength();
@@ -180,7 +163,7 @@ export class TrackSystem {
     this.sceneryGroup.add(this.trackMesh);
 
     // Build Curbs
-    const curbTex = createCurbTexture();
+    const curbTex = createCurbTexture(this.course.theme.curbA, this.course.theme.curbB);
     const curbMat = new THREE.MeshStandardMaterial({
       map: curbTex,
       roughness: 0.7,
@@ -438,9 +421,10 @@ export class TrackSystem {
     this.buildHotAirBalloon(60, 45, -50, 0xef4444, 0xfacc15);
     this.buildHotAirBalloon(-80, 55, 60, 0x3b82f6, 0xffffff);
 
-    // 4. Wind Turbines with spinning blades
-    this.buildWindTurbine(120, this.getTerrainElevation(120, 60), 60);
-    this.buildWindTurbine(-110, this.getTerrainElevation(-110, -100), -100);
+    // 4. Wind Turbines with spinning blades, wherever they're clear of the road
+    for (const [x, z] of [[120, 60], [-110, -100], [200, -150], [-200, 120], [60, -240]]) {
+      if (this.getClosestTrackPointInfo(x, z).dist > this.roadWidth / 2 + 14) this.buildWindTurbine(x, this.getTerrainElevation(x, z), z);
+    }
   }
 
   private buildGrandstand(x: number, y: number, z: number, rotationY: number) {
