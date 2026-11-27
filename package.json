@@ -8,7 +8,11 @@
     "build": "node build.mjs",
     "test:kart": "node test/kart-assets.mjs",
     "build:portraits": "node scripts/render-kart-portraits.mjs",
-    "build:kart-previews": "node scripts/render-kart-portraits.mjs --karts"
+    "build:kart-previews": "node scripts/render-kart-portraits.mjs --karts",
+    "build:course-previews": "node scripts/render-course-previews.mjs",
+    "build:controller-previews": "node scripts/render-controller-preview.mjs",
+    "build:engine-preview": "node scripts/render-engine-preview.mjs",
+    "test:controller": "node scripts/render-controller-preview.mjs --test"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +22,10 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.2.1",
     "esbuild": "^0.28.2",
+    "linkedom": "^0.18.15",
+    "web-audio-engine": "^0.13.4",
     "ws": "^8.23.0"
   },
   "type": "module"

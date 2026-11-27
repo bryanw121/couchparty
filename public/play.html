@@ -156,6 +156,7 @@ button { font-family: inherit; cursor: pointer; }
 input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
 .spinner { width: 36px; height: 36px; border: 4px solid #3A3F63; border-top-color: #FFC83D; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/*KART_CONTROLLER_CSS*/
 </style>
 </head>
 <body>
@@ -211,12 +212,15 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
   <div class="screen" id="kart">
     <div class="kc" id="kGrid">
       <div class="kbar">
-        <span class="kplace" id="kPlace">–</span><span class="muted" id="kLap">Get ready</span>
+        <div class="kidentity"><div class="kportrait" id="kDriverPortrait"></div><div style="min-width:0"><div class="kbrand">KARIO MART</div><div class="kdriver" id="kDriverName">Your driver</div><div class="kcourse" id="kCourseName">Race controller</div></div></div>
+        <div class="krace-readout"><div class="kposition"><span class="kplace" id="kPlace">–</span><small>POSITION</small></div><span id="kLap">Get ready</span></div>
+      </div>
+      <div class="ktools">
+        <div class="kitemhint" id="kItemHint">Eyes on the TV · thumbs on the track</div>
         <div class="ktm" id="kTiltMeter" aria-hidden="true"><i id="kTiltDot"></i></div>
-        <span style="flex:1"></span>
         <button class="kpill" id="kRecenter">Recenter</button>
-        <button class="kpill hot" id="kTiltBtn" style="display:none">Turn on tilt</button>
-        <div class="kmode" id="kMode"><button data-km="tilt">Tilt</button><button data-km="stick">Stick</button></div>
+        <button class="kpill hot" id="kTiltBtn" style="display:none">Enable tilt</button>
+        <div class="kmode" id="kMode"><button data-km="tilt">Tilt</button><button data-km="stick">Touch</button></div>
       </div>
       <div class="kpads">
         <div class="kzone" id="kLeft">
@@ -224,10 +228,9 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
         </div>
         <div class="kface" id="kRight">
           <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
-          <button class="kbtn2 brake" id="kBrake" aria-label="Brake"><span class="lb">BRAKE</span></button>
-          <button class="kbtn2 gas" id="kGas" aria-label="Gas"><span class="lb" id="kGasLbl">GAS</span></button>
-          <button class="kbtn2 drift" id="kDrift" aria-label="Drift"><span class="lb">DRIFT</span></button>
-          <div class="kitemhint" id="kItemHint"></div>
+          <button class="kbtn2 brake" id="kBrake" aria-label="Brake"><span class="kglyph" aria-hidden="true">Ⅱ</span><span class="lb">BRAKE</span></button>
+          <button class="kbtn2 gas" id="kGas" aria-label="Gas"><span class="kglyph" aria-hidden="true">↑↑</span><span class="lb" id="kGasLbl">GAS</span></button>
+          <button class="kbtn2 drift" id="kDrift" aria-label="Drift"><span class="kglyph" aria-hidden="true">↝</span><span class="lb">DRIFT</span></button>
         </div>
       </div>
     </div>
@@ -342,7 +345,7 @@ const K = {
   gas: false, brake: false, drift: false, item: false, left: false, right: false,
   lastSent: '', lastAt: 0, timer: null, motionOn: false,
 };
-const ITEM_NAMES = { banana: 'Banana peel', green: 'Green shell', red: 'Red shell', blue: 'Spiny shell', boost: 'Turbo', star: 'Star power', bolt: 'Lightning', fake: 'Decoy box', coin: 'Coins', horn: 'Air horn', bomb: 'Bomb', ink: 'Ink splat', golden: 'Golden turbo', ride: 'Rocket ride', ghost: 'Ghost', rolling: '…' };
+const ITEM_NAMES = { banana: 'Banana peel', green: 'Green shell', red: 'Red shell', blue: 'Spiny shell', boost: 'Mushroom boost', star: 'Star power', bolt: 'Lightning', fake: 'Decoy box', coin: 'Coins', horn: 'Air horn', bomb: 'Bomb', ink: 'Ink splat', golden: 'Gold mushroom', ride: 'Rocket ride', ghost: 'Ghost', rolling: '…' };
 const ITEM_SVG = {
   banana: '<svg viewBox="0 0 40 40"><path d="M7 12 C8 30 28 36 35 22 C25 25 15 22 12 9 Z" fill="#ffd93b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 9 L10 4" stroke="#5a3a12" stroke-width="3" stroke-linecap="round"/><path d="M14 20 C18 26 24 28 30 26" fill="none" stroke="#fff6b0" stroke-width="2" stroke-linecap="round"/></svg>',
   green: '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="29" rx="16" ry="6" fill="#e5b86b" stroke="#242443" stroke-width="2"/><path d="M5 26C5 3 35 3 35 26Z" fill="#36c971" stroke="#242443" stroke-width="2.5"/><path d="M20 7V26M8 16L20 21L32 16" fill="none" stroke="#242443" stroke-width="2"/><path d="M4 26Q20 33 36 26" fill="none" stroke="#fff5de" stroke-width="5"/></svg>',
@@ -426,7 +429,7 @@ function kartLayout() {
   // Stick: joystick on the left thumb, Item + Drift on the right.
   // Tilt: both hands hold the phone like a wheel, so Drift goes to the left thumb, Item to the right.
   $('kGas').classList.toggle('auto', K.autoGas);
-  $('kGasLbl').textContent = K.autoGas ? 'AUTO' : 'GAS';
+  $('kGasLbl').textContent = K.autoGas ? 'AUTO GAS' : 'GAS';
   $('kTiltBtn').style.display = tilt && !K.motionOn ? '' : 'none';
 }
 
@@ -498,6 +501,14 @@ function renderKart() {
   const inMenu = g.phase !== 'race';
   $('kMenuP').style.display = inMenu ? 'flex' : 'none';
   if (inMenu) { $('kGrid').style.display = 'none'; $('kWatch').style.display = 'none'; kartStop(); renderKartMenuP(g); return; }
+  const mine = g.racers.find(r => r.id === YOU.id);
+  const selected = mine && kFind(g.lists.drivers, mine.driver);
+  const course = kFind(g.lists.courses, g.course);
+  if (selected && $('kDriverPortrait').dataset.driver !== selected.id) {
+    $('kDriverPortrait').innerHTML = KA.driver(selected); $('kDriverPortrait').dataset.driver = selected.id;
+    $('kDriverName').textContent = selected.name; $('kart').style.setProperty('--driver-accent', selected.color);
+  }
+  $('kCourseName').textContent = course ? course.name : 'Race controller';
   const racing = YOU.g && YOU.g.racing;
   $('kGrid').style.display = racing ? 'flex' : 'none';
   $('kWatch').style.display = racing ? 'none' : 'flex';
@@ -522,9 +533,10 @@ function kartItem(kind, n) {
   const el = $('kItem');
   el.classList.toggle('has', !!kind && kind !== 'rolling');
   el.classList.toggle('rolling', kind === 'rolling');
-  $('kItemHint').textContent = !kind ? '' : kind === 'rolling' ? '' : (ITEM_NAMES[kind] || kind) + (TRAIL.includes(kind) ? ' · hold = shield, let go = throw' : ' · tap to use');
+  $('kItemHint').textContent = !kind ? 'Eyes on the TV · thumbs on the track' : kind === 'rolling' ? '' : (ITEM_NAMES[kind] || kind) + (TRAIL.includes(kind) ? ' · hold = shield, let go = throw' : ' · tap to use');
   $('kItemIcon').innerHTML = kind ? (ITEM_SVG[kind] ? `<span style="display:inline-block">${ITEM_SVG[kind]}</span>` : `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${ITEM_DOT[kind] || '#A9AEC8'}"></span>`) : '';
-  $('kItemName').textContent = kind && kind !== 'rolling' ? (n > 1 ? `×${n}` : 'ITEM') : kind === 'rolling' ? '…' : 'ITEM';
+  el.setAttribute('aria-label', kind && kind !== 'rolling' ? 'Use ' + (ITEM_NAMES[kind] || kind) : 'Use item');
+  $('kItemName').textContent = kind && kind !== 'rolling' ? (n > 1 ? `×${n} ` : '') + (ITEM_NAMES[kind] || kind).toUpperCase() : kind === 'rolling' ? '…' : 'ITEM';
 }
 function kartHud(h) {
   if (!h) return;

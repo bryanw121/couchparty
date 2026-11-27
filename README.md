@@ -125,12 +125,26 @@ spotted mushrooms, festival flags and course-colored hills.
 Each character has a matching kart body: Mario/Luigi racers, Peach/Daisy royal roadsters, Yoshi's egg
 fairing, Toad's spotted hood, Bowser's spiked armor, and Donkey Kong's barrel body. Raised emblems,
 rounded tire profiles, spokes, treads, rear number plates, and modeled engines/exhausts are 3D geometry.
+Courses have distinct landmark sets: Meadow Loop's castle gardens and striped balloons, Sunset Bay's
+lagoon, sailboat, lighthouse and palms, Frosty Peaks' ice spires and alpine cabins, and Neon Night's
+city towers, grid paving and illuminated overhead gates. Decorations are kept clear of the road and shortcuts.
+TV/phone course selection uses rendered scene thumbnails.
 Items use mystery cubes, segmented shells (including a winged spiny shell) and mushroom boost icons.
 All artwork is generated locally in code, without external model downloads.
 
 Each course has an original eight-bar arrangement with syncopated bass, chord accompaniment, melodic
 variations and a short filtered echo. Final laps speed up the arrangement. Engine and tire sounds sit
 lower in the mix, with master compression to soften overlapping effects. No external music files are needed.
+The kart motor uses a looped combustion waveform with intake air, a low engine layer, rev changes and
+three virtual gears. The motor/tire mix stays below racing cues. `public/audio/engine-before.wav` and
+`engine-after.wav` provide the same idle, acceleration, coast, drift, boost and braking sequence for comparison;
+they are offline review exports, not runtime downloads.
+
+The phone controller has portrait and landscape layouts with a driver portrait, course name, clear
+position/lap readout, a thumb joystick, large labeled item/drift/brake/gas pads and Tilt/Touch switching.
+It supports generic phone browsers; motion permission is requested only for tilt controls where needed.
+`public/controller-previews` contains a static HTML race-state fixture plus design-render PNGs. These
+PNGs illustrate the design and are not browser/device screenshots; real device layout and gesture QA remains necessary.
 
 Verify geometry, menu flow and audio scheduling with `npm run test:kart`; build with
 `node build-kart.mjs` and `npm run build`. These runtime checks do not replace a browser visual and listening review.
@@ -140,6 +154,11 @@ portrait data used by both TV and phone pages. Rebuild pages after regenerating 
 `npm run build:kart-previews` renders the actual race kart assemblies to `public/kart-models` for review.
 Add `--rear` to `node scripts/render-kart-portraits.mjs --karts` for the rear view. These are offline model
 renders, not gameplay screenshots.
+`npm run build:course-previews` regenerates scene renders, overview images and the embedded selection thumbnails.
+`npm run build:controller-previews` exercises the actual page's input handlers in a DOM fixture and writes
+controller design previews; `npm run test:controller` runs those behavior checks without rewriting previews.
+`npm run build:engine-preview` exports the current Web Audio motor mix and verifies finite samples, peak
+headroom and stop fade-out. Both portrait and course asset registries must be rebuilt into pages with `npm run build`.
 
 ## Deploying page changes
 

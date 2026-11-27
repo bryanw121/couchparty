@@ -40,7 +40,7 @@ phone.input({ t: 'kmenu', a: 'driver', v: 'ace' }); phone.input({ t: 'kmenu', a:
 phone.input({ t: 'kmenu', a: 'choose', v: 'neon' }); phone.input({ t: 'kmenu', a: 'go' });
 assert.equal(tv.state().g.phase, 'race'); assert.equal(tv.state().g.racers[0].topper, 'cap');
 assert.equal(tv.state().g.course, 'neon');
-const artContext = {}; vm.runInNewContext(fs.readFileSync('public/kart-art.js', 'utf8').replace('/*KART_PORTRAITS*/', () => fs.readFileSync('public/kart-portraits.js', 'utf8')), artContext);
+const artContext = {}; vm.runInNewContext(fs.readFileSync('public/kart-art.js', 'utf8').replace('/*KART_PORTRAITS*/', () => fs.readFileSync('public/kart-portraits.js', 'utf8')).replace('/*KART_COURSES*/', () => fs.readFileSync('public/kart-courses.js', 'utf8')), artContext);
 const silhouettes = new Set();
 for (const d of DRIVERS) {
   const kart = createKartMesh({ ...d, accentColor: '#ffffff', helmetColor: d.color, visorColor: '#20233d', number: 1 });
@@ -81,6 +81,16 @@ assert.ok(silhouettes.size >= 6, 'roster has distinct head silhouettes');
 for (const course of Object.values(COURSES)) {
   const scene = new THREE.Scene(); const track = new TrackSystem(scene, course.id);
   scene.add(track.sceneryGroup); const style = applyCartoonStyle(scene, track);
+  const landmarks=scene.getObjectByName('course-landmarks-'+course.id);
+  const hero={meadow:'garden-castle',sunset:'harbor-lagoon',frosty:'ice-peak',neon:'neon-city-center'}[course.id];
+  assert.ok(landmarks?.getObjectByName(hero),'course has its themed landmark');
+  // Validate clearance against a denser spline than the placement helper uses.
+  for(const decoration of landmarks.children){
+    const r=decoration.userData.clearanceRadius;if(!r)continue;
+    const world=decoration.getWorldPosition(new THREE.Vector3());
+    for(let i=0;i<1200;i++){const p=track.spline.getPointAt(i/1200);assert.ok(Math.hypot(p.x-world.x,p.z-world.z)>track.roadWidth/2+r,'landmark stays outside the drivable road');}
+  }
+  assert.ok(artContext.KA.course(course).includes('data:image/jpeg;base64,'),'selection uses the rendered course thumbnail');
   const items = new ItemSystem(scene, track);
   style.update(10); assert.equal(style.pads.length, 8);
   const racer = { config: { id: 'test' }, position: { x: 0, y: 0, z: 0 }, rotation: { y: 0 }, rank: 1 };
@@ -99,7 +109,7 @@ let ctx;
 let scheduled = 0;
 const param = () => ({ value: 0, setValueAtTime(v, t) { check(v, t); }, exponentialRampToValueAtTime(v, t) { assert.ok(v > 0); check(v, t); }, setTargetAtTime(v, t) { check(v, t); } });
 function check(v, t) { assert.ok(Number.isFinite(v) && Number.isFinite(t)); assert.ok(t >= ctx.currentTime - 0.001); }
-function node() { return { gain: param(), frequency: param(), Q: param(), delayTime: param(), threshold: param(), knee: param(), ratio: param(), attack: param(), release: param(), connect(n) { return n; }, disconnect() {}, start(t = ctx.currentTime) { check(1, t); scheduled++; }, stop(t) { check(1, t); this.onended?.(); } }; }
+function node() { return { gain: param(), playbackRate: param(), frequency: param(), Q: param(), delayTime: param(), threshold: param(), knee: param(), ratio: param(), attack: param(), release: param(), connect(n) { return n; }, disconnect() {}, start(t = ctx.currentTime) { check(1, t); scheduled++; }, stop(t) { check(1, t); this.onended?.(); } }; }
 ctx = { currentTime: 0, sampleRate: 22050, state: 'running', destination: node(), createGain: node, createBiquadFilter: node,
   createOscillator: node, createBufferSource: node, createDelay: node, createDynamicsCompressor: node,
   createBuffer: (_, length) => ({ getChannelData: () => new Float32Array(length) }) };
@@ -109,6 +119,8 @@ globalThis.setInterval = fn => { pump = fn; return 123; };
 globalThis.clearInterval = () => {};
 globalThis.setTimeout = fn => { fn(); return 456; };
 soundEngine.adopt(ctx);
+for(const speed of [0,.2,.34,.7,.72,1,1.6,NaN]){soundEngine.updateEngine(speed,true,false);soundEngine.updateDriftScreech(true,2,30);}
+soundEngine.stopEngine();
 for (const course of Object.keys(COURSES)) {
   const song = new CourseMusic(course); song.start();
   for (let i = 0; i < 2400; i++) { ctx.currentTime += 0.025; pump(); }

@@ -6,6 +6,7 @@ import {
   createCurbTexture,
   createCheckeredTexture,
   createSponsorBannerTexture,
+  createTerrainTexture,
 } from './proceduralTextures';
 
 export class TrackSystem {
@@ -227,6 +228,7 @@ export class TrackSystem {
     groundGeo.computeVertexNormals();
 
     const grassMat = new THREE.MeshStandardMaterial({
+      map:createTerrainTexture(this.course.id),
       color: 0x4d7c0f, // Lush natural green
       roughness: 0.9,
       flatShading: true,
@@ -493,11 +495,13 @@ export class TrackSystem {
     this.buildGrandstand(22, this.getTerrainElevation(22, -45), -45, -Math.PI / 2);
 
     // 3. Floating Hot Air Balloons
-    this.buildHotAirBalloon(60, 45, -50, 0xef4444, 0xfacc15);
-    this.buildHotAirBalloon(-80, 55, 60, 0x3b82f6, 0xffffff);
+    if(this.course.id==='meadow'){
+      this.buildHotAirBalloon(60,45,-50,0xf26283,0xffe3a0);
+      this.buildHotAirBalloon(-80,55,60,0x55bfe4,0xffffff);
+    }
 
     // 4. Wind Turbines with spinning blades, wherever they're clear of the road
-    for (const [x, z] of [[120, 60], [-110, -100], [200, -150], [-200, 120], [60, -240]]) {
+    for (const [x, z] of this.course.id==='sunset'?[[120,60],[-110,-100],[200,-150],[-200,120],[60,-240]]:[]) {
       if (this.getClosestTrackPointInfo(x, z).dist > this.roadWidth / 2 + 14) this.buildWindTurbine(x, this.getTerrainElevation(x, z), z);
     }
   }
@@ -568,6 +572,15 @@ export class TrackSystem {
     const balloon = new THREE.Mesh(balloonGeo, balloonMat);
     balloon.castShadow = true;
     balloonGroup.add(balloon);
+    const stripeMat=new THREE.MeshStandardMaterial({color:col2,roughness:.4});
+    for(let i=0;i<8;i++){
+      const stripe=new THREE.Mesh(new THREE.SphereGeometry(7.025,4,14,i*Math.PI/4,Math.PI/8),stripeMat);
+      stripe.scale.y=1.4;balloonGroup.add(stripe);
+    }
+    const ropeMat=new THREE.MeshStandardMaterial({color:0xe4d0a7});
+    for(const side of [-1,1])for(const front of [-1,1]){
+      const rope=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,3.8,5),ropeMat);rope.position.set(side*.85,-9.1,front*.85);balloonGroup.add(rope);
+    }
 
     // Basket
     const basketGeo = new THREE.BoxGeometry(2.0, 1.6, 2.0);

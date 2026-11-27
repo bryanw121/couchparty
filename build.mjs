@@ -7,8 +7,8 @@ const mini = (html, target) => html
   .replace(/>\s+</g, '><');
 fs.mkdirSync('dist', { recursive: true });
 // The 3D kart game loads from the public repo at a pinned commit (web-dist/KART_REF), so TVs never get a stale cached copy.
-const kartArt = fs.readFileSync('public/kart-art.js', 'utf8').replace('/*KART_PORTRAITS*/', () => fs.readFileSync('public/kart-portraits.js', 'utf8'));
-const inc = (html) => html.replace('/*KART_ART*/', () => kartArt);
+const kartArt = fs.readFileSync('public/kart-art.js', 'utf8').replace('/*KART_PORTRAITS*/', () => fs.readFileSync('public/kart-portraits.js', 'utf8')).replace('/*KART_COURSES*/', () => fs.readFileSync('public/kart-courses.js', 'utf8'));
+const inc = (html) => html.replace('/*KART_ART*/', () => kartArt).replace('/*KART_CONTROLLER_CSS*/', () => fs.readFileSync('public/kart-controller.css', 'utf8'));
 const kartRef = (process.env.KART_REF || (fs.existsSync('web-dist/KART_REF') ? fs.readFileSync('web-dist/KART_REF', 'utf8') : 'main')).trim();
 fs.writeFileSync('dist/tv.html', mini(inc(fs.readFileSync('public/tv.html', 'utf8')).replace('__KART_REF__', kartRef), 'es5'));
 fs.writeFileSync('dist/play.html', mini(inc(fs.readFileSync('public/play.html', 'utf8')), 'es2018'));

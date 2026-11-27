@@ -1,5 +1,23 @@
 import * as THREE from 'three';
 
+export function createTerrainTexture(course:string):THREE.CanvasTexture {
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
+  const g=canvas.getContext('2d')!;g.fillStyle='#f8faf7';g.fillRect(0,0,256,256);
+  let seed=419;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  if(course==='neon'){
+    g.fillStyle='#eef4ff';g.fillRect(0,0,256,256);g.strokeStyle='#a1b5d4';g.lineWidth=1;
+    for(let x=0;x<=256;x+=64){g.beginPath();g.moveTo(x,0);g.lineTo(x,256);g.stroke();g.beginPath();g.moveTo(0,x);g.lineTo(256,x);g.stroke();}
+    g.fillStyle='#cfdbed';for(let y=12;y<256;y+=64)for(let x=12;x<256;x+=64)g.fillRect(x,y,40,40);
+  }else if(course==='sunset'){
+    g.strokeStyle='#d9c9a950';g.lineWidth=2;
+    for(let y=0;y<280;y+=24){g.beginPath();g.moveTo(-12,y);g.bezierCurveTo(60,y-13,170,y+14,268,y);g.stroke();}
+  }else if(course==='meadow'){
+    g.fillStyle='#d9e4d25c';for(let x=0;x<256;x+=64)g.fillRect(x,0,32,256);
+  }
+  for(let i=0;i<1000;i++){const x=random()*256,y=random()*256;g.fillStyle=course==='frosty'?(i%3?'#dae8f033':'#ffffff88'):'#9ca58e18';g.fillRect(x,y,course==='frosty'?3:1,course==='meadow'?3:1);}
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(18,18);return texture;
+}
+
 /**
  * Procedural Canvas Texture Generator for Three.js
  * Generates high-quality pixel-crisp textures entirely in code.

@@ -1,3 +1,4 @@
+import { addCourseScenery, courseTree } from './courseScenery';
 import * as THREE from 'three';
 import { TrackSystem } from './track';
 import { CourseTheme } from './tracks';
@@ -154,7 +155,8 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   for (const p of pines) {
     track.sceneryGroup.remove(p);
     if (nearRoad(p.position.x, p.position.z)) continue; // keep the racing line clear
-    const t = roundTree(p.scale.x * (0.75 + Math.random() * 0.35), th);
+    const scale=p.scale.x*(0.75+Math.random()*.35);
+    const t = track.course.id === 'meadow' ? roundTree(scale, th) : courseTree(track.course.id,scale);
     t.position.copy(p.position);
     t.rotation.y = Math.random() * Math.PI;
     track.sceneryGroup.add(t);
@@ -188,6 +190,7 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   }
 
   addCourseLandmarks(track, nearRoad);
+  addCourseScenery(track);
   toonify(scene, toonGradient());
 
   return {
@@ -221,7 +224,7 @@ function addCourseLandmarks(track: TrackSystem, nearRoad: (x: number, z: number)
       snow.position.copy(hill.position); snow.scale.set(28.2 + i % 3 * 9, h + 0.3, 28.2); track.sceneryGroup.add(snow);
     }
   }
-  for (let i = 0; i < track.trackPoints.length; i += 24) {
+  for (let i = 0; track.course.id === 'meadow' && i < track.trackPoints.length; i += 24) {
     const p = track.trackPoints[i]; const side = i % 48 ? -1 : 1;
     const x = p.x + p.normalX * (track.roadWidth / 2 + 17) * side;
     const z = p.z + p.normalZ * (track.roadWidth / 2 + 17) * side;
