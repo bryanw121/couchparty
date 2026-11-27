@@ -189,17 +189,29 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   driverHead.add(helmetMesh);
 
   // Helmet Visor (facing forward along +Z)
-  const visorGeo = new THREE.BoxGeometry(0.3, 0.14, 0.16);
-  const visorMat = new THREE.MeshStandardMaterial({
-    color: visorColor,
-    roughness: 0.1,
-    metalness: 0.9,
-  });
-  const visorMesh = new THREE.Mesh(visorGeo, visorMat);
-  visorMesh.position.set(0, 0.02, 0.15);
-  driverHead.add(visorMesh);
+  // Cartoon face instead of a visor: big shiny eyes and rosy cheeks
+  const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+  const pupil = new THREE.MeshStandardMaterial({ color: 0x1b1b3a, roughness: 0.2 });
+  const cheek = new THREE.MeshStandardMaterial({ color: 0xff8fa3, roughness: 0.6 });
+  for (const sx of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), eyeWhite);
+    eye.scale.set(0.85, 1.15, 0.5);
+    eye.position.set(sx * 0.085, 0.04, 0.205);
+    driverHead.add(eye);
+    const p = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), pupil);
+    p.scale.set(0.9, 1.2, 0.5);
+    p.position.set(sx * 0.085, 0.03, 0.235);
+    driverHead.add(p);
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 4), eyeWhite);
+    shine.position.set(sx * 0.085 + 0.015, 0.06, 0.255);
+    driverHead.add(shine);
+    const c = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), cheek);
+    c.scale.set(1, 0.6, 0.4);
+    c.position.set(sx * 0.15, -0.07, 0.18);
+    driverHead.add(c);
+  }
+  void visorColor;
 
-  // --- 4b. Character headwear (couch mode): makes each racer recognizable from behind ---
   addTopper(driverHead, config.topper, accentColor, mainColor);
 
   // --- 5. Wheels Builder ---

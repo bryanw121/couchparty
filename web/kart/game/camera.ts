@@ -7,7 +7,7 @@ export class CameraController {
 
   private targetPosition: THREE.Vector3 = new THREE.Vector3();
   private targetLookAt: THREE.Vector3 = new THREE.Vector3();
-  private baseFOV = 60;
+  private baseFOV = 68;
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(this.baseFOV, aspect, 0.2, 1000);
@@ -43,8 +43,8 @@ export class CameraController {
 
     if (this.currentView === 'chase') {
       // Classic 3rd person chase cam - Mario Kart 8 style dynamic framing
-      const distBehind = 6.2;
-      const height = 2.7;
+      const distBehind = 5.8;
+      const height = 2.4;
 
       // Dynamic drift camera angle swing
       const driftOffset = playerState.isDrifting ? -playerState.driftDirection * 0.9 : 0;

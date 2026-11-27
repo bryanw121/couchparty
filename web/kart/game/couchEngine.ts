@@ -8,6 +8,7 @@ import { AIController } from './aiController';
 import { CameraController } from './camera';
 import { soundEngine } from './audio';
 import { ItemSystem, ItemEvent, ItemKind } from './items';
+import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
 
 // One TV, up to four players on phones, split screen like a console kart racer.
 // The race runs here on the TV; phones only send their controls.
@@ -20,6 +21,7 @@ export interface CouchOptions {
   laps?: number;
   items?: boolean;
   quality?: 'low' | 'high';
+  autopilot?: boolean; // demo / attract mode: the computer drives the player karts too
   onFinish?: (results: CouchResult[]) => void;
   onEvent?: (e: ItemEvent | { type: 'lap' | 'finish'; racer: string; lap?: number; rank?: number }) => void;
 }
@@ -81,6 +83,10 @@ export class CouchEngine {
   private firstHumanFinishAt = -1;
   private elapsed = 0;
   private disposed = false;
+  private style: { pads: BoostPad[]; update: (t: number) => void };
+  private gradient = toonGradient();
+  private shadows = new Map<string, THREE.Mesh>();
+  private padCooldown = new Map<string, number>();
 
   constructor(private container: HTMLElement, private opts: CouchOptions) {
     this.laps = opts.laps || 3;
@@ -97,15 +103,15 @@ export class CouchEngine {
 
     this.scene.background = new THREE.Color(0x7dd3fc);
     this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0025);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const sun = new THREE.DirectionalLight(0xffedd5, 1.25);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const sun = new THREE.DirectionalLight(0xfff4e0, 1.7);
     sun.position.set(100, 150, 80);
     sun.castShadow = this.renderer.shadowMap.enabled;
     sun.shadow.mapSize.set(1024, 1024);
     const d = 160;
     Object.assign(sun.shadow.camera, { left: -d, right: d, top: d, bottom: -d, near: 10, far: 400 });
     this.scene.add(sun);
-    this.scene.add(new THREE.HemisphereLight(0x93c5fd, 0x166534, 0.4));
+    this.scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x5ccf45, 0.55));
 
     this.track = new TrackSystem(this.scene);
     this.scene.add(this.particles.group);
@@ -114,6 +120,10 @@ export class CouchEngine {
       this.items = new ItemSystem(this.scene, this.track);
       this.items.onEvent = (e) => this.onItemEvent(e);
     }
+    this.style = applyCartoonStyle(this.scene, this.track);
+    // Sharp road and curb stripes at low viewing angles (otherwise red/white blurs to pink)
+    const aniso = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+    this.scene.traverse((o) => { const m = (o as THREE.Mesh).material as any; if (m && m.map) { m.map.anisotropy = aniso; m.map.needsUpdate = true; } });
     this.overview = new CameraController(1);
     this.overview.setView('topdown');
 
@@ -155,7 +165,12 @@ export class CouchEngine {
     const order = configs.filter((c) => !c.isPlayer).concat(configs.filter((c) => c.isPlayer));
     order.forEach((cfg, idx) => {
       const handles = createKartMesh(cfg);
+      handles.driverHead.scale.setScalar(1.35); // big cartoon heads
+      toonify(handles.rootGroup, this.gradient);
       this.scene.add(handles.rootGroup);
+      const shadow = blobShadow();
+      this.scene.add(shadow);
+      this.shadows.set(cfg.id, shadow);
       const state: RacerState = {
         config: cfg,
         position: { x: idx % 2 ? 3.5 : -3.5, y: 0.1, z: -6 - idx * 7 },
@@ -263,7 +278,10 @@ export class CouchEngine {
     for (const r of this.racers) {
       let input = idle;
       if (this.phase !== 'countdown') {
-        if (r.human) {
+        if (r.human && this.opts.autopilot) {
+          if (!r.ai) r.ai = new AIController(this.track, r.state);
+          input = r.ai.update(delta, states);
+        } else if (r.human) {
           const p = r.human.pad;
           if (r.state.isFinished) input = r.ai ? r.ai.update(delta, states) : { ...idle, throttle: true };
           else input = { throttle: p.gas, brake: p.brake, steerLeft: false, steerRight: false, steer: p.steer, drift: p.drift, respawn: false, cameraToggle: false };
@@ -312,6 +330,26 @@ export class CouchEngine {
         const r = this.racers.find((x) => x.state.config.id === id);
         if (r) r.handles.rootGroup.scale.setScalar(THREE.MathUtils.lerp(r.handles.rootGroup.scale.x, s, delta * 6));
       });
+    }
+    this.style.update(this.elapsed);
+    for (const r of this.racers) {
+      const sh = this.shadows.get(r.state.config.id);
+      if (sh) { sh.position.set(r.state.position.x, r.state.position.y + 0.06, r.state.position.z); sh.rotation.z = r.state.rotation.y; sh.scale.setScalar(r.handles.rootGroup.scale.x); }
+      const cd = (this.padCooldown.get(r.state.config.id) || 0) - delta;
+      this.padCooldown.set(r.state.config.id, cd);
+      if (cd <= 0 && this.phase === 'racing') {
+        for (const pad of this.style.pads) {
+          const dx = r.state.position.x - pad.x, dz = r.state.position.z - pad.z;
+          if (dx * dx + dz * dz < 7) {
+            r.state.boostTimer = Math.max(r.state.boostTimer, 1.1);
+            r.state.boostMultiplier = Math.max(r.state.boostMultiplier, 1.45);
+            r.state.speed = Math.max(r.state.speed, r.state.config.topSpeed * 1.15);
+            this.padCooldown.set(r.state.config.id, 0.8);
+            if (r.human && r.state.config.audioLead) soundEngine.playBoostSound();
+            break;
+          }
+        }
+      }
     }
     this.particles.update(delta);
     for (const r of this.humans) r.human!.cam.update(r.state, delta);
@@ -392,12 +430,13 @@ export class CouchEngine {
       const lap = Math.min(s.currentLap, this.laps);
       const finalLap = lap === this.laps && !s.isFinished && this.phase === 'racing';
       const spark = s.isDrifting ? ['#ffffff', '#38bdf8', '#fb923c', '#c084fc'][s.driftLevel] : 'transparent';
-      const big = small ? 54 : 84;
+      const big = small ? 64 : 104;
+      const placeFill = s.rank === 1 ? 'linear-gradient(#fff6a8,#ffc21a 55%,#e88a00)' : s.rank === 2 ? 'linear-gradient(#ffffff,#c9d3e6 60%,#8e9bb5)' : s.rank === 3 ? 'linear-gradient(#ffd9b3,#e08a4c 60%,#a85a2a)' : 'linear-gradient(#ffffff,#dfe7ff)';
       const html =
         '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-          '<div style="width:' + (small ? 64 : 92) + 'px;height:' + (small ? 64 : 92) + 'px;border-radius:18px;background:rgba(14,16,32,.72);border:3px solid ' + (h && !h.kind ? '#ffc83d' : 'rgba(255,255,255,.5)') + ';padding:8px;box-sizing:border-box">' + item + '</div>' +
+          '<div style="width:' + (small ? 70 : 100) + 'px;height:' + (small ? 70 : 100) + 'px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#3a4a8a,#141a3a);border:5px solid #fff;box-shadow:0 0 0 4px ' + (h && !h.kind ? '#ffc83d' : '#1b1b3a') + ',0 6px 14px rgba(0,0,0,.45);padding:10px;box-sizing:border-box">' + item + '</div>' +
           '<div style="text-align:right;text-shadow:0 2px 6px rgba(0,0,0,.6)">' +
-            '<div style="font:800 ' + (small ? 18 : 26) + 'px Inter,sans-serif;color:' + (finalLap ? '#ffc83d' : '#fff') + '">' + (s.isFinished ? 'Finished!' : finalLap ? 'Final lap!' : 'Lap ' + lap + '/' + this.laps) + '</div>' +
+            '<div style="font:italic 900 ' + (small ? 24 : 36) + 'px \'Space Grotesk\',Inter,sans-serif;color:' + (finalLap ? '#ffc83d' : '#fff') + ';-webkit-text-stroke:' + (small ? 2 : 3) + 'px #1b1b3a;paint-order:stroke fill;letter-spacing:1px">' + (s.isFinished ? 'FINISH!' : finalLap ? 'FINAL LAP!' : 'LAP ' + lap + '/' + this.laps) + '</div>' +
             '<div style="font:600 ' + (small ? 14 : 18) + 'px Inter,sans-serif;opacity:.9">' + fmtTime(s.totalRaceTime) + '</div>' +
           '</div>' +
         '</div>' +
@@ -406,7 +445,10 @@ export class CouchEngine {
             '<span style="width:' + (small ? 22 : 30) + 'px;height:' + (small ? 22 : 30) + 'px;border-radius:50%;background:' + s.config.color + ';box-shadow:0 0 0 3px ' + spark + '"></span>' +
             '<span style="font:700 ' + (small ? 16 : 22) + 'px Inter,sans-serif">' + escapeHtml(s.config.name) + '</span>' +
           '</div>' +
-          '<div style="font:900 ' + big + 'px/0.9 \'Space Grotesk\',Inter,sans-serif;color:' + (s.rank === 1 ? '#ffc83d' : '#fff') + ';text-shadow:0 4px 0 rgba(0,0,0,.35)">' + ordinal(s.rank) + '</div>' +
+          '<div style="position:relative;font:italic 900 ' + big + 'px/0.9 \'Space Grotesk\',Inter,sans-serif;transform:skewX(-6deg)">' +
+            '<span style="position:absolute;inset:0;-webkit-text-stroke:' + (small ? 8 : 12) + 'px #1b1b3a;color:#1b1b3a">' + ordinal(s.rank) + '</span>' +
+            '<span style="position:relative;background:' + placeFill + ';-webkit-background-clip:text;background-clip:text;color:transparent">' + ordinal(s.rank) + '</span>' +
+          '</div>' +
         '</div>';
       if (r.human!.hud.innerHTML !== html) r.human!.hud.innerHTML = html;
     }

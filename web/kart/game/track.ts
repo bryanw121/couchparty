@@ -117,7 +117,7 @@ export class TrackSystem {
     const rightCurbUvs: number[] = [];
     const rightCurbIndices: number[] = [];
 
-    const curbWidth = 1.4;
+    const curbWidth = 2.2;
 
     for (let i = 0; i <= segments; i++) {
       const u = (i % segments) / segments;
@@ -221,7 +221,7 @@ export class TrackSystem {
 
   private buildTerrainAndHills() {
     // Large low-poly island/ground plane
-    const groundGeo = new THREE.PlaneGeometry(600, 600, 64, 64);
+    const groundGeo = new THREE.PlaneGeometry(600, 600, 128, 128);
     groundGeo.rotateX(-Math.PI / 2);
 
     const pos = groundGeo.attributes.position;
@@ -229,7 +229,11 @@ export class TrackSystem {
       const vx = pos.getX(i);
       const vz = pos.getZ(i);
 
-      pos.setY(i, this.getTerrainElevation(vx, vz));
+      let y = this.getTerrainElevation(vx, vz);
+      // Keep the grass a little under the road so hills never poke through the asphalt
+      const near = this.getClosestTrackPointInfo(vx, vz);
+      if (near.dist < this.roadWidth * 0.5 + 6) y = Math.min(y, near.y - 0.35);
+      pos.setY(i, y);
     }
     groundGeo.computeVertexNormals();
 

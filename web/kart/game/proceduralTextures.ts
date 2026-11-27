@@ -90,7 +90,7 @@ export function createCurbTexture(): THREE.CanvasTexture {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 80);
+  texture.repeat.set(1, 22);
   return texture;
 }
 
