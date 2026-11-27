@@ -240,7 +240,12 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     if (AC.state === 'suspended' && AC.resume) AC.resume();
     return AC;
   }
-  function soundHint() { $('soundHint').style.display = (AC && AC.state === 'running') ? 'none' : 'block'; }
+  var soundConfirmed = false;
+  function soundHint() {
+    var on = AC && AC.state === 'running';
+    $('soundHint').style.display = on ? 'none' : 'block';
+    if (on && !soundConfirmed) { soundConfirmed = true; tone(660, 0.12, 'triangle', 0.25, 0); tone(990, 0.18, 'triangle', 0.25, 0.1); toast('Sound on'); }
+  }
   function tone(f, d, type, vol, delay, f2) {
     var a = ac(); if (!a || a.state !== 'running') return;
     var t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
@@ -451,7 +456,9 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       });
       KART.hud = setInterval(function () {
         if (KART.engine) gameMsg({ t: 'tv:game', k: 'hud', raceId: raceId, list: KART.engine.hudInfo() });
-        $('kSound').style.display = window.CouchKart && window.CouchKart.soundOn && !window.CouchKart.soundOn() ? 'block' : 'none';
+        var off = window.CouchKart && window.CouchKart.soundOn && !window.CouchKart.soundOn();
+        $('kSound').style.display = off ? 'block' : 'none';
+        if (!off) soundHint();
       }, 400);
     };
     if (window.CouchKart) { startRace(); return; }
