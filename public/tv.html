@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CouchParty — TV</title>
+<style>
+/* Sized in rem tied to screen width, so it fits 720p, 1080p and 4K TVs alike. */
+html { font-size: 1.5625vw; }
+@media (max-aspect-ratio: 16/10) { html { font-size: 2.5vh; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+/* 5% safe area for TVs that crop the edges (overscan). */
+.screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 2.2rem 3.4rem; display: none; }
+.screen.on { display: block; }
+.row { display: flex; align-items: center; }
+.between { justify-content: space-between; }
+.logo { font-size: 1.7rem; font-weight: 800; }
+.logo span, .gold { color: #FFC83D; }
+.muted { color: #A9AEC8; }
+.card { background: #1A1D33; border-radius: 1rem; padding: 0.8rem 1rem; }
+.avatar { width: 2.4rem; height: 2.4rem; border-radius: 50%; color: #0E1020; font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.qr { background: #fff; border-radius: 1.1rem; padding: 0.7rem; width: 11rem; height: 11rem; }
+.qr img { width: 100%; height: 100%; display: block; }
+.code { font-size: 3.2rem; font-weight: 800; letter-spacing: 0.5rem; color: #FFC83D; }
+.tiles { display: flex; margin: 0 -0.5rem; }
+.tile { flex: 1; margin: 0 0.5rem; border-radius: 1.2rem; padding: 1.2rem; background: #1A1D33; border: 0.2rem solid transparent; }
+.tile.sel { border-color: #FFC83D; background: #23284A; }
+.tile .t { font-size: 1.5rem; font-weight: 800; }
+.tile .b { font-size: 0.95rem; margin-top: 0.4rem; }
+.chips { display: flex; flex-wrap: wrap; margin: 0 -0.3rem; }
+.chip { display: flex; align-items: center; margin: 0.3rem; padding: 0.4rem 0.9rem 0.4rem 0.4rem; border-radius: 2rem; background: #1A1D33; font-size: 1.05rem; font-weight: 700; }
+.chip .avatar { width: 1.8rem; height: 1.8rem; font-size: 0.8rem; margin-right: 0.5rem; }
+.okkey { width: 2rem; height: 2rem; border-radius: 50%; background: #FFC83D; color: #0E1020; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.7rem; flex-shrink: 0; }
+#soundHint { position: absolute; bottom: 1.2rem; left: 3.4rem; font-size: 0.9rem; color: #A9AEC8; }
+#status { position: absolute; bottom: 1.2rem; right: 1.6rem; font-size: 0.8rem; color: #A9AEC8; }
+#toast { position: absolute; top: 1.2rem; left: 50%; transform: translateX(-50%); background: #FF9F6B; color: #0E1020; font-weight: 800; padding: 0.6rem 1.2rem; border-radius: 0.8rem; font-size: 1.1rem; display: none; }
+/* Light Cycles */
+#arenaWrap { position: absolute; left: 3.4rem; right: 3.4rem; top: 5.6rem; bottom: 2.4rem; display: flex; align-items: center; justify-content: center; }
+#arena { border: 0.15rem solid #3A3F63; border-radius: 0.6rem; background: #0A0C18; }
+#overlay { position: absolute; left: 0; right: 0; top: 40%; text-align: center; font-size: 4rem; font-weight: 800; text-shadow: 0 0.2rem 1rem #000; }
+.score { margin-left: 1.2rem; font-size: 1.1rem; font-weight: 800; }
+/* Poker */
+.felt { margin-top: 1rem; height: 18rem; border-radius: 9rem; background: #14523A; border: 0.6rem solid #3B2A1E; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pc { display: inline-flex; align-items: center; justify-content: center; width: 4.2rem; height: 5.9rem; border-radius: 0.5rem; background: #fff; color: #0E1020; font-size: 1.8rem; font-weight: 800; margin: 0 0.3rem; }
+.pc.red { color: #D23B4C; }
+.pc.empty { background: transparent; border: 0.12rem dashed rgba(255,255,255,0.25); }
+.pc.sm { width: 2.4rem; height: 3.3rem; font-size: 1.05rem; margin: 0 0.15rem; }
+.seats { display: flex; flex-wrap: wrap; margin: 1rem -0.4rem 0; }
+.seat { width: calc(25% - 0.8rem); margin: 0.4rem; background: #1A1D33; border-radius: 1rem; padding: 0.7rem 0.9rem; border: 0.18rem solid transparent; min-height: 5.6rem; }
+.seat.turn { border-color: #FFC83D; }
+.seat.win { border-color: #5EE6C8; }
+.seat.out { opacity: 0.4; }
+.dbtn { display: inline-block; background: #F4F5FA; color: #0E1020; border-radius: 50%; width: 1.3rem; height: 1.3rem; font-size: 0.75rem; font-weight: 800; text-align: center; line-height: 1.3rem; margin-left: 0.4rem; }
+/* Final */
+.lb { display: flex; align-items: center; padding: 0.7rem 1rem; margin-bottom: 0.6rem; }
+.lb .rank { width: 2.4rem; font-size: 1.4rem; font-weight: 800; color: #A9AEC8; }
+.lb .name { flex: 1; font-size: 1.4rem; font-weight: 700; margin-left: 1rem; }
+.lb .pts { font-size: 1.4rem; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<div id="lobby" class="screen on">
+  <div class="row between">
+    <div class="logo">Couch<span>Party</span></div>
+    <div class="muted" style="font-size:1rem" id="lobbyCount"></div>
+  </div>
+  <div class="row" style="align-items:flex-start; margin-top:1.6rem">
+    <div style="width:17rem; flex-shrink:0">
+      <div class="qr"><img id="qr" alt="QR code to join"></div>
+      <div style="font-size:1.25rem; font-weight:700; margin-top:1rem">Scan to join</div>
+      <div class="muted" style="font-size:0.95rem; margin-top:0.3rem">or open <b id="joinUrl" style="color:#F4F5FA"></b> and enter</div>
+      <div class="code" id="code">····</div>
+    </div>
+    <div style="flex:1; margin-left:2.6rem">
+      <div style="font-size:1.5rem; font-weight:800; margin-bottom:0.8rem">Pick a game</div>
+      <div class="tiles" id="tiles"></div>
+      <div style="font-size:1.2rem; font-weight:800; margin:1.4rem 0 0.4rem">Players</div>
+      <div class="chips" id="players"></div>
+      <div class="card row" style="margin-top:1.2rem">
+        <span class="okkey">OK</span>
+        <span id="startHint" style="font-size:1.05rem">Waiting for players to join…</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="cycles" class="screen">
+  <div class="row between">
+    <div class="logo">Light <span>Cycles</span> <span class="muted" style="font-size:1.1rem; font-weight:600" id="cyRound"></span></div>
+    <div class="row" id="cyScores"></div>
+  </div>
+  <div id="arenaWrap"><canvas id="arena"></canvas></div>
+  <div id="overlay"></div>
+</div>
+
+<div id="poker" class="screen">
+  <div class="row between">
+    <div class="logo">Hold'em · <span id="pkStreet">Preflop</span></div>
+    <div class="muted" style="font-size:1rem" id="pkBlinds"></div>
+  </div>
+  <div class="felt">
+    <div style="font-size:1.4rem; font-weight:800; margin-bottom:0.8rem" id="pkPot"></div>
+    <div id="pkBoard"></div>
+    <div style="font-size:1.3rem; font-weight:800; margin-top:0.8rem; color:#FFE08A; min-height:1.6rem" id="pkWin"></div>
+  </div>
+  <div class="seats" id="pkSeats"></div>
+</div>
+
+<div id="final" class="screen">
+  <div class="row between">
+    <div class="logo">Couch<span>Party</span></div>
+    <div class="muted" style="font-size:1rem" id="finalGame"></div>
+  </div>
+  <div style="font-size:2.6rem; font-weight:800; margin-top:1.4rem" id="winner"></div>
+  <div style="margin-top:1.2rem" id="board"></div>
+  <div class="card row" style="position:absolute; left:3.4rem; right:3.4rem; bottom:2.4rem">
+    <span class="okkey">OK</span>
+    <span style="font-size:1.05rem">Press OK, or the host taps <b>Back to menu</b></span>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="soundHint">Press OK on the remote to turn on sound</div>
+<div id="status"></div>
+
+<script>
+(function () {
+  // ES5 on purpose so older TV browsers (Samsung Tizen, LG webOS, Fire TV Silk) run it.
+  var ws = null, code = null, S = null, retry = 500, tick = null, lastRound = -1, lastPhase = '';
+  var cv = document.getElementById('arena'), cx = cv.getContext('2d'), cell = 10, bikes = [];
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function show(id) {
+    var s = document.querySelectorAll('.screen');
+    for (var i = 0; i < s.length; i++) s[i].className = 'screen' + (s[i].id === id ? ' on' : '');
+  }
+  function avatar(p) { return '<div class="avatar" style="background:' + p.color + '">' + esc(p.name.charAt(0).toUpperCase()) + '</div>'; }
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function roomFromUrl() { var m = /[?&]room=([A-Za-z0-9]{4})/.exec(location.search); return m ? m[1].toUpperCase() : ''; }
+  function toast(msg) { if (!msg) return; var t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 3000); }
+
+  /* ---------- Sound: synthesized with Web Audio, no files ---------- */
+  var AC = null, music = null;
+  function ac() {
+    if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { AC = new C(); } catch (e) { return null; } }
+    if (AC.state === 'suspended' && AC.resume) AC.resume();
+    return AC;
+  }
+  function soundHint() { $('soundHint').style.display = (AC && AC.state === 'running') ? 'none' : 'block'; }
+  function tone(f, d, type, vol, delay, f2) {
+    var a = ac(); if (!a || a.state !== 'running') return;
+    var t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'square'; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(vol || 0.1, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.02);
+  }
+  function noise(d, vol, delay) {
+    var a = ac(); if (!a || a.state !== 'running') return;
+    var t = a.currentTime + (delay || 0), n = Math.floor(a.sampleRate * d), b = a.createBuffer(1, n, a.sampleRate), data = b.getChannelData(0);
+    for (var i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    var s = a.createBufferSource(), g = a.createGain(), f = a.createBiquadFilter();
+    s.buffer = b; g.gain.value = vol; f.type = 'lowpass'; f.frequency.value = 1400;
+    s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+  }
+  var FX = {
+    join: function () { tone(660, 0.08, 'square', 0.07); tone(990, 0.12, 'square', 0.07, 0.08); },
+    count: function () { tone(440, 0.18, 'square', 0.1); },
+    go: function () { tone(660, 0.35, 'sawtooth', 0.1, 0, 1320); },
+    crash: function () { noise(0.6, 0.5); tone(160, 0.5, 'sawtooth', 0.12, 0, 40); },
+    win: function () { var n = [523, 659, 784, 1047]; for (var i = 0; i < n.length; i++) tone(n[i], 0.2, 'square', 0.08, i * 0.12); },
+    deal: function () { for (var i = 0; i < 3; i++) noise(0.05, 0.25, i * 0.08); },
+    chip: function () { tone(2200, 0.04, 'triangle', 0.1); tone(2600, 0.04, 'triangle', 0.08, 0.05); },
+    raise: function () { FX.chip(); tone(1800, 0.05, 'triangle', 0.08, 0.1); tone(2400, 0.05, 'triangle', 0.08, 0.15); },
+    allin: function () { tone(220, 0.6, 'sawtooth', 0.1, 0, 880); FX.chip(); },
+    fold: function () { tone(300, 0.2, 'triangle', 0.07, 0, 150); },
+    check: function () { tone(900, 0.05, 'square', 0.05); tone(900, 0.05, 'square', 0.05, 0.09); },
+    turn: function () { tone(740, 0.1, 'sine', 0.06); },
+    pot: function () { for (var i = 0; i < 6; i++) tone(1800 + i * 150, 0.05, 'triangle', 0.07, i * 0.05); }
+  };
+  function startMusic() {
+    if (music) return;
+    var bass = [110, 110, 165, 110, 131, 110, 196, 165], step = 0;
+    music = setInterval(function () { tone(bass[step % 8], 0.13, 'triangle', 0.07); if (step % 2 === 0) noise(0.03, 0.06); step++; }, 160);
+  }
+  function stopMusic() { if (music) { clearInterval(music); music = null; } }
+
+  /* ---------- Connection ---------- */
+  function connect() {
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    ws = new WebSocket(proto + location.host + '/ws');
+    $('status').textContent = 'Connecting…';
+    ws.onopen = function () { retry = 500; $('status').textContent = ''; ws.send(JSON.stringify({ t: 'tv:hello', room: code || roomFromUrl() })); };
+    ws.onmessage = function (e) {
+      var m; try { m = JSON.parse(e.data); } catch (err) { return; }
+      if (m.t === 'ping') { ws.send('{"t":"pong"}'); return; }
+      if (m.t === 'tv:room') {
+        code = m.code;
+        if (window.history && history.replaceState) history.replaceState(null, '', '/?room=' + code);
+        $('code').textContent = code;
+        $('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=0&data=' + encodeURIComponent(location.protocol + '//' + location.host + '/play?room=' + code);
+        $('joinUrl').textContent = location.host.length > 30 ? 'this site/play' : location.host + '/play';
+      } else if (m.t === 'state') render(m.s);
+      else if (m.t === 'cy') cyTick(m);
+      else if (m.t === 'cyc') $('overlay').textContent = m.c;
+      else if (m.t === 'fx' && FX[m.n]) FX[m.n]();
+    };
+    ws.onclose = function () { $('status').textContent = 'Reconnecting…'; setTimeout(connect, retry); retry = Math.min(retry * 2, 8000); };
+  }
+  function sendKey(k) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'tv:key', k: k })); }
+
+  /* ---------- Screens ---------- */
+  function render(s) {
+    S = s;
+    toast(s.notice);
+    if (s.phase !== 'game' || !s.g || s.g.kind !== 'cycles' || s.g.phase !== 'play') stopMusic();
+    if (s.phase === 'lobby') renderLobby(s);
+    else if (s.phase === 'final') renderFinal(s);
+    else if (s.g && s.g.kind === 'cycles') renderCycles(s.g);
+    else if (s.g && s.g.kind === 'poker') renderPoker(s.g);
+  }
+
+  function renderLobby(s) {
+    show('lobby');
+    var i, html = '', host = null;
+    for (i = 0; i < s.games.length; i++) {
+      var g = s.games[i];
+      html += '<div class="tile' + (g.id === s.selected ? ' sel' : '') + '"><div class="t">' + esc(g.name) + '</div><div class="b muted">' + esc(g.blurb) + '</div><div class="b muted">' + g.min + '–' + g.max + ' players</div></div>';
+    }
+    $('tiles').innerHTML = html;
+    html = '';
+    for (i = 0; i < s.players.length; i++) {
+      var p = s.players[i];
+      if (p.isHost) host = p;
+      html += '<div class="chip">' + avatar(p) + esc(p.name) + (p.isHost ? ' <span class="muted" style="font-weight:600;margin-left:0.4rem">host</span>' : '') + '</div>';
+    }
+    $('players').innerHTML = html || '<div class="muted" style="font-size:1rem;margin:0.3rem">Nobody yet — scan the code</div>';
+    $('lobbyCount').textContent = s.players.length + ' joined';
+    $('startHint').innerHTML = host ? esc(host.name) + ' (host) picks on their phone — or use ◀ ▶ and OK on the remote' : 'Waiting for players to join…';
+  }
+
+  function renderFinal(s) {
+    show('final');
+    var r = s.results || [], html = '';
+    $('winner').textContent = r.length ? r[0].name + ' wins!' : 'Game over';
+    for (var i = 0; i < r.length && i < 8; i++) {
+      html += '<div class="card lb"><span class="rank">' + (i + 1) + '</span>' + avatar(r[i]) + '<span class="name">' + esc(r[i].name) + '</span><span class="pts">' + fmt(r[i].score) + ' <span class="muted" style="font-size:1rem">' + r[i].unit + '</span></span></div>';
+    }
+    $('board').innerHTML = html;
+    $('finalGame').textContent = s.selected === 'poker' ? "Texas Hold'em" : 'Light Cycles';
+  }
+
+  /* ---------- Light Cycles ---------- */
+  function sizeArena(g) {
+    var wrap = $('arenaWrap'), w = wrap.clientWidth, h = wrap.clientHeight;
+    cell = Math.max(2, Math.floor(Math.min(w / g.W, h / g.H)));
+    cv.width = cell * g.W; cv.height = cell * g.H;
+  }
+  function drawAll(g) {
+    cx.fillStyle = '#0A0C18'; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.fillStyle = '#141833';
+    for (var x = 0; x < g.W; x += 4) cx.fillRect(x * cell, 0, 1, cv.height);
+    for (var y = 0; y < g.H; y += 4) cx.fillRect(0, y * cell, cv.width, 1);
+    for (var i = 0; i < g.bikes.length; i++) {
+      var b = g.bikes[i], t = b.trail || [];
+      cx.globalAlpha = b.alive ? 1 : 0.3;
+      cx.fillStyle = b.color;
+      for (var k = 0; k < t.length; k += 2) cx.fillRect(t[k] * cell, t[k + 1] * cell, cell, cell);
+      if (b.alive && t.length) { cx.fillStyle = '#FFFFFF'; cx.fillRect(t[t.length - 2] * cell, t[t.length - 1] * cell, cell, cell); }
+    }
+    cx.globalAlpha = 1;
+  }
+  function cyTick(m) {
+    if (!S || !S.g || S.g.kind !== 'cycles') return;
+    var mv = m.m;
+    for (var k = 0; k < mv.length; k += 3) {
+      var b = bikes[mv[k]]; if (!b) continue;
+      if (b.hx !== undefined) { cx.fillStyle = b.color; cx.fillRect(b.hx * cell, b.hy * cell, cell, cell); }
+      b.hx = mv[k + 1]; b.hy = mv[k + 2];
+      cx.fillStyle = '#FFFFFF'; cx.fillRect(b.hx * cell, b.hy * cell, cell, cell);
+    }
+    for (var d = 0; d < m.d.length; d++) {
+      var x = bikes[m.d[d]]; if (!x || x.hx === undefined) continue;
+      cx.strokeStyle = x.color; cx.lineWidth = Math.max(2, cell / 3);
+      cx.beginPath(); cx.arc((x.hx + 0.5) * cell, (x.hy + 0.5) * cell, cell * 2.5, 0, Math.PI * 2); cx.stroke();
+    }
+  }
+  function renderCycles(g) {
+    show('cycles');
+    if (g.round !== lastRound || g.phase === 'countdown' || lastPhase !== 'cycles') sizeArena(g);
+    lastRound = g.round; lastPhase = 'cycles';
+    bikes = [];
+    for (var i = 0; i < g.bikes.length; i++) {
+      var b = g.bikes[i], t = b.trail || [];
+      bikes.push({ color: b.color, hx: t.length ? t[t.length - 2] : undefined, hy: t.length ? t[t.length - 1] : undefined });
+    }
+    drawAll(g);
+    $('cyRound').textContent = 'Round ' + g.round + ' of ' + g.rounds;
+    var sorted = g.bikes.slice().sort(function (a, b) { return b.score - a.score; }), html = '';
+    for (i = 0; i < sorted.length; i++) html += '<span class="score" style="color:' + sorted[i].color + ';opacity:' + (sorted[i].alive || g.phase !== 'play' ? 1 : 0.4) + '">' + esc(sorted[i].name) + ' ' + sorted[i].score + '</span>';
+    $('cyScores').innerHTML = html;
+    var ov = '';
+    if (g.phase === 'countdown') ov = g.count;
+    else if (g.phase === 'roundover') {
+      var w = null; for (i = 0; i < g.bikes.length; i++) if (g.bikes[i].pid === g.winner) w = g.bikes[i];
+      ov = w ? '<span style="color:' + w.color + '">' + esc(w.name) + '</span> wins the round!' : 'Crashed!';
+    }
+    $('overlay').innerHTML = ov;
+    if (g.phase === 'play') startMusic(); else stopMusic();
+  }
+
+  /* ---------- Poker ---------- */
+  var SUIT = { s: '♠', h: '♥', d: '♦', c: '♣' };
+  function card(c, small) {
+    if (!c) return '<span class="pc empty' + (small ? ' sm' : '') + '"></span>';
+    var r = c.charAt(0) === 'T' ? '10' : c.charAt(0), red = c.charAt(1) === 'h' || c.charAt(1) === 'd';
+    return '<span class="pc' + (red ? ' red' : '') + (small ? ' sm' : '') + '">' + r + SUIT[c.charAt(1)] + '</span>';
+  }
+  function renderPoker(g) {
+    show('poker');
+    lastPhase = 'poker';
+    var i, html = '';
+    $('pkStreet').textContent = g.phase === 'showdown' ? 'Showdown' : g.street.charAt(0).toUpperCase() + g.street.slice(1);
+    $('pkBlinds').textContent = 'Hand ' + g.hands + ' · Blinds ' + g.sb + ' / ' + g.bb + ' · play chips';
+    $('pkPot').textContent = g.pot ? 'Pot ' + fmt(g.pot) : '';
+    for (i = 0; i < 5; i++) html += card(g.board[i]);
+    $('pkBoard').innerHTML = html;
+    var win = '';
+    for (i = 0; i < g.winners.length; i++) win += (i ? ' · ' : '') + esc(g.winners[i].name) + ' wins ' + fmt(g.winners[i].amount) + (g.winners[i].hand ? ' with ' + g.winners[i].hand : '');
+    $('pkWin').textContent = win;
+    var winIds = {}; for (i = 0; i < g.winners.length; i++) winIds[g.winners[i].pid] = 1;
+    html = '';
+    var turnSeat = null;
+    for (i = 0; i < g.seats.length; i++) {
+      var s = g.seats[i], cls = 'seat' + (s.turn ? ' turn' : '') + (winIds[s.pid] ? ' win' : '') + ((s.folded && s.dealt) || !s.dealt ? ' out' : '');
+      if (s.turn) turnSeat = s;
+      var note = s.turn ? 'Thinking… <span class="gold" id="pkTimer"></span>' : esc(s.last || '');
+      if (s.cards) note = card(s.cards[0], true) + card(s.cards[1], true) + ' <span style="font-size:0.9rem">' + esc(s.hand) + '</span>';
+      html += '<div class="' + cls + '"><div class="row between" style="font-size:1.15rem;font-weight:800"><span style="color:' + s.color + '">' + esc(s.name) + (s.dealer ? '<span class="dbtn">D</span>' : '') + '</span><span>' + fmt(s.chips) + '</span></div>' +
+        '<div class="muted" style="font-size:0.95rem;margin-top:0.4rem">' + note + '</div>' +
+        (s.bet ? '<div style="font-size:0.95rem;margin-top:0.3rem;color:#FFE08A;font-weight:700">Bet ' + fmt(s.bet) + '</div>' : '') +
+        (s.away ? '<div class="muted" style="font-size:0.85rem">Disconnected</div>' : '') + '</div>';
+    }
+    $('pkSeats').innerHTML = html;
+    if (tick) clearInterval(tick);
+    if (turnSeat) {
+      var ends = Date.now() + g.turnEndsIn;
+      var upd = function () { var el = $('pkTimer'); if (el) el.textContent = Math.max(0, Math.ceil((ends - Date.now()) / 1000)) + 's'; };
+      upd(); tick = setInterval(upd, 500);
+    }
+  }
+
+  /* ---------- Remote ---------- */
+  document.addEventListener('keydown', function (e) {
+    var k = e.keyCode, key = null;
+    ac(); setTimeout(soundHint, 100);
+    if (k === 13 || k === 32 || k === 179 || k === 415 || k === 10252) key = 'ok';
+    else if (k === 37) key = 'left';
+    else if (k === 39) key = 'right';
+    if (key) { sendKey(key); if (e.preventDefault) e.preventDefault(); }
+  });
+  document.addEventListener('click', function () { ac(); setTimeout(soundHint, 100); });
+  window.addEventListener('resize', function () { if (S && S.g && S.g.kind === 'cycles') { sizeArena(S.g); render(S); } });
+
+  soundHint();
+  connect();
+})();
+</script>
+</body>
+</html>

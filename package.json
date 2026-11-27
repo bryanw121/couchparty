@@ -1,0 +1,21 @@
+{
+  "name": "couchparty",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/local.js",
+    "build": "node build.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@neon/functions": "^0.11.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "ws": "^8.23.0"
+  },
+  "type": "module"
+}
