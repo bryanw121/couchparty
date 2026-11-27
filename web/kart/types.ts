@@ -32,6 +32,8 @@ export interface RacerState {
   slideAngle?: number;
   bumpX?: number; bumpZ?: number; // sideways shove from a bump, decays quickly
   bumpedAt?: number;
+  hopT?: number; // > 0 while hopping into a drift
+  driftHeld?: boolean; // drift button state last frame (to catch the press)
   isDrifting: boolean;
   driftDirection: number; // -1 left, 1 right, 0 none
   driftTime: number;

@@ -82,7 +82,9 @@ export class KartPhysicsEngine {
     // 4. Throttle & Braking
     if (input.throttle) {
       if (state.speed < effectiveTopSpeed) {
-        state.speed += accelRate * delta * (state.boostTimer > 0 ? 1.4 : 1.0);
+        // quick pickup that eases off near top speed
+        const near = Math.max(0, Math.min(1, state.speed / effectiveTopSpeed));
+        state.speed += accelRate * (1.35 - 0.85 * near) * delta * (state.boostTimer > 0 ? 1.4 : 1.0);
       } else {
         // Natural deceleration towards top speed if boosted ended
         state.speed -= 10 * delta;
@@ -105,7 +107,8 @@ export class KartPhysicsEngine {
 
     // 5. Steering & Drift Mechanics
     const speedRatio = Math.abs(state.speed) / config.topSpeed;
-    const baseSteerSpeed = config.handling * (0.8 + speedRatio * 0.4);
+    // Karts can't pivot in place: turning fades in with speed, then holds steady
+    const baseSteerSpeed = config.handling * 0.68 * Math.min(1, speedRatio / 0.3);
 
     let rawSteer = typeof input.steer === 'number' ? input.steer : 0;
     if (input.steerLeft) rawSteer += 1;
@@ -122,12 +125,21 @@ export class KartPhysicsEngine {
     const steerIn = rawSteer;
     rawSteer = state.steerSmooth;
 
-    // Initiate Drift
-    if (input.drift && !state.isDrifting && Math.abs(state.speed) > 12 && Math.abs(steerIn) > 0.2) {
-      state.isDrifting = true;
-      state.driftDirection = Math.sign(steerIn);
-      state.driftTime = 0;
-      state.driftLevel = 0;
+    // Hop: pressing drift makes the kart hop; steer while airborne and you land in a drift that way
+    const pressed = input.drift && !state.driftHeld;
+    state.driftHeld = input.drift;
+    if (pressed && !state.isDrifting && (state.hopT || 0) <= 0 && Math.abs(state.speed) > 6) {
+      state.hopT = 0.26;
+      if (state.config.isPlayer && state.config.audioLead !== false) soundEngine.playCollisionSound(0.15);
+    }
+    if ((state.hopT || 0) > 0) {
+      state.hopT! -= delta;
+      if (state.hopT! <= 0 && input.drift && !state.isDrifting && Math.abs(state.speed) > 10 && Math.abs(steerIn) > 0.15) {
+        state.isDrifting = true;
+        state.driftDirection = Math.sign(steerIn);
+        state.driftTime = 0;
+        state.driftLevel = 0;
+      }
     }
 
     // Continue or Cancel Drift
@@ -142,21 +154,23 @@ export class KartPhysicsEngine {
         state.driftTime = 0;
         state.driftLevel = 0;
       } else {
-        // Active drifting
-        state.driftTime += delta;
+        // Charge builds faster the harder you steer into the drift
+        const into = Math.max(-1, Math.min(1, rawSteer * state.driftDirection));
+        state.driftTime += delta * (0.6 + 0.9 * Math.max(0, into));
 
-        // Upgrade drift charge stages
-        if (state.driftTime > 2.2) {
-          state.driftLevel = 3; // Purple Ultra Mini-Turbo
-        } else if (state.driftTime > 1.2) {
-          state.driftLevel = 2; // Orange Super Mini-Turbo
-        } else if (state.driftTime > 0.5) {
-          state.driftLevel = 1; // Blue Mini-Turbo
+        // Boost levels: blue, orange, purple
+        if (state.driftTime > 2.4) {
+          state.driftLevel = 3;
+        } else if (state.driftTime > 1.5) {
+          state.driftLevel = 2;
+        } else if (state.driftTime > 0.7) {
+          state.driftLevel = 1;
         }
 
         // Steer dynamics inside drift: player can counter-steer to adjust radius
-        const driftSteerMod = rawSteer * state.driftDirection;
-        const driftAngularSpeed = (1.5 + driftSteerMod * 0.6) * baseSteerSpeed * state.driftDirection;
+        // Into the drift tightens the line, away from it widens it; you can't straighten out mid-drift
+        const driftSteerMod = Math.max(-1, Math.min(1, rawSteer * state.driftDirection));
+        const driftAngularSpeed = config.handling * 0.55 * (1.25 + driftSteerMod * 0.6) * state.driftDirection;
         state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, driftAngularSpeed, Math.min(1, delta * 8));
 
         // Visual roll & slide angle
@@ -394,7 +408,8 @@ export class KartPhysicsEngine {
     const { rootGroup, bodyGroup, frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel, steeringWheel, driverHead } = meshHandles;
 
     // Root position & main yaw rotation
-    rootGroup.position.set(state.position.x, state.position.y, state.position.z);
+    const hop = (state.hopT || 0) > 0 ? Math.sin((1 - state.hopT! / 0.26) * Math.PI) * 0.45 : 0;
+    rootGroup.position.set(state.position.x, state.position.y + hop, state.position.z);
     rootGroup.rotation.y = state.rotation.y;
 
     // Body roll (drift lean) and pitch

@@ -1,110 +1,94 @@
-import * as THREE from 'three';
 import { RacerState, InputState } from '../types';
 import { TrackSystem } from './track';
 
+// Computer racer: chases a point a little way ahead on its own racing line with smooth,
+// proportional steering, lifts off before tight corners, drifts the long ones, and
+// steps out of the way of karts it's about to rear-end.
 export class AIController {
   private track: TrackSystem;
-  private racerState: RacerState;
-  private targetOffset: number = 0; // Lateral racing line offset (-1.0 to 1.0)
-  private personalityAggression: number = 1.0;
-  private offsetChangeTimer: number = 0;
+  private me: RacerState;
+  private lane = 0; // racing line offset, -1 .. 1 of half the road
+  private laneGoal = 0;
+  private laneTimer = 0;
+  private skill: number;
 
   constructor(track: TrackSystem, racerState: RacerState) {
     this.track = track;
-    this.racerState = racerState;
-    this.personalityAggression = racerState.config.aiAggression || 1.0;
-    this.targetOffset = (Math.random() - 0.5) * 0.6;
+    this.me = racerState;
+    this.skill = racerState.config.aiAggression || 1;
+    this.lane = this.laneGoal = (Math.random() - 0.5) * 0.7;
   }
 
-  public update(delta: number, allRacers: RacerState[]): InputState {
-    const input: InputState = {
-      throttle: true,
-      brake: false,
-      steerLeft: false,
-      steerRight: false,
-      drift: false,
-      respawn: false,
-      cameraToggle: false,
+  private wrap(a: number) {
+    while (a > Math.PI) a -= Math.PI * 2;
+    while (a < -Math.PI) a += Math.PI * 2;
+    return a;
+  }
+
+  // heading of the road at index i
+  private roadHeading(i: number) {
+    const P = this.track.trackPoints, p = P[((i % P.length) + P.length) % P.length];
+    return Math.atan2(p.tangentX, p.tangentZ);
+  }
+
+  public update(delta: number, all: RacerState[]): InputState {
+    const s = this.me;
+    const P = this.track.trackPoints, n = P.length;
+    const seg = this.track.totalLength / n;
+    const halfW = this.track.roadWidth / 2;
+    const speed = Math.abs(s.speed);
+    const here = this.track.getClosestTrackPoint(s.position.x, s.position.z);
+    const i0 = here.index;
+
+    // drift lane choice every few seconds, and dodge karts right in front
+    this.laneTimer -= delta;
+    if (this.laneTimer <= 0) { this.laneTimer = 2 + Math.random() * 3; this.laneGoal = (Math.random() - 0.5) * 0.8; }
+    for (const o of all) {
+      if (o === s) continue;
+      const dx = o.position.x - s.position.x, dz = o.position.z - s.position.z;
+      const fwd = dx * Math.sin(s.rotation.y) + dz * Math.cos(s.rotation.y);
+      const side = dx * Math.cos(s.rotation.y) - dz * Math.sin(s.rotation.y);
+      if (fwd > 0 && fwd < 9 && Math.abs(side) < 2.6 && o.speed < s.speed) { this.laneGoal = side > 0 ? -0.55 : 0.55; this.laneTimer = 1.2; }
+    }
+    this.lane += (this.laneGoal - this.lane) * Math.min(1, delta * 1.5);
+
+    // look further ahead the faster we go
+    const ahead = Math.round((7 + speed * 0.32) / seg);
+    const tp = P[(i0 + ahead) % n];
+    // cut to the inside of the coming bend a little
+    const bend = this.wrap(this.roadHeading(i0 + ahead + 6) - this.roadHeading(i0 + ahead - 2));
+    const offset = Math.max(-0.8, Math.min(0.8, this.lane + Math.sign(bend) * Math.min(0.5, Math.abs(bend) * 1.2)));
+    const tx = tp.x + tp.normalX * offset * halfW;
+    const tz = tp.z + tp.normalZ * offset * halfW;
+
+    const want = Math.atan2(tx - s.position.x, tz - s.position.z);
+    const err = this.wrap(want - s.rotation.y);
+    const steer = Math.max(-1, Math.min(1, err * 2.4));
+
+    // how sharp is the road over the next stretch?
+    const far = Math.round((22 + speed * 0.5) / seg);
+    const turnAhead = Math.abs(this.wrap(this.roadHeading(i0 + far) - this.roadHeading(i0 + 2)));
+    const offRoad = here.distanceToCenter > halfW + 0.5;
+
+    // speed management: lift for tight corners, brake if way off line
+    const top = s.config.topSpeed;
+    let target = top * (0.92 + 0.08 * Math.min(1, this.skill));
+    if (turnAhead > 1.1) target = top * 0.62;
+    else if (turnAhead > 0.75) target = top * 0.78;
+    if (Math.abs(err) > 0.9) target = Math.min(target, top * 0.5);
+    const throttle = speed < target;
+    const brake = speed > target + 8 || (Math.abs(err) > 1.3 && speed > 14);
+
+    // drift the long, firm bends when there's room
+    const driftOK = turnAhead > 0.55 && turnAhead < 1.6 && speed > 24 && !offRoad && Math.abs(steer) > 0.35;
+    const drift = s.isDrifting ? (turnAhead > 0.3 && Math.sign(steer) === s.driftDirection) : driftOK;
+
+    return {
+      throttle, brake,
+      steerLeft: false, steerRight: false,
+      steer,
+      drift,
+      respawn: false, cameraToggle: false,
     };
-
-    const trackPoints = this.track.trackPoints;
-    const totalPoints = trackPoints.length;
-
-    // Periodic dynamic racing line variation
-    this.offsetChangeTimer += delta;
-    if (this.offsetChangeTimer > 3.0) {
-      this.offsetChangeTimer = 0;
-      this.targetOffset = (Math.random() - 0.5) * 0.8;
-    }
-
-    // 1. Lookahead target point along spline
-    const lookaheadSteps = Math.max(8, Math.min(22, Math.floor(Math.abs(this.racerState.speed) * 0.45)));
-    const targetIdx = (this.racerState.checkpointIndex + lookaheadSteps) % totalPoints;
-    const targetPoint = trackPoints[targetIdx];
-
-    // Compute target world position with lateral racing line offset
-    const lateralShift = (this.track.roadWidth * 0.35) * this.targetOffset;
-    const targetX = targetPoint.x + targetPoint.normalX * lateralShift;
-    const targetZ = targetPoint.z + targetPoint.normalZ * lateralShift;
-
-    // 2. Compute angle to target
-    const dx = targetX - this.racerState.position.x;
-    const dz = targetZ - this.racerState.position.z;
-    const desiredHeading = Math.atan2(dx, dz);
-
-    // Normalize angle difference to [-PI, PI]
-    let angleDiff = desiredHeading - this.racerState.rotation.y;
-    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-    // 3. Kart Avoidance: check for karts immediately in front
-    let avoidanceSteer = 0;
-    const kartPos = new THREE.Vector3(this.racerState.position.x, 0, this.racerState.position.z);
-
-    for (const other of allRacers) {
-      if (other.config.id === this.racerState.config.id) continue;
-
-      const otherPos = new THREE.Vector3(other.position.x, 0, other.position.z);
-      const toOther = otherPos.clone().sub(kartPos);
-      const dist = toOther.length();
-
-      // If another kart is directly in front within 10 units
-      if (dist < 10 && dist > 0.5) {
-        const forward = new THREE.Vector3(Math.sin(this.racerState.rotation.y), 0, Math.cos(this.racerState.rotation.y));
-        const dot = forward.dot(toOther.normalize());
-
-        if (dot > 0.7) {
-          // Kart is ahead: steer around
-          const cross = forward.x * toOther.z - forward.z * toOther.x;
-          avoidanceSteer = cross > 0 ? -1 : 1;
-        }
-      }
-    }
-
-    // 4. Steering Decisions
-    const effectiveAngle = angleDiff + avoidanceSteer * 0.4;
-    const steerThreshold = 0.08;
-
-    if (effectiveAngle > steerThreshold) {
-      input.steerLeft = true;
-    } else if (effectiveAngle < -steerThreshold) {
-      input.steerRight = true;
-    }
-
-    // 5. Corner sharpness & Drift Decisions
-    const sharpTurnThreshold = 0.48;
-    const isSharpTurn = Math.abs(angleDiff) > sharpTurnThreshold;
-
-    if (isSharpTurn && Math.abs(this.racerState.speed) > 18) {
-      // AI initiates drift on sharp corners
-      input.drift = true;
-      // Slight brake tap for hairpin entry if too fast
-      if (Math.abs(this.racerState.speed) > 34) {
-        input.brake = true;
-        input.throttle = false;
-      }
-    }
-
-    return input;
   }
 }
