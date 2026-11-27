@@ -48,6 +48,30 @@ export function start(ctx) {
     lastOrder: [],
   };
   const points = new Map(); // id -> { name, color, pts, human }
+  // Course vote: every racer taps a course; ties are broken at random (with a roulette on the TV).
+  const votes = new Map(); // pid -> course id
+  let reveal = null; // { tied: [ids], winner, at } while the result is being shown
+  let revealTimer = null;
+  function connectedRacers() { const ps = ctx.players(); return seated.filter((id) => ps.some((p) => p.id === id)); }
+  function tally() {
+    const n = new Map();
+    for (const [id, c] of votes) if (connectedRacers().includes(id)) n.set(c, (n.get(c) || 0) + 1);
+    return n;
+  }
+  function resolveVote() {
+    if (reveal) return;
+    const n = tally();
+    if (!n.size) return;
+    const top = Math.max(...n.values());
+    const tied = COURSES.map((c) => c.id).filter((id) => n.get(id) === top);
+    const winner = tied[Math.floor(Math.random() * tied.length)];
+    const ms = tied.length > 1 ? 3600 : 1600;
+    reveal = { tied, winner, ms, at: Date.now() };
+    ctx.broadcast();
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(() => { if (st.step !== 'course' || !reveal) return; st.course = reveal.winner; reveal = null; next(); }, ms);
+  }
+  function maybeResolve() { const rs = connectedRacers(); if (rs.length && rs.every((id) => votes.has(id))) resolveVote(); }
   const hud = new Map();
   let ended = false;
 
@@ -72,7 +96,7 @@ export function start(ctx) {
     });
   }
 
-  function go(stepName) { st.step = stepName; const l = listFor(stepName); st.cursor = Math.max(0, l.findIndex((x) => x.id === st[stepName])); if (stepName === 'driver') for (const v of pick.values()) v.ready = false; ctx.broadcast(); }
+  function go(stepName) { if (stepName === 'course' || st.step === 'course') { votes.clear(); reveal = null; clearTimeout(revealTimer); } st.step = stepName; const l = listFor(stepName); st.cursor = Math.max(0, l.findIndex((x) => x.id === st[stepName])); if (stepName === 'driver') for (const v of pick.values()) v.ready = false; ctx.broadcast(); }
   function next() { const s = steps(); const i = s.indexOf(st.step); if (i < s.length - 1) go(s[i + 1]); else startRace(); }
   function back() { const s = steps(); const i = s.indexOf(st.step); if (i > 0) go(s[i - 1]); }
 
@@ -142,6 +166,8 @@ export function start(ctx) {
         picks: seated.map((id) => ({ id, driver: pick.get(id).driver, ready: pick.get(id).ready })),
         standings: st.mode === 'cup' ? cupTable() : null,
         lastOrder: st.lastOrder,
+        votes: st.step === 'course' ? [...votes].filter(([id]) => seated.includes(id)).map(([id, c]) => ({ id, course: c })) : [],
+        reveal: reveal ? { tied: reveal.tied, winner: reveal.winner, ms: reveal.ms, left: Math.max(0, reveal.at + reveal.ms - Date.now()) } : null,
         lists: { modes: MODES, speeds: SPEEDS, drivers: DRIVERS, courses: COURSES, laps: LAPS },
         spectators: ctx.players().filter((p) => !isRacer(p)).map((p) => p.name),
       };
@@ -166,6 +192,13 @@ export function start(ctx) {
         if (a === 'ready') { mine.ready = !mine.ready; if (seated.every((id) => !ctx.players().some((x) => x.id === id) || pick.get(id).ready)) next(); else ctx.broadcast(); return; }
         if (a === 'start' && isCap) { next(); return; }
         if (a === 'back' && isCap) { back(); return; }
+        return;
+      }
+      if (st.step === 'course') {
+        if (a === 'vote' && byId(COURSES, m.v) && !reveal) { votes.set(p.id, m.v); ctx.broadcast(); maybeResolve(); return; }
+        if (a === 'lock' && isCap && !reveal) { resolveVote(); return; }
+        if (a === 'back' && isCap && !reveal) { back(); return; }
+        if (a === 'hover' && isCap && Number.isInteger(m.v)) { st.cursor = clamp(m.v, 0, COURSES.length - 1); ctx.broadcast(); }
         return;
       }
       if (!isCap) return;
@@ -207,12 +240,13 @@ export function start(ctx) {
       const list = listFor(st.step);
       if (list.length && (key === 'left' || key === 'up')) { st.cursor = (st.cursor + list.length - 1) % list.length; ctx.broadcast(); }
       else if (list.length && (key === 'right' || key === 'down')) { st.cursor = (st.cursor + 1) % list.length; ctx.broadcast(); }
+      else if (st.step === 'course' && (key === 'ok' || key === 'select')) { if (reveal) return; if (tally().size) resolveVote(); else { st.course = list[st.cursor].id; next(); } }
       else if (list.length && (key === 'ok' || key === 'select')) { st[st.step] = list[st.cursor].id; next(); }
       else if (key === 'back') back();
     },
     join() { ctx.broadcast(); },
-    leave() { ctx.broadcast(); },
+    leave() { ctx.broadcast(); if (st.step === 'course') maybeResolve(); },
     quit() { endAll(st.mode === 'cup' && points.size ? cupTable().map((r, i) => ({ id: r.id, name: r.name, color: r.color, human: r.human, score: r.pts, unit: 'pts', place: true, rank: i + 1 })) : []); },
-    stop() { ended = true; },
+    stop() { ended = true; clearTimeout(revealTimer); },
   };
 }

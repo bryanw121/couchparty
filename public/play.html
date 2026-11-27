@@ -127,6 +127,9 @@ html, body, button, .kstick, .kpads { touch-action: manipulation; }
 .kmdots i.on { background: #FFC83D; }
 .kmcard { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 84px; padding: 10px 14px; border-radius: 18px; border: 3px solid #2C3160; background: linear-gradient(160deg, #2d2f6e, #1d1f4a); color: #F4F5FA; text-align: left; }
 .kmcard.sel { border-color: #FFC83D; }
+.kvchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.kvchip { font: 800 12px Inter, sans-serif; color: #0E1020; padding: 3px 8px; border-radius: 999px; }
+.kvn { min-width: 34px; height: 34px; border-radius: 50%; background: #FFC83D; color: #0E1020; font: 900 18px Inter, sans-serif; display: flex; align-items: center; justify-content: center; }
 .kmcard .art { width: 60px; height: 60px; flex-shrink: 0; border-radius: 12px; overflow: hidden; }
 .kmcard .n { font: italic 900 20px 'Space Grotesk', Inter, sans-serif; }
 .kmcard .d { color: #A9AEC8; font-size: 14px; margin-top: 2px; }
@@ -446,7 +449,7 @@ function kartLayout() {
 
 /* ---------- Kart menus on the phone ---------- */
 const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const KSTEPN = { mode: 'Choose a mode', speed: 'How fast?', driver: 'Your driver', course: 'Pick a course', rules: 'Ready to race?' };
+const KSTEPN = { mode: 'Choose a mode', speed: 'How fast?', driver: 'Your driver', course: 'Vote for a course', rules: 'Ready to race?' };
 const kmSend = (a, v) => { send({ t: 'kmenu', a, v }); buzz(10); };
 const kFind = (list, id) => list.find((x) => x.id === id);
 function renderKartMenuP(g) {
@@ -470,7 +473,22 @@ function renderKartMenuP(g) {
   } else if (g.step === 'speed') {
     h += list(L.speeds, (m) => KA.speed(m.id), g.speed) + (cap ? '' : waitCap('picking the speed'));
   } else if (g.step === 'course') {
-    h += list(L.courses, (c) => KA.course(c), g.course) + (cap ? '' : waitCap('picking a course'));
+    // Everyone votes; the TV shows who picked what and spins on a tie
+    const votes = g.votes || [], rv = g.reveal, mine = (votes.find((v) => v.id === me) || {}).course;
+    const name = (id) => (g.racers.find((r) => r.id === id) || {});
+    if (rv) {
+      const wn = kFind(L.courses, rv.winner).name;
+      h += `<div class="kmwait" style="font-size:20px">${rv.tied.length > 1 ? `Tie! Spinning between ${rv.tied.map((id) => esc(kFind(L.courses, id).name)).join(' and ')}…<br><span class="muted">Watch the TV</span>` : `<b>${esc(wn)}</b> wins the vote!`}</div>`;
+    } else {
+      h += `<div class="muted" style="text-align:center;margin-bottom:2px">${mine ? 'Tap another course to change your vote' : 'Tap a course to vote'} · ${votes.length}/${g.racers.length} voted</div>`;
+    }
+    h += L.courses.map((c) => {
+      const vs = votes.filter((v) => v.course === c.id);
+      const chips = vs.map((v) => `<span class="kvchip" style="background:${name(v.id).color || '#fff'}">${esc(name(v.id).name || '?')}</span>`).join('');
+      const out = rv && !rv.tied.includes(c.id);
+      return `<button class="kmcard${c.id === mine ? ' sel' : ''}" data-kvote="${c.id}" ${rv ? 'disabled' : ''} style="${out ? 'opacity:.4' : ''}"><div class="art">${KA.course(c)}</div><div style="flex:1;min-width:0"><div class="n">${esc(c.name)}${c.id === mine ? ' <span style="color:#FFC83D;font-size:14px">✓ your vote</span>' : ''}</div><div class="kvchips">${chips || `<span class="d">${esc(c.blurb || '')}</span>`}</div></div>${vs.length ? `<div class="kvn">${vs.length}</div>` : ''}</button>`;
+    }).join('');
+    if (cap && !rv && votes.length) h += `<button class="kmbig" data-km="lock">Lock in votes${votes.length < g.racers.length ? ` (${g.racers.length - votes.length} still voting)` : ''}</button>`;
   } else if (g.step === 'driver') {
     const mine = g.picks.find((p) => p.id === me) || {};
     const myD = kFind(L.drivers, mine.driver) || L.drivers[0];
@@ -501,6 +519,7 @@ $('kMenuP').addEventListener('click', (e) => {
   if (!b || b.disabled) return;
   if (b.dataset.km) kmSend(b.dataset.km);
   else if (b.dataset.kchoose) kmSend('choose', b.dataset.kchoose);
+  else if (b.dataset.kvote) kmSend('vote', b.dataset.kvote);
   else if (b.dataset.kdrv) kmSend('driver', b.dataset.kdrv);
   else if (b.dataset.klaps) kmSend('laps', Number(b.dataset.klaps));
   else if (b.dataset.kitems) kmSend('items', b.dataset.kitems === '1');

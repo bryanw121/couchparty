@@ -84,6 +84,14 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 .kcard.course .art { height: 9.5rem; border-radius: 1rem; overflow: hidden; }
 .kcard.course .n { font-size: 1.6rem; line-height: 1.05; }
 .kcard.course .d { min-height: 0; }
+.kvotes { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; min-height: 2.2rem; margin-top: 0.6rem; }
+.kvotes i { font-style: normal; font-weight: 800; font-size: 0.95rem; color: #0E1020; padding: 0.25rem 0.7rem; border-radius: 999px; animation: kpop .3s ease-out; }
+.kvotes .cnt { background: #ffc83d; }
+@keyframes kpop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.kcard.voting.sel { transform: skewX(-4deg); box-shadow: 0 0.8rem 1.6rem rgba(0,0,0,.35); border-color: rgba(255,255,255,.12); background: linear-gradient(160deg, #2d2f6e, #1d1f4a); }
+.kcard.out { opacity: .35; }
+.kcard.spin { transform: skewX(-4deg) scale(1.1) translateY(-0.7rem); border-color: #ffc83d; box-shadow: 0 0 0 0.5rem rgba(255,200,61,.5); background: linear-gradient(160deg, #4a3fb0, #2a2370); transition: none; }
+.kcard.win { transform: skewX(-4deg) scale(1.14) translateY(-0.8rem); border-color: #5ee6c8; box-shadow: 0 0 0 0.6rem rgba(94,230,200,.45), 0 1.4rem 2.6rem rgba(0,0,0,.5); background: linear-gradient(160deg, #1f6f63, #164a44); }
 .kfoot { display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #d6d9f2; margin-top: 1rem; }
 .kfoot .okkey { margin: 0 0.5rem; }
 .kcap { display: inline-flex; align-items: center; padding: 0.35rem 0.9rem 0.35rem 0.35rem; border-radius: 2rem; background: rgba(255,255,255,.1); font-weight: 800; margin-right: 0.7rem; }
@@ -382,6 +390,52 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function kById(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
   function kName(g, pid) { for (var i = 0; i < g.racers.length; i++) if (g.racers[i].id === pid) return g.racers[i]; return null; }
   var KSTEP = { mode: 'Mode', speed: 'Speed', driver: 'Drivers', course: 'Course', rules: 'Go!' };
+  /* Course vote: everyone votes on their phone; ties spin a roulette on the TV before the pick lands. */
+  var KV = { key: '', start: 0, timer: null };
+  function kartVoteHtml(g, L, capChip) {
+    var votes = g.votes || [], rv = g.reveal, by = {}, i, voted = {};
+    for (i = 0; i < votes.length; i++) { (by[votes[i].course] = by[votes[i].course] || []).push(votes[i].id); voted[votes[i].id] = 1; }
+    var waiting = []; for (i = 0; i < g.racers.length; i++) if (!voted[g.racers[i].id]) waiting.push(g.racers[i].name);
+    var title = 'Vote for a course', sub = votes.length + ' of ' + g.racers.length + ' voted' + (waiting.length && votes.length ? ' · waiting on ' + esc(waiting.join(', ')) : '');
+    if (rv) {
+      var wn = esc(kById(L.courses, rv.winner).name);
+      if (rv.tied.length > 1) { title = 'It\'s a tie!'; sub = 'Spinning between ' + rv.tied.map(function (id) { return esc(kById(L.courses, id).name); }).join(' and ') + '…'; }
+      else { title = wn + ' wins the vote!'; sub = (by[rv.winner] || []).length + ' vote' + ((by[rv.winner] || []).length > 1 ? 's' : ''); }
+    }
+    var o = '<div class="ktitle" id="kvTitle">' + title + '</div><div class="ksub" id="kvSub">' + sub + '</div><div class="kcards">';
+    for (i = 0; i < L.courses.length; i++) {
+      var c = L.courses[i], vs = by[c.id] || [], chips = '';
+      for (var j = 0; j < vs.length; j++) { var who = kName(g, vs[j]); if (who) chips += '<i style="background:' + who.color + '">' + esc(who.name) + '</i>'; }
+      var cls = 'kcard course voting' + (i === g.cursor && !rv ? ' sel' : '') + (rv && rv.tied.indexOf(c.id) < 0 ? ' out' : '') + (rv && rv.tied.length === 1 && rv.winner === c.id ? ' win' : '');
+      o += '<div class="' + cls + '" data-c="' + c.id + '"><div class="art">' + KA.course(c) + '</div><div class="n">' + esc(c.name) + '</div><div class="kvotes">' + (vs.length ? '<i class="cnt">' + vs.length + '</i>' : '') + chips + '</div></div>';
+    }
+    o += '</div><div class="kfoot">' + (rv ? 'Get ready…' : 'Tap a course on your phone to vote · ' + capChip() + 'can lock it in · or <span class="okkey">OK</span>') + '</div>';
+    return o;
+  }
+  function kartVoteSpin(g) {
+    var rv = g && g.phase === 'menu' && g.step === 'course' ? g.reveal : null;
+    var key = rv ? rv.tied.join(',') + '>' + rv.winner : '';
+    if (key !== KV.key) {
+      KV.key = key; clearInterval(KV.timer); KV.timer = null;
+      if (rv && rv.tied.length > 1) {
+        KV.start = Date.now() - (rv.ms - rv.left);
+        var total = rv.ms - 900, n = rv.tied.length, wi = rv.tied.indexOf(rv.winner);
+        // Slows down like a roulette and lands on the winner
+        var steps = n * 5 + wi, times = [], t = 0;
+        for (var k = 0; k < steps; k++) { times.push(t); t += 60 + 260 * Math.pow(k / steps, 2.2); }
+        var scale = total / t;
+        KV.timer = setInterval(function () {
+          var el = Date.now() - KV.start, k2 = 0;
+          while (k2 + 1 < times.length && times[k2 + 1] * scale <= el) k2++;
+          var done = el >= total, on = done ? rv.winner : rv.tied[k2 % n];
+          var cards = document.querySelectorAll('#kmenu .kcard[data-c]');
+          for (var q = 0; q < cards.length; q++) { var id = cards[q].getAttribute('data-c'); cards[q].classList.toggle('spin', !done && id === on); cards[q].classList.toggle('win', done && id === on); }
+          if (k2 !== KV.last && !done) { KV.last = k2; try { FX.turn(); } catch (e) {} }
+          if (done) { clearInterval(KV.timer); KV.timer = null; var tt = $('kvTitle'); if (tt) tt.textContent = kById(g.lists.courses, rv.winner).name + ' it is!'; var ss = $('kvSub'); if (ss) ss.textContent = 'Random pick between the tied courses'; try { FX.win(); } catch (e) {} }
+        }, 40);
+      }
+    }
+  }
   function renderKartMenu(g) {
     var L = g.lists, h = '', i, cap = g.captainName ? esc(g.captainName) : 'The host';
     var steps = g.phase === 'standings' ? [] : g.steps, at = steps.indexOf(g.step);
@@ -407,7 +461,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     } else if (g.step === 'speed') {
       h += '<div class="ktitle">How fast?</div><div class="ksub">Faster karts, trickier corners</div>' + cards(L.speeds, function (m) { return KA.speed(m.id); });
     } else if (g.step === 'course') {
-      h += '<div class="ktitle">Pick a course</div><div class="ksub">' + esc(kById(L.modes, g.mode).name) + ' · ' + esc(kById(L.speeds, g.speed).name) + '</div>' + cards(L.courses, function (c) { return KA.course(c); }, 'course');
+      h += kartVoteHtml(g, L, capChip);
     } else if (g.step === 'driver') {
       h += '<div class="ktitle">Choose your driver</div><div class="ksub">Everyone picks on their own phone, then taps Ready</div><div class="kdrvwrap"><div class="kroster">';
       for (i = 0; i < L.drivers.length; i++) {
@@ -432,6 +486,8 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       h += '</div><div class="kfoot">' + capChip() + 'taps <b style="margin:0 0.4rem;color:#ffc83d">Start race!</b> on their phone</div>';
     }
     $('kmenu').innerHTML = h;
+    kartVoteSpin(g);
+    if (KV.key && !KV.timer && g.reveal) { var wc = document.querySelector('#kmenu .kcard[data-c="' + g.reveal.winner + '"]'); if (wc) wc.classList.add('win'); }
   }
   function renderKart(g) {
     show('kart');
