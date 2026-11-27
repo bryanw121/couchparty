@@ -80,7 +80,7 @@ var KA = (function () {
       '<g transform="rotate(10 92 50)"><rect x="76" y="24" width="34" height="48" rx="5" fill="#fff" stroke="' + INK + '" stroke-width="2.5"/><text x="82" y="40" font-family="Inter,sans-serif" font-weight="900" font-size="14" fill="' + INK + '">K</text><path d="M93 44 C87 50 88 55 92 55 L91 58 L95 58 L94 55 C98 55 99 50 93 44 Z" fill="' + INK + '"/></g>' +
       '<g><ellipse cx="128" cy="78" rx="13" ry="5" fill="#c0392b" stroke="' + INK + '" stroke-width="2"/><ellipse cx="128" cy="73" rx="13" ry="5" fill="#f5f5f5" stroke="' + INK + '" stroke-width="2"/><ellipse cx="128" cy="68" rx="13" ry="5" fill="#3b82f6" stroke="' + INK + '" stroke-width="2"/></g>' +
       '<g><ellipse cx="30" cy="80" rx="12" ry="4.5" fill="#ffc83d" stroke="' + INK + '" stroke-width="2"/><ellipse cx="30" cy="75" rx="12" ry="4.5" fill="#c0392b" stroke="' + INK + '" stroke-width="2"/></g></svg>';
-    // kart: two karts racing down a winding road toward a start arch, with a gift item box and boost pads
+    // kart: two karts racing down a winding road toward a start arch, with a question-mark item box and boost pads
     var kartBack = function (x, y, sc, body, helmet) {
       return '<g transform="translate(' + x + ' ' + y + ') scale(' + sc + ')">' +
         '<ellipse cx="0" cy="17" rx="27" ry="5" fill="rgba(0,0,0,.28)"/>' +
@@ -109,8 +109,8 @@ var KA = (function () {
       '<rect x="58" y="31" width="32" height="6" fill="#fff" stroke="' + INK + '" stroke-width="1.2"/><path d="M58 31h4v3h-4z M66 31h4v3h-4z M74 31h4v3h-4z M82 31h4v3h-4z M62 34h4v3h-4z M70 34h4v3h-4z M78 34h4v3h-4z M86 34h4v3h-4z" fill="' + INK + '"/></g>' +
       // boost pad
       '<g transform="translate(66 72) rotate(-18)"><rect x="-9" y="-4" width="18" height="8" rx="2" fill="#ff9f1a"/><path d="M-6 2 L-3 -2 L0 2 M0 2 L3 -2 L6 2" stroke="#fff6a0" stroke-width="1.6" fill="none"/></g>' +
-      // floating gift item box
-      '<g transform="translate(104 40) rotate(12)"><rect x="-8" y="-8" width="16" height="16" rx="3" fill="#ff5d8f" stroke="' + INK + '" stroke-width="2" opacity=".95"/><rect x="-2" y="-8" width="4" height="16" fill="#ffd34d"/><rect x="-8" y="-2" width="16" height="4" fill="#ffd34d"/><path d="M0 -8 C-6 -15 -10 -10 -3 -8 M0 -8 C6 -15 10 -10 3 -8" stroke="#ffd34d" stroke-width="2.2" fill="none"/></g>' +
+      // floating question-mark item box
+      '<g transform="translate(104 40) rotate(12)"><rect x="-8" y="-8" width="16" height="16" rx="3" fill="#71d9f5" stroke="#e5fcff" stroke-width="2"/><text x="0" y="6" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="19" fill="#fff">?</text></g>' +
       '<path d="M98 30 l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2z M114 52 l.9 2.2 2.2.9 -2.2.9 -.9 2.2 -.9 -2.2 -2.2 -.9 2.2 -.9z" fill="#fff"/>' +
       // the two karts, the near one big
       kartBack(80, 58, 0.42, '#4cc9f0', '#fff15a') +
