@@ -176,7 +176,7 @@ export class KartPhysicsEngine {
         // Steer dynamics inside drift: player can counter-steer to adjust radius
         // Into the drift tightens the line, away from it widens it; you can't straighten out mid-drift
         const driftSteerMod = Math.max(-1, Math.min(1, rawSteer * state.driftDirection));
-        const driftAngularSpeed = config.handling * 0.55 * (1.25 + driftSteerMod * 0.6) * state.driftDirection;
+        const driftAngularSpeed = config.handling * 0.5 * (1.05 + driftSteerMod * 0.4) * state.driftDirection;
         state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, driftAngularSpeed, Math.min(1, delta * 8));
 
         // Visual roll & slide angle
@@ -218,7 +218,7 @@ export class KartPhysicsEngine {
 
     // 6. Forward Velocity & Slide Vector
     // Ease into and out of the drift slide instead of jumping sideways
-    state.slideAngle = THREE.MathUtils.lerp(state.slideAngle || 0, state.isDrifting ? state.driftDirection * 0.38 : 0, Math.min(1, delta * 6));
+    state.slideAngle = THREE.MathUtils.lerp(state.slideAngle || 0, state.isDrifting ? state.driftDirection * 0.26 : 0, Math.min(1, delta * 6));
     const heading = state.rotation.y + state.slideAngle;
 
     const vx = Math.sin(heading) * state.speed;

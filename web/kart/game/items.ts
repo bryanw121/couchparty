@@ -24,7 +24,7 @@ const TRAILABLE: ItemKind[] = ['banana', 'green', 'red', 'fake', 'bomb'];
 const TRIPLES: ItemKind[] = ['banana', 'green', 'red', 'boost'];
 
 export interface ItemEvent {
-  type: 'pickup' | 'use' | 'hit' | 'bolt' | 'block' | 'ink' | 'steal' | 'boom' | 'horn';
+  type: 'pickup' | 'use' | 'hit' | 'bolt' | 'block' | 'ink' | 'steal' | 'boom' | 'horn' | 'coin';
   racer: string; // who it happened to
   by?: string; // who caused it
   item?: ItemKind;
@@ -210,6 +210,7 @@ export class ItemSystem {
   public held = new Map<string, HeldItem>();
   public onEvent?: (e: ItemEvent) => void;
   private boxes: Box[] = [];
+  private coinsOnTrack: Array<{ mesh: THREE.Mesh; x: number; y: number; z: number; respawn: number }> = [];
   private thrown: Thrown[] = [];
   private group = new THREE.Group();
   private boxGeo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
@@ -234,6 +235,24 @@ export class ItemSystem {
         this.boxes.push({ mesh, x, y: p.y, z, respawn: 0 });
       }
     }
+    // Trails of coins between the item boxes
+    const coinGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.14, 18);
+    coinGeo.rotateX(Math.PI / 2);
+    const coinMat = new THREE.MeshStandardMaterial({ color: 0xffc83d, emissive: 0xb07800, emissiveIntensity: 0.45, metalness: 0.6, roughness: 0.25 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0xe0a400, metalness: 0.6, roughness: 0.3 });
+    for (const f of [0.07, 0.29, 0.53, 0.77]) {
+      const lane = (Math.random() - 0.5) * 0.6;
+      for (let k = 0; k < 5; k++) {
+        const p = pts[(Math.floor(f * pts.length) + k * 2) % pts.length];
+        const x = p.x + p.normalX * lane * track.roadWidth, z = p.z + p.normalZ * lane * track.roadWidth;
+        const mesh = new THREE.Mesh(coinGeo, coinMat);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 18), rimMat);
+        mesh.add(rim);
+        mesh.position.set(x, p.y + 1, z);
+        this.group.add(mesh);
+        this.coinsOnTrack.push({ mesh, x, y: p.y, z, respawn: 0 });
+      }
+    }
   }
 
   public reset() {
@@ -242,10 +261,26 @@ export class ItemSystem {
     for (const h of this.held.values()) for (const m of h.trail) this.group.remove(m);
     this.held.clear();
     for (const b of this.boxes) { b.respawn = 0; b.mesh.visible = true; }
+    for (const c of this.coinsOnTrack) { c.respawn = 0; c.mesh.visible = true; }
   }
 
   // useRequests: racer ids that pressed the item button this frame.
   public update(delta: number, time: number, racers: RacerState[], useRequests: Set<string>, scaleOf: (id: string, s: number) => void) {
+    // Coins: spin, collect, respawn
+    for (const c of this.coinsOnTrack) {
+      if (c.respawn > 0) { c.respawn -= delta; if (c.respawn <= 0) c.mesh.visible = true; continue; }
+      c.mesh.rotation.y += delta * 3;
+      c.mesh.position.y = c.y + 1 + Math.sin(time * 3 + c.x) * 0.12;
+      for (const r of racers) {
+        const dx = r.position.x - c.x, dz = r.position.z - c.z;
+        if (dx * dx + dz * dz < 4.5) {
+          c.mesh.visible = false; c.respawn = 10;
+          if ((r.coins || 0) < 10) { r.coins = (r.coins || 0) + 1; if (r.config.isPlayer && r.config.audioLead !== false) soundEngine.playCoin(); }
+          this.onEvent?.({ type: 'coin', racer: r.config.id });
+          break;
+        }
+      }
+    }
     // Boxes: spin, bob, respawn, pickup
     for (const b of this.boxes) {
       if (b.respawn > 0) {

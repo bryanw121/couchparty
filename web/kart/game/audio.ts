@@ -34,7 +34,7 @@ class SoundEngine {
     if (this.isInitialized) return;
     this.ctx = ctx;
     this.masterGain = ctx.createGain();
-    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, ctx.currentTime);
+    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, ctx.currentTime);
     this.masterGain.connect(ctx.destination);
     this.setupEngineSynth();
     this.setupScreechSynth();
@@ -55,7 +55,7 @@ class SoundEngine {
       this.ctx = new AudioCtx();
       
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
       this.setupEngineSynth();
@@ -143,7 +143,7 @@ class SoundEngine {
     // Frequency filter expands as throttle opens
     const filterFreq = 400 + absSpeed * 1200 + (throttle ? 400 : 0);
 
-    const targetGain = 0.05 + absSpeed * 0.15 + (throttle ? 0.08 : 0);
+    const targetGain = (0.05 + absSpeed * 0.15 + (throttle ? 0.08 : 0)) * 0.4; // engine hum sits under the music
 
     this.engineOsc1.frequency.setTargetAtTime(targetFreq, t, 0.08);
     this.engineOsc2.frequency.setTargetAtTime(targetFreq * 1.5, t, 0.08);
@@ -237,7 +237,7 @@ class SoundEngine {
     filter.frequency.setValueAtTime(1200, t);
     filter.frequency.exponentialRampToValueAtTime(4000, t + 0.35);
 
-    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.setValueAtTime(0.1, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
 
     osc.connect(filter);
@@ -276,6 +276,19 @@ class SoundEngine {
   /**
    * Checkpoint / Lap bell
    */
+  public playCoin() {
+    if (!this.ctx || !this.masterGain || this.isMuted) return;
+    const t = this.ctx.currentTime;
+    [988, 1319].forEach((f, i) => {
+      const o = this.ctx!.createOscillator(), g = this.ctx!.createGain();
+      o.type = 'square'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + i * 0.07);
+      g.gain.exponentialRampToValueAtTime(0.06, t + i * 0.07 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.07 + 0.14);
+      o.connect(g).connect(this.masterGain!); o.start(t + i * 0.07); o.stop(t + i * 0.07 + 0.16);
+    });
+  }
+
   public playLapChime(isFinalLap: boolean = false) {
     if (!this.ctx || !this.masterGain || this.isMuted) return;
 
@@ -337,7 +350,7 @@ class SoundEngine {
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, this.ctx.currentTime);
     }
     return this.isMuted;
   }

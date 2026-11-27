@@ -103,7 +103,8 @@ export class CouchEngine {
   private banner: HTMLElement;
   private clock = new THREE.Clock(false);
   private raf = 0;
-  private phase: 'countdown' | 'racing' | 'done' | 'replay' | 'podium' = 'countdown';
+  private phase: 'intro' | 'countdown' | 'racing' | 'done' | 'replay' | 'podium' = 'intro';
+  private introT = 0;
   private countdown = 0;
   private step = -1;
   private laps: number;
@@ -315,7 +316,8 @@ export class CouchEngine {
     this.raf = requestAnimationFrame(this.loop);
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.elapsed += delta;
-    if (this.phase === 'replay') this.replayFrame();
+    if (this.phase === 'intro') { this.update(delta); this.introFrame(delta); }
+    else if (this.phase === 'replay') this.replayFrame();
     else if (this.phase === 'podium') this.podiumFrame(delta);
     else this.update(delta);
     this.render();
@@ -330,7 +332,7 @@ export class CouchEngine {
 
     for (const r of this.racers) {
       let input = idle;
-      if (this.phase !== 'countdown') {
+      if (this.phase !== 'countdown' && this.phase !== 'intro') {
         if ((r.state.rideTimer || 0) > 0) {
           if (!r.ai) r.ai = new AIController(this.track, r.state);
           input = r.ai.update(delta, states);
@@ -392,7 +394,7 @@ export class CouchEngine {
     sorted.forEach((r, i) => { r.state.rank = i + 1; });
     if (this.phase === 'racing') { this.detectMoments(); this.record(); }
 
-    if (this.items && this.phase !== 'countdown') {
+    if (this.items && this.phase !== 'countdown' && this.phase !== 'intro') {
       this.items.update(delta, this.elapsed, states, uses, (id, s) => {
         const r = this.racers.find((x) => x.state.config.id === id);
         if (r) r.handles.rootGroup.scale.setScalar(THREE.MathUtils.lerp(r.handles.rootGroup.scale.x, s, delta * 6));
@@ -442,7 +444,48 @@ export class CouchEngine {
     }
   }
 
+  // ---------- course flyover before the countdown ----------
+  private introFrame(delta: number) {
+    const D = 5.5;
+    if (this.introT === 0) {
+      this.hideHud(true);
+      const th = courseById(this.opts.course);
+      this.banner.innerHTML = '<div style="font-size:.85em">' + escapeHtml(th.name.toUpperCase()) + '</div><div style="font-size:.35em;letter-spacing:.08em;color:#ffc83d;margin-top:.3em">' + this.laps + ' LAPS · ' + this.racers.length + ' KARTS</div>';
+      this.banner.style.color = '#ffffff';
+      this.banner.style.top = '18%';
+    }
+    this.introT += delta;
+    const P = this.track.trackPoints;
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+    for (const p of P) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, R = Math.max(x1 - x0, z1 - z0) * 0.75;
+    const t = Math.min(1, this.introT / D);
+    const lead = this.humans[0] || this.racers[0];
+    if (t < 0.75) {
+      // slow sweep around the whole course from high up
+      const k = t / 0.75, a = -Math.PI / 2 + k * Math.PI * 1.1;
+      this.cine.position.set(cx + Math.cos(a) * R, 150 - k * 70, cz + Math.sin(a) * R);
+      this.cine.lookAt(cx, 0, cz);
+    } else {
+      // swoop down behind the grid
+      const k = (t - 0.75) / 0.25, e = k * k * (3 - 2 * k);
+      const s = lead.state, h = s.rotation.y;
+      const from = new THREE.Vector3(cx + Math.cos(-Math.PI / 2 + Math.PI * 1.1) * R, 80, cz + Math.sin(-Math.PI / 2 + Math.PI * 1.1) * R);
+      const to = new THREE.Vector3(s.position.x - Math.sin(h) * 9, s.position.y + 4, s.position.z - Math.cos(h) * 9);
+      this.cine.position.lerpVectors(from, to, e);
+      const look = new THREE.Vector3(cx, 0, cz).lerp(new THREE.Vector3(s.position.x + Math.sin(h) * 10, s.position.y, s.position.z + Math.cos(h) * 10), e);
+      this.cine.lookAt(look);
+    }
+    if (this.introT >= D) {
+      this.phase = 'countdown';
+      this.hideHud(false);
+      this.banner.innerHTML = '';
+      this.banner.style.top = '42%';
+    }
+  }
+
   private tickCountdown(delta: number) {
+    if (this.phase === 'intro') return;
     if (this.phase !== 'countdown' && this.countdown > 5) return;
     this.countdown += delta;
     const t = this.countdown;
@@ -646,7 +689,7 @@ export class CouchEngine {
 
   // ---------- drawing ----------
   private render() {
-    if (this.phase === 'replay' || this.phase === 'podium') {
+    if (this.phase === 'replay' || this.phase === 'podium' || this.phase === 'intro') {
       const W = this.container.clientWidth, H = this.container.clientHeight;
       this.cine.aspect = W / H; this.cine.updateProjectionMatrix();
       this.renderer.setViewport(0, 0, W, H);
