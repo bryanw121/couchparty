@@ -80,18 +80,43 @@ var KA = (function () {
       '<g transform="rotate(10 92 50)"><rect x="76" y="24" width="34" height="48" rx="5" fill="#fff" stroke="' + INK + '" stroke-width="2.5"/><text x="82" y="40" font-family="Inter,sans-serif" font-weight="900" font-size="14" fill="' + INK + '">K</text><path d="M93 44 C87 50 88 55 92 55 L91 58 L95 58 L94 55 C98 55 99 50 93 44 Z" fill="' + INK + '"/></g>' +
       '<g><ellipse cx="128" cy="78" rx="13" ry="5" fill="#c0392b" stroke="' + INK + '" stroke-width="2"/><ellipse cx="128" cy="73" rx="13" ry="5" fill="#f5f5f5" stroke="' + INK + '" stroke-width="2"/><ellipse cx="128" cy="68" rx="13" ry="5" fill="#3b82f6" stroke="' + INK + '" stroke-width="2"/></g>' +
       '<g><ellipse cx="30" cy="80" rx="12" ry="4.5" fill="#ffc83d" stroke="' + INK + '" stroke-width="2"/><ellipse cx="30" cy="75" rx="12" ry="4.5" fill="#c0392b" stroke="' + INK + '" stroke-width="2"/></g></svg>';
-    // kart: an original driver in a little kart, with speed lines and a checkered flag
+    // kart: two karts racing down a winding road toward a start arch, with a gift item box and boost pads
+    var kartBack = function (x, y, sc, body, helmet) {
+      return '<g transform="translate(' + x + ' ' + y + ') scale(' + sc + ')">' +
+        '<ellipse cx="0" cy="17" rx="27" ry="5" fill="rgba(0,0,0,.28)"/>' +
+        '<rect x="-27" y="2" width="12" height="15" rx="4" fill="' + INK + '"/><rect x="15" y="2" width="12" height="15" rx="4" fill="' + INK + '"/>' +
+        '<path d="M-19 -6 Q0 -14 19 -6 L22 9 Q0 14 -22 9 Z" fill="' + body + '" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<rect x="-24" y="-15" width="48" height="6" rx="3" fill="' + body + '" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<rect x="-10" y="-2" width="20" height="6" rx="2" fill="#c9d3e6" stroke="' + INK + '" stroke-width="2"/>' +
+        '<circle cx="-7" cy="10" r="3" fill="#ff7a00"/><circle cx="7" cy="10" r="3" fill="#ff7a00"/>' +
+        '<circle cx="0" cy="-22" r="11" fill="' + helmet + '" stroke="' + INK + '" stroke-width="2.5"/><path d="M-9 -25 Q0 -30 9 -25" stroke="#fff" stroke-width="2.5" fill="none" opacity=".7"/>' +
+        '<path d="M-6 15 L-12 24 L-2 18 Z M6 15 L12 24 L2 18 Z" fill="#ffd34d" opacity=".9"/></g>';
+    };
     return '<svg viewBox="0 0 160 100" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">' +
-      '<rect width="160" height="100" fill="#7cc8ff"/><ellipse cx="40" cy="70" rx="70" ry="22" fill="#5ccf45"/><ellipse cx="130" cy="72" rx="60" ry="20" fill="#4fbf3a"/>' +
-      '<rect x="0" y="76" width="160" height="24" fill="#6b6f80"/><rect x="0" y="74" width="160" height="4" fill="#fff"/><path d="M0 74 h10 v4 h-10z M20 74 h10 v4 h-10z M40 74 h10 v4 h-10z M60 74 h10 v4 h-10z M80 74 h10 v4 h-10z M100 74 h10 v4 h-10z M120 74 h10 v4 h-10z M140 74 h10 v4 h-10z" fill="#ef4444"/>' +
-      '<path d="M8 60 h26 M14 68 h22 M4 52 h20" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>' +
-      '<g transform="translate(132 22)"><path d="M0 0 V56" stroke="' + INK + '" stroke-width="3"/><path d="M2 2 h20 v14 h-20z" fill="#fff" stroke="' + INK + '" stroke-width="2"/><path d="M2 2 h5 v4.7 h-5z M12 2 h5 v4.7 h-5z M7 6.7 h5 v4.7 h-5z M17 6.7 h5 v4.7 h-5z M2 11.4 h5 v4.6 h-5z M12 11.4 h5 v4.6 h-5z" fill="' + INK + '"/></g>' +
-      '<g transform="translate(46 34)">' +
-        '<path d="M6 44 L14 30 L60 28 L72 38 L74 46 Z" fill="#ffc83d" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
-        '<rect x="62" y="26" width="6" height="10" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
-        '<circle cx="18" cy="48" r="9" fill="' + INK + '"/><circle cx="18" cy="48" r="3.5" fill="#c9d3e6"/><circle cx="62" cy="48" r="9" fill="' + INK + '"/><circle cx="62" cy="48" r="3.5" fill="#c9d3e6"/>' +
-        '<g transform="translate(14 -8) scale(.42)">' + driverSvg({ color: '#4CC9F0', topper: 'antenna' }).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g>' +
-      '</g></svg>';
+      '<defs><linearGradient id="kgsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa8ff"/><stop offset="1" stop-color="#bfe6ff"/></linearGradient>' +
+      '<linearGradient id="kgroad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a8fa3"/><stop offset="1" stop-color="#4b5066"/></linearGradient></defs>' +
+      '<rect width="160" height="100" fill="url(#kgsky)"/>' +
+      '<ellipse cx="22" cy="14" rx="12" ry="5" fill="#fff" opacity=".9"/><ellipse cx="31" cy="12" rx="8" ry="5" fill="#fff" opacity=".9"/><ellipse cx="122" cy="10" rx="11" ry="4" fill="#fff" opacity=".85"/>' +
+      '<path d="M0 46 Q30 30 62 42 T120 38 T160 44 V100 H0Z" fill="#6fd65a"/><path d="M0 54 Q40 42 80 50 T160 52 V100 H0Z" fill="#4fbf3a"/>' +
+      '<circle cx="18" cy="44" r="6" fill="#ff9ccd"/><rect x="17" y="47" width="2" height="5" fill="#8a5a2b"/><circle cx="142" cy="46" r="7" fill="#2fbf71"/><rect x="141" y="50" width="2" height="5" fill="#8a5a2b"/>' +
+      // winding road into the distance
+      '<path d="M62 50 Q78 47 84 50 Q96 56 86 64 Q70 76 92 100 H18 Q40 78 58 66 Q72 58 62 50Z" fill="url(#kgroad)"/>' +
+      '<path d="M62 50 Q72 58 58 66 Q40 78 18 100" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M84 50 Q96 56 86 64 Q70 76 92 100" fill="none" stroke="#fff" stroke-width="2.5"/>' +
+      '<path d="M64 52 Q71 58 59 66 Q42 78 22 100" fill="none" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="4 4"/><path d="M82 52 Q93 57 84 64 Q68 76 88 100" fill="none" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="4 4"/>' +
+      '<path d="M73 52 Q82 58 72 66 Q58 78 55 100" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="3 5" opacity=".7"/>' +
+      // checkered start arch
+      '<g><rect x="60" y="34" width="3" height="18" fill="#e5e7eb" stroke="' + INK + '" stroke-width="1"/><rect x="85" y="34" width="3" height="18" fill="#e5e7eb" stroke="' + INK + '" stroke-width="1"/>' +
+      '<rect x="58" y="31" width="32" height="6" fill="#fff" stroke="' + INK + '" stroke-width="1.2"/><path d="M58 31h4v3h-4z M66 31h4v3h-4z M74 31h4v3h-4z M82 31h4v3h-4z M62 34h4v3h-4z M70 34h4v3h-4z M78 34h4v3h-4z M86 34h4v3h-4z" fill="' + INK + '"/></g>' +
+      // boost pad
+      '<g transform="translate(66 72) rotate(-18)"><rect x="-9" y="-4" width="18" height="8" rx="2" fill="#ff9f1a"/><path d="M-6 2 L-3 -2 L0 2 M0 2 L3 -2 L6 2" stroke="#fff6a0" stroke-width="1.6" fill="none"/></g>' +
+      // floating gift item box
+      '<g transform="translate(104 40) rotate(12)"><rect x="-8" y="-8" width="16" height="16" rx="3" fill="#ff5d8f" stroke="' + INK + '" stroke-width="2" opacity=".95"/><rect x="-2" y="-8" width="4" height="16" fill="#ffd34d"/><rect x="-8" y="-2" width="16" height="4" fill="#ffd34d"/><path d="M0 -8 C-6 -15 -10 -10 -3 -8 M0 -8 C6 -15 10 -10 3 -8" stroke="#ffd34d" stroke-width="2.2" fill="none"/></g>' +
+      '<path d="M98 30 l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2z M114 52 l.9 2.2 2.2.9 -2.2.9 -.9 2.2 -.9 -2.2 -2.2 -.9 2.2 -.9z" fill="#fff"/>' +
+      // the two karts, the near one big
+      kartBack(80, 58, 0.42, '#4cc9f0', '#fff15a') +
+      '<path d="M22 70 h18 M14 78 h20 M26 86 h14" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".75"/>' +
+      kartBack(52, 82, 0.85, '#ff5d5d', '#ffffff') +
+      '</svg>';
   }
   var GAMEINFO = { poker: { tag: 'Bluff your friends', players: '2–12 players' }, kart: { tag: '3D kart racing', players: '1–4 players · 8 karts' } };
   return { item: item, driver: driver, mode: mode, speed: speed, course: course, bars: bars, game: game, info: function (id) { return GAMEINFO[id] || { tag: '', players: '' }; } };
