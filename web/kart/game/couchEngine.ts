@@ -67,6 +67,13 @@ const ICONS: Record<ItemKind, string> = {
   ghost: '<svg viewBox="0 0 40 40"><path d="M8 34 V18 C8 10 13 5 20 5 C27 5 32 10 32 18 V34 L28 31 L24 34 L20 31 L16 34 L12 31 Z" fill="#f4f5fa" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><ellipse cx="15.5" cy="17" rx="2.5" ry="3.5" fill="#1b1b3a"/><ellipse cx="24.5" cy="17" rx="2.5" ry="3.5" fill="#1b1b3a"/><ellipse cx="20" cy="25" rx="3" ry="2" fill="#1b1b3a"/></svg>',
 };
 
+const ITEM_LABEL: Record<string, [string, string]> = {
+  banana: ['Banana', 'drop behind'], green: ['Bouncer', 'fires straight'], red: ['Homing rocket', 'chases next kart'],
+  blue: ['Leader zapper', 'hits 1st place'], boost: ['Turbo', 'speed burst'], star: ['Star power', 'unstoppable'],
+  bolt: ['Lightning', 'shrinks everyone'], fake: ['Decoy box', 'fake item box'], coin: ['Coins', 'more top speed'],
+  horn: ['Air horn', 'blast nearby'], bomb: ['Bomb', 'throw · explodes'], ink: ['Ink splat', 'blinds leaders'],
+  golden: ['Golden turbo', 'boost spam 7s'], ride: ['Rocket ride', 'auto-drive fast'], ghost: ['Ghost', 'steal an item'],
+};
 function ordinal(n: number) { return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'); }
 function fmtTime(t: number | null) {
   if (t == null) return '--';
@@ -770,7 +777,7 @@ export class CouchEngine {
       const placeFill = s.rank === 1 ? 'linear-gradient(#fff6a8,#ffc21a 55%,#e88a00)' : s.rank === 2 ? 'linear-gradient(#ffffff,#c9d3e6 60%,#8e9bb5)' : s.rank === 3 ? 'linear-gradient(#ffd9b3,#e08a4c 60%,#a85a2a)' : 'linear-gradient(#ffffff,#dfe7ff)';
       const html =
         '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-          '<div style="width:' + (small ? 70 : 100) + 'px;height:' + (small ? 70 : 100) + 'px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#3a4a8a,#141a3a);border:5px solid #fff;box-shadow:0 0 0 4px ' + (h && !h.kind ? '#ffc83d' : '#1b1b3a') + ',0 6px 14px rgba(0,0,0,.45);padding:10px;box-sizing:border-box;position:relative">' + item + (h && h.kind && h.count > 1 ? '<span style="position:absolute;right:-12px;bottom:-12px;font:italic 900 ' + (small ? 20 : 28) + 'px \'Space Grotesk\',Inter,sans-serif;color:#fff;-webkit-text-stroke:3px #1b1b3a;paint-order:stroke fill">×' + h.count + '</span>' : '') + '</div>' +
+          '<div style="width:' + (small ? 70 : 100) + 'px;height:' + (small ? 70 : 100) + 'px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#3a4a8a,#141a3a);border:5px solid #fff;box-shadow:0 0 0 4px ' + (h && !h.kind ? '#ffc83d' : '#1b1b3a') + ',0 6px 14px rgba(0,0,0,.45);padding:10px;box-sizing:border-box;position:relative">' + item + (h && h.kind && ITEM_LABEL[h.kind] ? '<div style="position:absolute;left:0;top:100%;margin-top:' + (small ? 8 : 12) + 'px;white-space:nowrap;text-shadow:0 2px 4px rgba(0,0,0,.8)"><div style="font:900 ' + (small ? 15 : 20) + 'px Inter,sans-serif;color:#fff">' + ITEM_LABEL[h.kind][0] + '</div><div style="font:700 ' + (small ? 12 : 15) + 'px Inter,sans-serif;color:#ffc83d">' + ITEM_LABEL[h.kind][1] + '</div></div>' : '') + (h && h.kind && h.count > 1 ? '<span style="position:absolute;right:-12px;bottom:-12px;font:italic 900 ' + (small ? 20 : 28) + 'px \'Space Grotesk\',Inter,sans-serif;color:#fff;-webkit-text-stroke:3px #1b1b3a;paint-order:stroke fill">×' + h.count + '</span>' : '') + '</div>' +
           '<div style="text-align:right;text-shadow:0 2px 6px rgba(0,0,0,.6)">' +
             '<div style="font:italic 900 ' + (small ? 24 : 36) + 'px \'Space Grotesk\',Inter,sans-serif;color:' + (finalLap ? '#ffc83d' : '#fff') + ';-webkit-text-stroke:' + (small ? 2 : 3) + 'px #1b1b3a;paint-order:stroke fill;letter-spacing:1px">' + (s.isFinished ? 'FINISH!' : finalLap ? 'FINAL LAP!' : 'LAP ' + lap + '/' + this.laps) + '</div>' +
             '<div style="font:600 ' + (small ? 14 : 18) + 'px Inter,sans-serif;opacity:.9">' + fmtTime(s.totalRaceTime) + '</div>' +
