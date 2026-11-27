@@ -95,9 +95,15 @@ button { font-family: inherit; cursor: pointer; }
 .kstick .base { position: absolute; left: 50%; top: 50%; width: min(78%, 220px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, #23284A 0 55%, #1A1D33 56%); border: 3px solid #3A3F63; }
 .kstick .ring { position: absolute; inset: 18%; border-radius: 50%; border: 2px dashed #3A3F63; }
 .kstick .knob { left: 50%; top: 50%; }
-.kpad.drift#kDriftL { display: none; }
-.kc.tiltmode #kDriftL { display: flex; flex: 1; }
-.kc.tiltmode .kstick { display: none; }
+/* Tilt: you hold the phone like a wheel, so buttons sit at the two edges under your thumbs */
+.kc.tiltmode #kLeft { display: none; }
+.kc.tiltmode .kpads { grid-template-columns: 1fr; }
+.kc.tiltmode .kbtn2 { width: auto; height: 44%; max-width: none; max-height: 150px; }
+.kc.tiltmode .kbtn2.brake { left: 12%; top: 26%; }
+.kc.tiltmode .kbtn2.drift { left: 12%; top: 76%; }
+.kc.tiltmode .kbtn2.item { left: 88%; top: 26%; }
+.kc.tiltmode .kbtn2.gas { left: 88%; top: 76%; }
+.kc.tiltmode .kitemhint { top: auto; bottom: 4px; }
 
 /* Kart menus (phone) */
 .kmp { flex: 1; display: none; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-bottom: 8px; }
@@ -208,7 +214,6 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
       <div class="kpads">
         <div class="kzone" id="kLeft">
           <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><div class="knob" id="kKnob"></div></div><div class="hint">Thumb anywhere · slide ◀ ▶</div></div>
-          <button class="kpad drift" id="kDriftL"><span>DRIFT</span><small>hold</small></button>
         </div>
         <div class="kface" id="kRight">
           <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
@@ -553,7 +558,7 @@ function holdButton(id, field) {
   el.addEventListener('pointercancel', off);
   el.addEventListener('pointerleave', off);
 }
-holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift'); holdButton('kDriftL', 'drift'); holdButton('kItem', 'item');
+holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift'); holdButton('kItem', 'item');
 $('kMode').onclick = (e) => { const b = e.target.closest('button'); if (b && b.dataset.km !== K.steerMode) setSteerMode(b.dataset.km); };
 // Floating joystick: center is wherever the thumb lands; slide left/right for analog steering
 (function () {
