@@ -199,7 +199,7 @@ export class CouchEngine {
     const order = configs.filter((c) => !c.isPlayer).concat(configs.filter((c) => c.isPlayer));
     order.forEach((cfg, idx) => {
       const handles = createKartMesh(cfg);
-      handles.driverHead.scale.setScalar(1.35); // big cartoon heads
+      handles.driverHead.scale.setScalar(1.18); // big cartoon heads
       toonify(handles.rootGroup, this.gradient);
       this.scene.add(handles.rootGroup);
       const shadow = blobShadow();

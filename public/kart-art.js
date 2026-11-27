@@ -1,3 +1,4 @@
+/*KART_PORTRAITS*/
 /* Kart Racer menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
 var KA = (function () {
   var INK = '#1b1b3a';
@@ -14,8 +15,18 @@ var KA = (function () {
     }
     return '';
   }
-  // Round-headed driver portrait
+  // Pre-rendered from the same 3D models used in the race (scripts/render-kart-portraits.mjs); SVG fallback.
+  var PORTRAIT_IDS = { cap: 'ace', cat: 'tabby', bow: 'lulu', bunny: 'bunbun', horns: 'rex', antenna: 'zippy', crown: 'duke', bear: 'grizz' };
+  function portraitSource(d) {
+    var id = d.id || PORTRAIT_IDS[d.topper] || 'ace';
+    return typeof KART_PORTRAITS !== 'undefined' ? KART_PORTRAITS[id] || KART_PORTRAITS[PORTRAIT_IDS[d.topper]] || '' : '';
+  }
   function driver(d) {
+    var src = portraitSource(d);
+    if (src) return '<img src="' + src + '" alt="' + (d.name || 'Driver') + '" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:14%"/>';
+    return driverSvg(d);
+  }
+  function driverSvg(d) {
     var c = d.color, behind = (d.topper === 'cat' || d.topper === 'bunny' || d.topper === 'horns' || d.topper === 'bear') ? toppers(d.topper, c) : '';
     var front = behind ? '' : toppers(d.topper, c);
     return '<svg viewBox="0 0 100 100" width="100%" height="100%">' + behind +
@@ -71,7 +82,7 @@ var KA = (function () {
         '<path d="M6 44 L14 30 L60 28 L72 38 L74 46 Z" fill="#ffc83d" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
         '<rect x="62" y="26" width="6" height="10" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
         '<circle cx="18" cy="48" r="9" fill="' + INK + '"/><circle cx="18" cy="48" r="3.5" fill="#c9d3e6"/><circle cx="62" cy="48" r="9" fill="' + INK + '"/><circle cx="62" cy="48" r="3.5" fill="#c9d3e6"/>' +
-        '<g transform="translate(14 -8) scale(.42)">' + driver({ color: '#4CC9F0', topper: 'antenna' }).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g>' +
+        '<g transform="translate(14 -8) scale(.42)">' + driverSvg({ color: '#4CC9F0', topper: 'antenna' }).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g>' +
       '</g></svg>';
   }
   var GAMEINFO = { poker: { tag: 'Bluff your friends', players: '2–8 players' }, kart: { tag: '3D kart racing', players: '1–4 players · 8 karts' } };
