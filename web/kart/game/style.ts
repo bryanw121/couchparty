@@ -21,6 +21,7 @@ export function toonify(root: THREE.Object3D, gradient: THREE.Texture, cache = n
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || !mesh.material) return;
     const swap = (m: THREE.Material): THREE.Material => {
+      if (m.userData.preserveShading) return m;
       const sm = m as THREE.MeshStandardMaterial;
       if (!(sm as any).isMeshStandardMaterial) return m;
       let t = cache.get(m);

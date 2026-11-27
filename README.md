@@ -118,8 +118,10 @@ with drift, item and brake buttons; gas is automatic by default. Items: banana, 
 - Needs a TV browser with 3D graphics (Fire TV, smart TV browser, laptop). The Roku app shows a note and backs out.
 - Credits: engine adapted from the MIT-licensed Arcade-Kart-Racer-3D; see `web/kart/NOTICE.md`.
 
-Kario Mart's mascot roster has modeled costumes, gloves, faces and distinct silhouettes, with matching
-TV/phone portraits. Rounded karts race past spotted mushrooms, festival flags and course-colored hills.
+Kario Mart's roster is Mario, Luigi, Peach, Daisy, Yoshi, Toad, Bowser and Donkey Kong. Each has modeled
+costumes and facial features. TV/phone character selection uses studio-lit PNG portraits rendered from
+the same character sculptures, with smooth shading instead of flat SVG faces. Rounded karts race past
+spotted mushrooms, festival flags and course-colored hills.
 Items use mystery cubes, segmented shells (including a winged spiny shell) and mushroom boost icons.
 All artwork is generated locally in code, without external model downloads.
 
@@ -129,6 +131,9 @@ lower in the mix, with master compression to soften overlapping effects. No exte
 
 Verify geometry, menu flow and audio scheduling with `npm run test:kart`; build with
 `node build-kart.mjs` and `npm run build`. These runtime checks do not replace a browser visual and listening review.
+Regenerate character portraits with `npm run build:portraits`. The offline renderer needs no browser or GPU;
+it writes individual PNGs and a roster contact sheet under `public/kart-portraits`, plus the embedded
+portrait data used by both TV and phone pages. Rebuild pages after regenerating portraits.
 
 ## Deploying page changes
 

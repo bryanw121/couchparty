@@ -21,14 +21,14 @@ export const SPEEDS = [
   { id: 'turbo', name: 'Turbo', blurb: 'Hold on tight' },
 ];
 export const DRIVERS = [
-  { id: 'tabby', name: 'Tabby', color: '#FF9F43', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
-  { id: 'bunbun', name: 'Bun Bun', color: '#FF7AC6', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
-  { id: 'duke', name: 'Duke', color: '#9B6BFF', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
-  { id: 'rex', name: 'Rex', color: '#3DDC84', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
-  { id: 'lulu', name: 'Lulu', color: '#FF5D8F', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
-  { id: 'zippy', name: 'Zippy', color: '#4CC9F0', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
-  { id: 'ace', name: 'Ace', color: '#FFC83D', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
-  { id: 'grizz', name: 'Grizz', color: '#B07A4F', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
+  { id: 'tabby', name: 'Luigi', color: '#20A747', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
+  { id: 'bunbun', name: 'Daisy', color: '#FFBB21', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
+  { id: 'duke', name: 'Bowser', color: '#E9A52D', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
+  { id: 'rex', name: 'Yoshi', color: '#26B950', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
+  { id: 'lulu', name: 'Peach', color: '#F27BB4', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
+  { id: 'zippy', name: 'Toad', color: '#3478D8', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
+  { id: 'ace', name: 'Mario', color: '#E22C30', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
+  { id: 'grizz', name: 'Donkey Kong', color: '#74391C', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
 ];
 export const COURSES = [
   { id: 'meadow', name: 'Meadow Loop', blurb: 'Rolling hills & blossoms', sky: '#7cc8ff', ground: '#5ccf45', path: 'M48.9 47.0L49.2 46.0L49.3 44.2L49.2 41.9L49.0 39.2L48.8 36.4L48.7 33.6L48.7 30.9L48.9 28.7L49.3 26.7L49.8 24.7L50.4 22.9L51.1 21.1L51.8 19.3L52.7 17.7L53.6 16.2L54.6 14.9L55.8 13.6L57.1 12.4L58.5 11.2L60.0 10.2L61.5 9.3L63.0 8.6L64.6 8.2L66.1 8.0L67.7 8.2L69.4 8.6L71.1 9.3L72.9 10.2L74.6 11.2L76.1 12.4L77.6 13.6L78.8 14.9L79.8 16.3L80.7 17.8L81.4 19.6L82.1 21.3L82.6 23.2L83.0 25.1L83.2 26.9L83.4 28.7L83.3 30.4L83.2 32.2L82.9 34.0L82.5 35.8L82.0 37.5L81.4 39.2L80.7 40.9L79.9 42.4L78.9 43.9L77.7 45.2L76.2 46.5L74.7 47.8L73.3 49.0L72.1 50.2L71.2 51.5L70.7 52.8L70.7 54.2L71.0 55.6L71.6 57.0L72.4 58.5L73.4 60.0L74.4 61.4L75.5 62.9L76.5 64.3L77.5 65.6L78.8 66.8L80.3 68.1L81.7 69.3L83.1 70.5L84.2 71.8L85.1 73.1L85.6 74.6L85.8 76.2L85.7 78.0L85.3 80.0L84.8 81.9L84.1 83.8L83.2 85.6L82.2 87.1L81.1 88.4L79.8 89.4L78.2 90.2L76.5 90.9L74.6 91.5L72.7 91.8L70.8 92.0L69.0 92.0L67.3 91.8L65.8 91.3L64.3 90.3L63.0 89.1L61.6 87.7L60.3 86.4L58.9 85.2L57.4 84.3L55.8 83.8L54.1 83.8L52.3 84.3L50.4 85.1L48.5 86.0L46.5 86.9L44.6 87.7L42.7 88.3L40.9 88.4L39.1 88.1L37.3 87.6L35.5 86.9L33.7 86.1L32.0 85.1L30.3 84.0L28.6 82.7L27.1 81.5L25.6 80.1L24.1 78.6L22.6 76.9L21.2 75.2L19.9 73.3L18.7 71.5L17.6 69.6L16.8 67.7L16.0 65.8L15.4 63.8L14.9 61.8L14.5 59.8L14.3 57.8L14.2 55.7L14.3 53.7L14.5 51.6L14.9 49.5L15.4 47.4L16.2 45.1L17.0 42.9L18.0 40.8L19.1 38.8L20.2 37.1L21.4 35.6L22.6 34.2L24.0 33.0L25.4 32.0L27.0 31.1L28.5 30.4L30.0 30.0L31.5 29.7L32.8 29.8L34.1 30.3L35.3 31.1L36.5 32.2L37.7 33.5L38.8 35.0L39.9 36.4L41.0 37.8L42.0 39.0L43.0 40.2L44.1 41.7L45.1 43.3L46.0 44.7L46.9 46.0L47.7 46.9L48.4 47.3Z' },

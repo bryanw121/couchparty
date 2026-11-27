@@ -7,7 +7,9 @@ The 3D kart engine (track, physics, kart models, particles, computer drivers, sy
 CouchParty's additions: split screen for up to four phone players, analog tilt steering, items and item boxes,
 character headwear, and the phone/TV wiring (`couchEngine.ts`, `items.ts`, `main.ts`).
 
-Kario Mart's mascot models, updated portraits and item artwork, course landmarks, and course music
-arrangements are custom procedural additions. No Nintendo models, textures or audio recordings are bundled.
+Kario Mart's character likenesses, rendered portraits and item artwork, course landmarks, and course music
+arrangements are custom procedural additions. Character names and likenesses reference Nintendo's Mario cast.
+No extracted Nintendo game models, textures or audio recordings are bundled. Selection portraits are
+rendered from the same procedural character sculptures used in races.
 
 Three.js is MIT licensed (bundled into `web-dist/kart.js`).

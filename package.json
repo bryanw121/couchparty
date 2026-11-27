@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/local.js",
     "build": "node build.mjs",
-    "test:kart": "node test/kart-assets.mjs"
+    "test:kart": "node test/kart-assets.mjs",
+    "build:portraits": "node scripts/render-kart-portraits.mjs"
   },
   "keywords": [],
   "author": "",

@@ -33,14 +33,14 @@ export interface CouchOptions {
 }
 
 const CPU: Array<{ id: string; name: string; color: string; accent: string; topper: string; spd: number; acc: number; hnd: number }> = [
-  { id: 'tabby', name: 'Tabby', color: '#FF9F43', accent: '#fff3d6', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
-  { id: 'bunbun', name: 'Bun Bun', color: '#FF7AC6', accent: '#fdf2f8', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
-  { id: 'duke', name: 'Duke', color: '#9B6BFF', accent: '#fcd34d', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
-  { id: 'rex', name: 'Rex', color: '#3DDC84', accent: '#ecfdf5', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
-  { id: 'lulu', name: 'Lulu', color: '#FF5D8F', accent: '#ffe4ec', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
-  { id: 'zippy', name: 'Zippy', color: '#4CC9F0', accent: '#f0f9ff', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
-  { id: 'ace', name: 'Ace', color: '#FFC83D', accent: '#fff7d6', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
-  { id: 'grizz', name: 'Grizz', color: '#B07A4F', accent: '#f4f1e6', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
+  { id: 'tabby', name: 'Luigi', color: '#20A747', accent: '#fff3d6', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
+  { id: 'bunbun', name: 'Daisy', color: '#FFBB21', accent: '#fdf2f8', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
+  { id: 'duke', name: 'Bowser', color: '#E9A52D', accent: '#fcd34d', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
+  { id: 'rex', name: 'Yoshi', color: '#26B950', accent: '#ecfdf5', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
+  { id: 'lulu', name: 'Peach', color: '#F27BB4', accent: '#ffe4ec', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
+  { id: 'zippy', name: 'Toad', color: '#3478D8', accent: '#f0f9ff', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
+  { id: 'ace', name: 'Mario', color: '#E22C30', accent: '#fff7d6', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
+  { id: 'grizz', name: 'Donkey Kong', color: '#74391C', accent: '#f4f1e6', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
 ];
 const SPEED_MULT = { chill: 0.8, fast: 1, turbo: 1.2 };
 function tune(spd: number, acc: number, hnd: number, mult: number) {

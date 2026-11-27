@@ -39,7 +39,7 @@ phone.input({ t: 'kmenu', a: 'driver', v: 'ace' }); phone.input({ t: 'kmenu', a:
 phone.input({ t: 'kmenu', a: 'choose', v: 'neon' }); phone.input({ t: 'kmenu', a: 'go' });
 assert.equal(tv.state().g.phase, 'race'); assert.equal(tv.state().g.racers[0].topper, 'cap');
 assert.equal(tv.state().g.course, 'neon');
-const artContext = {}; vm.runInNewContext(fs.readFileSync('public/kart-art.js', 'utf8'), artContext);
+const artContext = {}; vm.runInNewContext(fs.readFileSync('public/kart-art.js', 'utf8').replace('/*KART_PORTRAITS*/', () => fs.readFileSync('public/kart-portraits.js', 'utf8')), artContext);
 const silhouettes = new Set();
 for (const d of DRIVERS) {
   const kart = createKartMesh({ ...d, accentColor: '#ffffff', helmetColor: d.color, visorColor: '#20233d', number: 1 });
@@ -55,7 +55,10 @@ for (const d of DRIVERS) {
   const size = new THREE.Box3().setFromObject(kart.driverHead).getSize(new THREE.Vector3());
   silhouettes.add(size.toArray().map(n => n.toFixed(3)).join(','));
   const portrait = artContext.KA.driver(d);
-  assert.ok(portrait.startsWith('<svg') && portrait.endsWith('</svg>'));
+  assert.ok(portrait.startsWith('<img') && portrait.includes('data:image/png;base64,'));
+  const png = Buffer.from(artContext.KARIO_PORTRAITS[d.id].split(',')[1], 'base64');
+  assert.equal(png.subarray(1, 4).toString(), 'PNG');
+  assert.equal(png.readUInt32BE(16), 256); assert.equal(png.readUInt32BE(20), 256);
   assert.ok(!portrait.includes('undefined'));
 }
 assert.ok(silhouettes.size >= 6, 'roster has distinct head silhouettes');

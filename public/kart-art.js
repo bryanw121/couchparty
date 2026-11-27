@@ -1,35 +1,15 @@
+/*KART_PORTRAITS*/
 /* Kario Mart menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
 var KA = (function () {
   var INK = '#1b1b3a';
-  function toppers(t, c) {
-    switch (t) {
-      case 'cat': return '<path d="M22 34 L18 8 L42 24 Z" fill="' + c + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M78 34 L82 8 L58 24 Z" fill="' + c + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M25 28 L23 15 L35 24 Z M75 28 L77 15 L65 24 Z" fill="#ffc9d6"/>';
-      case 'bunny': return '<ellipse cx="36" cy="14" rx="8" ry="20" fill="#fff" stroke="' + INK + '" stroke-width="3" transform="rotate(-12 36 14)"/><ellipse cx="64" cy="14" rx="8" ry="20" fill="#fff" stroke="' + INK + '" stroke-width="3" transform="rotate(12 64 14)"/><ellipse cx="36" cy="16" rx="3.5" ry="13" fill="#ffc9d6" transform="rotate(-12 36 16)"/><ellipse cx="64" cy="16" rx="3.5" ry="13" fill="#ffc9d6" transform="rotate(12 64 16)"/>';
-      case 'crown': return '<path d="M30 24 L30 6 L40 16 L50 3 L60 16 L70 6 L70 24 Z" fill="#ffd34d" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="16" r="3.5" fill="#ff3b8d"/><circle cx="38" cy="19" r="2.5" fill="#4cc9f0"/><circle cx="62" cy="19" r="2.5" fill="#4cc9f0"/>';
-      case 'horns': return '<path d="M28 30 C14 22 14 8 22 4 C22 14 28 20 38 22 Z" fill="#fff6e0" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M72 30 C86 22 86 8 78 4 C78 14 72 20 62 22 Z" fill="#fff6e0" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>';
-      case 'bow': return '<path d="M62 20 L50 10 L50 30 Z M62 20 L74 10 L74 30 Z" fill="#ff5d8f" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round" transform="translate(6 2)"/><circle cx="68" cy="22" r="5" fill="#ff9ccd" stroke="' + INK + '" stroke-width="3"/>';
-      case 'antenna': return '<path d="M50 22 L50 6" stroke="' + INK + '" stroke-width="3"/><circle cx="50" cy="6" r="6" fill="#fff15a" stroke="' + INK + '" stroke-width="3"/>';
-      case 'cap': return '<path d="M24 36 C24 14 76 14 76 36 Z" fill="' + c + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M50 36 L88 36 C88 42 70 44 50 40 Z" fill="' + c + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="20" r="3" fill="#fff"/>';
-      case 'bear': return '<circle cx="26" cy="24" r="12" fill="' + c + '" stroke="' + INK + '" stroke-width="3"/><circle cx="74" cy="24" r="12" fill="' + c + '" stroke="' + INK + '" stroke-width="3"/><circle cx="26" cy="24" r="6" fill="#ffc9d6"/><circle cx="74" cy="24" r="6" fill="#ffc9d6"/>';
-    }
-    return '';
+  var PORTRAIT_IDS = { cap: 'ace', cat: 'tabby', bow: 'lulu', bunny: 'bunbun', horns: 'rex', antenna: 'zippy', crown: 'duke', bear: 'grizz' };
+  function portraitSource(d) {
+    var id = d.id || PORTRAIT_IDS[d.topper] || 'ace';
+    return typeof KARIO_PORTRAITS !== 'undefined' ? KARIO_PORTRAITS[id] || KARIO_PORTRAITS.ace : '';
   }
-  // Round-headed driver portrait
+  // Pre-rendered from the same 3D sculpt used by the race, not flat SVG stand-ins.
   function driver(d) {
-    var human = d.topper === 'cap' || d.topper === 'crown' || d.topper === 'bow';
-    var face = human ? '#ffcf9e' : d.topper === 'bunny' ? '#fff2eb' : d.color;
-    var c = d.color, behind = (d.topper === 'cat' || d.topper === 'bunny' || d.topper === 'horns' || d.topper === 'bear') ? toppers(d.topper, c) : '';
-    var front = behind ? '' : toppers(d.topper, c);
-    return '<svg viewBox="0 0 100 100" width="100%" height="100%">' + behind +
-      '<circle cx="50" cy="58" r="34" fill="' + face + '" stroke="' + INK + '" stroke-width="3.5"/>' +
-      '<ellipse cx="50" cy="66" rx="22" ry="17" fill="rgba(255,255,255,.28)"/>' +
-      '<ellipse cx="39" cy="55" rx="7" ry="9" fill="#fff" stroke="' + INK + '" stroke-width="2"/><ellipse cx="61" cy="55" rx="7" ry="9" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
-      '<ellipse cx="40" cy="56" rx="3.8" ry="5.2" fill="' + INK + '"/><ellipse cx="62" cy="56" rx="3.8" ry="5.2" fill="' + INK + '"/>' +
-      '<circle cx="41.5" cy="53.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="53.5" r="1.6" fill="#fff"/>' +
-      '<ellipse cx="29" cy="68" rx="5" ry="3" fill="#ff8fa3" opacity=".8"/><ellipse cx="71" cy="68" rx="5" ry="3" fill="#ff8fa3" opacity=".8"/>' +
-      '<path d="M43 70 Q50 77 57 70" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linecap="round"/>' + (d.topper === 'cap' ? '<ellipse cx="50" cy="64" rx="9" ry="7" fill="#f2b180"/><path d="M34 70Q40 61 50 68Q60 61 66 70Q58 78 50 72Q42 78 34 70" fill="#63321d"/>' : '') +
-      (d.topper === 'horns' ? '<ellipse cx="50" cy="70" rx="25" ry="15" fill="'+ c +'" stroke="'+INK+'" stroke-width="2"/><circle cx="42" cy="66" r="2" fill="'+INK+'"/><circle cx="58" cy="66" r="2" fill="'+INK+'"/>' : '') +
-      (d.topper === 'antenna' ? '<path d="M12 42C10 -2 90 -2 88 42Z" fill="'+ c +'" stroke="'+INK+'" stroke-width="3"/><ellipse cx="50" cy="21" rx="10" ry="13" fill="#fff"/><ellipse cx="22" cy="28" rx="6" ry="10" fill="#fff"/><ellipse cx="78" cy="28" rx="6" ry="10" fill="#fff"/>' : front) + '</svg>';
+    return '<img src="' + portraitSource(d) + '" alt="' + (d.name || 'Driver') + ' 3D portrait" width="256" height="256" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:12%;"/>';
   }
   function mode(id) {
     if (id === 'cup') return '<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M28 14 H72 V34 C72 52 62 60 50 60 C38 60 28 52 28 34 Z" fill="#ffd34d" stroke="' + INK + '" stroke-width="4" stroke-linejoin="round"/><path d="M28 20 C12 20 12 42 30 44 M72 20 C88 20 88 42 70 44" fill="none" stroke="' + INK + '" stroke-width="4"/><rect x="44" y="60" width="12" height="14" fill="#ffb800" stroke="' + INK + '" stroke-width="4"/><rect x="32" y="74" width="36" height="12" rx="3" fill="#9b6bff" stroke="' + INK + '" stroke-width="4"/><path d="M50 22 L53 30 L61 30 L55 35 L57 43 L50 38 L43 43 L45 35 L39 30 L47 30 Z" fill="#fff"/></svg>';
@@ -75,7 +55,7 @@ var KA = (function () {
         '<path d="M6 44 L14 30 L60 28 L72 38 L74 46 Z" fill="#ffc83d" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
         '<rect x="62" y="26" width="6" height="10" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
         '<circle cx="18" cy="48" r="9" fill="' + INK + '"/><circle cx="18" cy="48" r="3.5" fill="#c9d3e6"/><circle cx="62" cy="48" r="9" fill="' + INK + '"/><circle cx="62" cy="48" r="3.5" fill="#c9d3e6"/>' +
-        '<g transform="translate(14 -8) scale(.42)">' + driver({ color: '#4CC9F0', topper: 'antenna' }).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '') + '</g>' +
+        '<image x="14" y="-8" width="42" height="42" href="' + portraitSource({id:'ace'}) + '"/>' +
       '</g></svg>';
   }
   var GAMEINFO = { poker: { tag: 'Bluff your friends', players: '2–8 players' }, kart: { tag: '3D kart racing', players: '1–4 players · 8 karts' } };
