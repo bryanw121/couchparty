@@ -35,6 +35,73 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 #soundHint { position: absolute; bottom: 1.2rem; left: 3.4rem; font-size: 0.9rem; color: #A9AEC8; }
 #credits { position: absolute; bottom: 0.4rem; left: 3.4rem; font-size: 0.65rem; }
 #kart.on { z-index: 20; }
+/* Kart menus */
+#kmenu { position: absolute; inset: 0; display: none; flex-direction: column; padding: 2.2rem 3.4rem 2rem; overflow: hidden; background: radial-gradient(ellipse at 30% 0%, #3a2a8a 0%, #17123f 45%, #0b0a24 100%); }
+#kmenu:before { content: ''; position: absolute; inset: -50%; background: repeating-linear-gradient(-30deg, rgba(255,255,255,.035) 0 2.2rem, transparent 2.2rem 4.4rem); animation: kslide 18s linear infinite; }
+@keyframes kslide { to { transform: translateX(8.8rem); } }
+#kmenu > * { position: relative; }
+.khead { display: flex; align-items: center; justify-content: space-between; }
+.klogo { font: italic 900 2.2rem/1 'Space Grotesk', Inter, sans-serif; letter-spacing: 0.04em; color: #fff; -webkit-text-stroke: 0.12rem #1b1b3a; paint-order: stroke fill; text-shadow: 0 0.3rem 0 #ff3b8d; }
+.klogo b { color: #ffc83d; }
+.ksteps { display: flex; }
+.ksteps span { margin-left: 0.5rem; padding: 0.4rem 1rem; border-radius: 2rem; font-weight: 800; font-size: 0.9rem; color: #8d93b8; background: rgba(255,255,255,.06); transform: skewX(-10deg); }
+.ksteps span.on { color: #1b1b3a; background: #ffc83d; }
+.ksteps span.done { color: #fff; background: rgba(255,255,255,.16); }
+.ktitle { font: italic 900 3rem/1 'Space Grotesk', Inter, sans-serif; margin: 1.6rem 0 0.3rem; color: #fff; text-shadow: 0 0.25rem 0 rgba(0,0,0,.35); }
+.ksub { color: #b9bde0; font-size: 1.15rem; margin-bottom: 1.4rem; position: relative; z-index: 2; }
+.kcards { padding-top: 1.2rem; }
+.kcards { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.kcard { width: 17rem; margin: 0 0.9rem; border-radius: 1.6rem; background: linear-gradient(160deg, #2d2f6e, #1d1f4a); border: 0.25rem solid rgba(255,255,255,.12); padding: 1.4rem; text-align: center; transform: skewX(-4deg); transition: transform .18s, box-shadow .18s, border-color .18s; box-shadow: 0 0.8rem 1.6rem rgba(0,0,0,.35); }
+.kcard > * { transform: skewX(4deg); }
+.kcard .art { height: 10rem; margin: 0 auto 0.8rem; }
+.kcard .n { font: italic 900 1.9rem 'Space Grotesk', Inter, sans-serif; }
+.kcard .d { color: #b9bde0; font-size: 1rem; margin-top: 0.3rem; min-height: 2.6rem; }
+.kcard.sel { transform: skewX(-4deg) scale(1.08) translateY(-0.6rem); border-color: #ffc83d; box-shadow: 0 0 0 0.35rem rgba(255,200,61,.35), 0 1.4rem 2.6rem rgba(0,0,0,.5); background: linear-gradient(160deg, #4a3fb0, #2a2370); }
+.kcard.course { width: 15rem; padding: 0.9rem; }
+.kcard.course .art { height: 9.5rem; border-radius: 1rem; overflow: hidden; }
+.kcard.course .n { font-size: 1.6rem; line-height: 1.05; }
+.kcard.course .d { min-height: 0; }
+.kfoot { display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #d6d9f2; margin-top: 1rem; }
+.kfoot .okkey { margin: 0 0.5rem; }
+.kcap { display: inline-flex; align-items: center; padding: 0.35rem 0.9rem 0.35rem 0.35rem; border-radius: 2rem; background: rgba(255,255,255,.1); font-weight: 800; margin-right: 0.7rem; }
+.kcap i { width: 1.6rem; height: 1.6rem; border-radius: 50%; margin-right: 0.5rem; }
+/* drivers */
+.kdrvwrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.kroster { display: flex; flex-wrap: wrap; justify-content: center; width: 40rem; }
+.kdrv { position: relative; width: 8.6rem; height: 8.6rem; margin: 0.5rem; border-radius: 1.4rem; background: linear-gradient(160deg, #2d2f6e, #1d1f4a); border: 0.22rem solid rgba(255,255,255,.1); padding: 0.6rem; }
+.kdrv .art { width: 5.6rem; height: 5.6rem; margin: 0 auto; }
+.kdrv .n { text-align: center; font-weight: 900; font-size: 1.1rem; }
+.kdrv .tags { position: absolute; top: -0.6rem; right: -0.6rem; display: flex; }
+.kdrv .tags i { width: 1.9rem; height: 1.9rem; border-radius: 50%; border: 0.2rem solid #fff; margin-left: -0.5rem; font-style: normal; font-weight: 900; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; color: #1b1b3a; }
+.kdrv.taken { border-color: #ffc83d; }
+.kslots { display: flex; flex-direction: column; justify-content: center; margin-left: 1.6rem; }
+.kslots .kslot { margin: 0.4rem 0; }
+.kslot { width: 17rem; margin: 0 0.6rem; border-radius: 1.4rem; padding: 0.8rem 1rem; background: rgba(0,0,0,.28); border: 0.22rem solid rgba(255,255,255,.1); display: flex; align-items: center; }
+.kslot.ready { border-color: #5ee6c8; }
+.kslot .art { width: 4.6rem; height: 4.6rem; flex-shrink: 0; margin-right: 0.8rem; }
+.kslot .who { font-weight: 900; font-size: 1.1rem; }
+.kslot .st { font-size: 0.85rem; font-weight: 800; color: #ffc83d; }
+.kslot.ready .st { color: #5ee6c8; }
+.kabar { display: flex; align-items: center; font-size: 0.75rem; color: #b9bde0; margin-top: 0.15rem; }
+.kabar span { width: 3.6rem; }
+.kabar i { display: flex; }
+.kabar b { width: 0.85rem; height: 0.45rem; margin-right: 0.15rem; border-radius: 0.2rem; background: rgba(255,255,255,.15); }
+.kabar b.on { background: #ffc83d; }
+/* summary + standings */
+.ksum { display: flex; align-items: stretch; justify-content: center; }
+.ksum .kcard { width: 14rem; }
+.ksum .kcard .art { height: 7rem; }
+.kstand { width: 46rem; margin: 0 auto; }
+.krow { display: flex; align-items: center; margin: 0.45rem 0; padding: 0.55rem 1rem; border-radius: 1rem; background: rgba(255,255,255,.07); transform: skewX(-6deg); animation: krow .5s both; }
+.krow > * { transform: skewX(6deg); }
+.krow.me { background: rgba(255,200,61,.16); }
+.krow .pl { width: 3.2rem; font: italic 900 1.8rem 'Space Grotesk', Inter, sans-serif; }
+.krow .dot { width: 1.6rem; height: 1.6rem; border-radius: 50%; margin-right: 0.8rem; border: 0.18rem solid #fff; }
+.krow .nm { flex: 1; font-weight: 800; font-size: 1.3rem; }
+.krow .plus { color: #5ee6c8; font-weight: 900; margin-right: 1rem; }
+.krow .pts { width: 5rem; text-align: right; font: 900 1.6rem 'Space Grotesk', Inter, sans-serif; }
+@keyframes krow { from { opacity: 0; transform: skewX(-6deg) translateX(-3rem); } }
+
 #status { position: absolute; bottom: 1.2rem; right: 1.6rem; font-size: 0.8rem; color: #A9AEC8; }
 #toast { position: absolute; top: 1.2rem; left: 50%; transform: translateX(-50%); background: #FF9F6B; color: #0E1020; font-weight: 800; padding: 0.6rem 1.2rem; border-radius: 0.8rem; font-size: 1.1rem; display: none; }
 /* Poker */
@@ -98,6 +165,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 
 <div id="kart" class="screen" style="padding:0">
   <div id="kartView" style="position:absolute;inset:0;background:#0E1020"></div>
+  <div id="kmenu"></div>
   <div id="kartMsg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;font-size:1.6rem"></div>
 </div>
 <div id="final" class="screen">
@@ -119,6 +187,8 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 <div id="status"></div>
 
 <script>
+/*KART_ART*/
+
 (function () {
   // ES5 on purpose so older TV browsers (Samsung Tizen, LG webOS, Fire TV Silk) run it.
   var ws = null, code = null, S = null, retry = 500, tick = null, lastPhase = '';
@@ -134,7 +204,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function money(n) { return (n < 0 ? '−' : '') + '$' + fmt(Math.abs(n)); }
   function signed(n) { return (n > 0 ? '+' : '') + money(n); }
   function netColor(n) { return n > 0 ? '#5EE6C8' : n < 0 ? '#FF9F9F' : '#A9AEC8'; }
-  function tableLine(st) { if (st.laps) return st.laps + ' laps · items ' + (st.items ? 'on' : 'off'); return 'Buy-in $' + st.buyIn + ' · Blinds $' + st.blinds.split('/').join('/$') + ' · Rebuys ' + (st.rebuys ? 'on' : 'off'); }
+  function tableLine(st) { if (!st.blinds) return st.laps ? st.laps + ' laps' : 'Mode, speed and course picked in the menu'; if (st.laps) return st.laps + ' laps · items ' + (st.items ? 'on' : 'off'); return 'Buy-in $' + st.buyIn + ' · Blinds $' + st.blinds.split('/').join('/$') + ' · Rebuys ' + (st.rebuys ? 'on' : 'off'); }
   function roomFromUrl() { var m = /[?&]room=([A-Za-z0-9]{4})/.exec(location.search); return m ? m[1].toUpperCase() : ''; }
   function toast(msg) { if (!msg) return; var t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 3000); }
 
@@ -259,8 +329,73 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     if (KART.engine) { try { KART.engine.dispose(); } catch (e) {} KART.engine = null; music(true); }
     KART.raceId = null;
   }
+
+  /* Kart menus: mode → speed → drivers → course → rules, then Cup standings between races */
+  function kById(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+  function kName(g, pid) { for (var i = 0; i < g.racers.length; i++) if (g.racers[i].id === pid) return g.racers[i]; return null; }
+  var KSTEP = { mode: 'Mode', speed: 'Speed', driver: 'Drivers', course: 'Course', rules: 'Go!' };
+  function renderKartMenu(g) {
+    var L = g.lists, h = '', i, cap = g.captainName ? esc(g.captainName) : 'The host';
+    var steps = g.phase === 'standings' ? [] : g.steps, at = steps.indexOf(g.step);
+    h += '<div class="khead"><div class="klogo">KART <b>RACER</b></div><div class="ksteps">';
+    for (i = 0; i < steps.length; i++) h += '<span class="' + (i === at ? 'on' : i < at ? 'done' : '') + '">' + (i + 1) + ' ' + KSTEP[steps[i]] + '</span>';
+    h += '</div></div>';
+    var capChip = function () { var r = kName(g, g.captain); return '<span class="kcap"><i style="background:' + (r ? r.color : '#ffc83d') + '"></i>' + cap + '</span>'; };
+    var cards = function (list, art, cls) {
+      var o = '<div class="kcards">';
+      for (var j = 0; j < list.length; j++) o += '<div class="kcard ' + (cls || '') + (j === g.cursor ? ' sel' : '') + '"><div class="art">' + art(list[j]) + '</div><div class="n">' + esc(list[j].name) + '</div><div class="d">' + esc(list[j].blurb || '') + '</div></div>';
+      return o + '</div><div class="kfoot">' + capChip() + 'picks on their phone · or ◀ ▶ then <span class="okkey">OK</span> on the remote</div>';
+    };
+    if (g.phase === 'standings') {
+      var last = g.raceNo >= g.races;
+      h += '<div class="ktitle">' + (last ? 'Final Cup results!' : 'Cup standings') + '</div><div class="ksub">After race ' + g.raceNo + ' of ' + g.races + (last ? '' : ' · next up: ' + esc(kById(L.courses, g.cup[g.raceNo]).name)) + '</div><div class="kstand">';
+      for (i = 0; i < g.standings.length; i++) {
+        var r = g.standings[i];
+        h += '<div class="krow' + (r.human ? ' me' : '') + '" style="animation-delay:' + (i * 0.08) + 's"><span class="pl">' + (i + 1) + '</span><span class="dot" style="background:' + r.color + '"></span><span class="nm">' + esc(r.name) + '</span><span class="plus">+' + (r.last || 0) + '</span><span class="pts">' + r.pts + '</span></div>';
+      }
+      h += '</div><div class="kfoot">' + capChip() + (last ? 'taps Finish' : 'taps Next race') + ' · or <span class="okkey">OK</span></div>';
+    } else if (g.step === 'mode') {
+      h += '<div class="ktitle">Choose a mode</div><div class="ksub">' + g.racers.length + ' racer' + (g.racers.length > 1 ? 's' : '') + (g.spectators.length ? ' · ' + g.spectators.length + ' watching' : '') + '</div>' + cards(L.modes, function (m) { return KA.mode(m.id); });
+    } else if (g.step === 'speed') {
+      h += '<div class="ktitle">How fast?</div><div class="ksub">Faster karts, trickier corners</div>' + cards(L.speeds, function (m) { return KA.speed(m.id); });
+    } else if (g.step === 'course') {
+      h += '<div class="ktitle">Pick a course</div><div class="ksub">' + esc(kById(L.modes, g.mode).name) + ' · ' + esc(kById(L.speeds, g.speed).name) + '</div>' + cards(L.courses, function (c) { return KA.course(c); }, 'course');
+    } else if (g.step === 'driver') {
+      h += '<div class="ktitle">Choose your driver</div><div class="ksub">Everyone picks on their own phone, then taps Ready</div><div class="kdrvwrap"><div class="kroster">';
+      for (i = 0; i < L.drivers.length; i++) {
+        var d = L.drivers[i], tags = '';
+        for (var k = 0; k < g.picks.length; k++) if (g.picks[k].driver === d.id) { var who = kName(g, g.picks[k].id); if (who) tags += '<i style="background:' + who.color + '">P' + (k + 1) + '</i>'; }
+        h += '<div class="kdrv' + (tags ? ' taken' : '') + '"><div class="tags">' + tags + '</div><div class="art">' + KA.driver(d) + '</div><div class="n">' + esc(d.name) + '</div></div>';
+      }
+      h += '</div><div class="kslots">';
+      for (i = 0; i < g.picks.length; i++) {
+        var pk = g.picks[i], rr = kName(g, pk.id), dd = kById(L.drivers, pk.driver);
+        if (!rr || !dd) continue;
+        h += '<div class="kslot' + (pk.ready ? ' ready' : '') + '"><div class="art">' + KA.driver(dd) + '</div><div><div class="who">P' + (i + 1) + ' ' + esc(rr.name) + '</div><div class="st">' + (pk.ready ? '✓ READY' : 'Choosing… ' + esc(dd.name)) + '</div>' + KA.bars(dd) + '</div></div>';
+      }
+      h += '</div></div>';
+    } else if (g.step === 'rules') {
+      var md = kById(L.modes, g.mode), sp = kById(L.speeds, g.speed);
+      h += '<div class="ktitle">Ready to race?</div><div class="ksub">' + g.laps + ' laps · ' + (g.items ? 'items on' : 'no items') + (g.cpus ? ' · CPUs fill the grid' : '') + '</div><div class="kcards ksum">';
+      h += '<div class="kcard"><div class="art">' + KA.mode(md.id) + '</div><div class="n">' + esc(md.name) + '</div></div>';
+      h += '<div class="kcard"><div class="art">' + KA.speed(sp.id) + '</div><div class="n">' + esc(sp.name) + '</div></div>';
+      var cs = g.mode === 'cup' ? g.cup : [g.course];
+      for (i = 0; i < cs.length; i++) { var c = kById(L.courses, cs[i]); h += '<div class="kcard course" style="width:' + (cs.length > 1 ? 12 : 19) + 'rem"><div class="art" style="height:' + (cs.length > 1 ? 7 : 12) + 'rem">' + KA.course(c) + '</div><div class="n" style="font-size:' + (cs.length > 1 ? 1.2 : 1.9) + 'rem">' + esc(c.name) + '</div></div>'; }
+      h += '</div><div class="kfoot">' + capChip() + 'taps <b style="margin:0 0.4rem;color:#ffc83d">Start race!</b> on their phone</div>';
+    }
+    $('kmenu').innerHTML = h;
+  }
   function renderKart(g) {
     show('kart');
+    if (g.phase !== 'race') {
+      stopKart();
+      kartMsg('');
+      $('kmenu').style.display = 'flex';
+      renderKartMenu(g);
+      if (!window.CouchKart && !KART.loading) { KART.loading = true; var pre = document.createElement('script'); pre.src = KART_JS; pre.onload = pre.onerror = function () { KART.loading = false; }; document.head.appendChild(pre); }
+      return;
+    }
+    $('kmenu').style.display = 'none';
     if (KART.raceId === g.raceId) return;
     stopKart();
     KART.raceId = g.raceId;
@@ -275,7 +410,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       music(false);
       var raceId = g.raceId;
       KART.engine = window.CouchKart.start($('kartView'), {
-        players: g.racers, laps: g.laps, items: g.items,
+        players: g.racers, laps: g.laps, items: g.items, course: g.course, speed: g.speed, cpus: g.cpus,
         onEvent: function (e) {
           if (!e || !e.racer || e.racer.indexOf('cpu-') === 0) return;
           gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.racer, e: e.type, item: e.item || null, rank: e.rank || 0 });
@@ -289,7 +424,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       KART.hud = setInterval(function () { if (KART.engine) gameMsg({ t: 'tv:game', k: 'hud', raceId: raceId, list: KART.engine.hudInfo() }); }, 400);
     };
     if (window.CouchKart) { startRace(); return; }
-    kartMsg('<div style="font-size:2.4rem;font-weight:800">Loading the race track…</div><div class="muted">' + g.racers.length + ' racer' + (g.racers.length > 1 ? 's' : '') + ' · ' + g.laps + ' laps</div>');
+    kartMsg('<div style="font-size:2.4rem;font-weight:800">Loading ' + esc(kById(g.lists.courses, g.course).name) + '…</div><div class="muted">' + g.racers.length + ' racer' + (g.racers.length > 1 ? 's' : '') + ' · ' + g.laps + ' laps</div>');
     if (KART.loading) return;
     KART.loading = true;
     var sc = document.createElement('script');
@@ -334,9 +469,10 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       return;
     }
     if (r.length && r[0].place) {
-      $('winner').innerHTML = '<span style="color:' + r[0].color + '">' + esc(r[0].name) + '</span> wins the race!';
+      var cupWin = r[0].unit === 'pts';
+      $('winner').innerHTML = '<span style="color:' + r[0].color + '">' + esc(r[0].name) + '</span> wins the ' + (cupWin ? 'Cup!' : 'race!');
       for (i = 0; i < r.length && i < 8; i++) {
-        var t = r[i].time == null ? 'DNF' : (Math.floor(r[i].time / 60) + ':' + (r[i].time % 60 < 10 ? '0' : '') + (r[i].time % 60).toFixed(1));
+        var t = cupWin ? r[i].score + ' <span class="muted" style="font-size:1rem">pts</span>' : r[i].time == null ? 'DNF' : (Math.floor(r[i].time / 60) + ':' + (r[i].time % 60 < 10 ? '0' : '') + (r[i].time % 60).toFixed(1));
         html += '<div class="card lb"' + (r[i].human ? '' : ' style="opacity:0.6"') + '><span class="rank">' + (i + 1) + '</span>' + avatar(r[i]) + '<span class="name">' + esc(r[i].name) + (r[i].human ? '' : ' <span class="muted" style="font-size:1rem">CPU</span>') + '</span><span class="pts">' + t + '</span></div>';
       }
       $('board').innerHTML = html;

@@ -49,9 +49,16 @@ button { font-family: inherit; cursor: pointer; }
 .kbtn.small { flex: 0 0 56px; font-size: 16px; background: transparent; border: 2px solid #3A3F63; color: #A9AEC8; }
 .kmid { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px; min-height: 0; }
 .kplace { font-size: 40px; font-weight: 900; color: #FFC83D; line-height: 1; }
-.karrows { display: none; width: 100%; gap: 10px; flex: 1; }
-.kbuttons .karrows { display: flex; }
-.kbuttons #kGauge { display: none; }
+.kstick { display: none; position: relative; width: 100%; flex: 1; min-height: 110px; border-radius: 28px; background: #1A1D33; border: 2px solid #3A3F63; touch-action: none; overflow: hidden; }
+.kstick .track { position: absolute; left: 12%; right: 12%; top: 50%; height: 10px; margin-top: -5px; border-radius: 5px; background: #23284A; }
+.kstick .knob { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #F4F5FA, #A9AEC8); box-shadow: 0 6px 14px rgba(0,0,0,.45); transition: transform .12s; }
+.kstick.held .knob { transition: none; }
+.kstick .hint { position: absolute; bottom: 8px; width: 100%; text-align: center; font-size: 12px; color: #6B7194; }
+.kstickmode .kstick { display: block; }
+.kstickmode #kGauge, .kstickmode #kRecenter, .kstickmode #kTiltBtn { display: none !important; }
+.kmode { display: flex; background: #1A1D33; border-radius: 999px; padding: 3px; border: 2px solid #3A3F63; }
+.kmode button { border: 0; background: transparent; color: #A9AEC8; font: 800 14px Inter, sans-serif; padding: 8px 14px; border-radius: 999px; min-height: 36px; }
+.kmode button[aria-pressed="true"] { background: #FFC83D; color: #0E1020; }
 @media (orientation: portrait) {
   .kgrid { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; }
   .kmid { grid-column: 1 / 3; grid-row: 1; }
@@ -59,6 +66,36 @@ button { font-family: inherit; cursor: pointer; }
   .kcol.right { grid-column: 2; grid-row: 2; }
 }
 .steerpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Kart menus (phone) */
+.kmp { flex: 1; display: none; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-bottom: 8px; }
+.kmh { display: flex; align-items: center; gap: 10px; }
+.kmh .t { flex: 1; font: italic 900 24px 'Space Grotesk', Inter, sans-serif; }
+.kmh .back { width: 44px; height: 44px; border-radius: 12px; border: 2px solid #3A3F63; background: #1A1D33; color: #F4F5FA; font-size: 20px; }
+.kmdots { display: flex; gap: 5px; }
+.kmdots i { width: 22px; height: 6px; border-radius: 3px; background: #3A3F63; }
+.kmdots i.on { background: #FFC83D; }
+.kmcard { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 84px; padding: 10px 14px; border-radius: 18px; border: 3px solid #2C3160; background: linear-gradient(160deg, #2d2f6e, #1d1f4a); color: #F4F5FA; text-align: left; }
+.kmcard.sel { border-color: #FFC83D; }
+.kmcard .art { width: 60px; height: 60px; flex-shrink: 0; border-radius: 12px; overflow: hidden; }
+.kmcard .n { font: italic 900 20px 'Space Grotesk', Inter, sans-serif; }
+.kmcard .d { color: #A9AEC8; font-size: 14px; margin-top: 2px; }
+.kmgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.kmdrv { position: relative; min-width: 0; width: 100%; aspect-ratio: 1; border-radius: 16px; border: 3px solid #2C3160; background: linear-gradient(160deg, #2d2f6e, #1d1f4a); padding: 4px; }
+.kmdrv.mine { border-color: var(--me); box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
+.kmdrv .tag { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; font: 900 10px Inter, sans-serif; display: flex; align-items: center; justify-content: center; color: #1b1b3a; }
+.kmme { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; background: #1A1D33; }
+.kmme .art { width: 64px; height: 64px; flex-shrink: 0; }
+.kmme .n { font: italic 900 20px 'Space Grotesk', Inter, sans-serif; }
+.kabar { display: flex; align-items: center; font-size: 12px; color: #A9AEC8; margin-top: 3px; }
+.kabar span { width: 62px; }
+.kabar i { display: flex; gap: 3px; }
+.kabar b { width: 16px; height: 7px; border-radius: 3px; background: #2C3160; }
+.kabar b.on { background: #FFC83D; }
+.kmbig { width: 100%; min-height: 64px; border-radius: 18px; border: 0; font: italic 900 24px 'Space Grotesk', Inter, sans-serif; background: #FFC83D; color: #0E1020; }
+.kmbig.ready { background: #5EE6C8; }
+.kmbig.alt { background: #1A1D33; color: #F4F5FA; border: 2px solid #3A3F63; font-size: 18px; min-height: 52px; }
+.kmwait { text-align: center; color: #A9AEC8; font-size: 16px; padding: 18px 0; }
 /* Poker */
 .hole { display: flex; gap: 14px; justify-content: center; }
 .pc { width: 120px; height: 168px; border-radius: 16px; background: #fff; color: #0E1020; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 800; }
@@ -133,13 +170,14 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
         <button class="kbtn drift" id="kDrift">Drift</button>
       </div>
       <div class="kmid">
-        <div style="display:flex;gap:10px;align-items:baseline"><span class="kplace" id="kPlace">–</span><span class="muted" id="kLap">Get ready</span></div>
+        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;width:100%"><div style="display:flex;gap:10px;align-items:baseline"><span class="kplace" id="kPlace">–</span><span class="muted" id="kLap">Get ready</span></div>
+          <div class="kmode" id="kMode"><button data-km="tilt">Tilt</button><button data-km="stick">Stick</button></div></div>
         <svg id="kGauge" width="220" height="130" viewBox="0 0 300 180" role="img" aria-label="Steering gauge">
           <path d="M30 160 A120 120 0 0 1 270 160" fill="none" stroke="#23284A" stroke-width="22" stroke-linecap="round"/>
           <g id="kNeedle"><line x1="150" y1="160" x2="150" y2="58" stroke="#F4F5FA" stroke-width="7" stroke-linecap="round"/></g>
           <circle cx="150" cy="160" r="14" fill="#F4F5FA"/>
         </svg>
-        <div class="karrows"><button class="kbtn" id="kLeft" aria-label="Steer left">◀</button><button class="kbtn" id="kRight" aria-label="Steer right">▶</button></div>
+        <div class="kstick" id="kStick" aria-label="Steering stick"><div class="track"></div><div class="knob" id="kKnob"></div><div class="hint">Put your thumb anywhere · slide ◀ ▶</div></div>
         <div style="display:flex;gap:8px;width:100%"><button class="ghost" id="kRecenter" style="flex:1">Recenter</button><button class="ghost" id="kTiltBtn" style="flex:1;display:none">Enable tilt</button></div>
         <div class="muted" id="kTip" style="font-size:13px;text-align:center">Hold it sideways like a wheel</div>
       </div>
@@ -148,6 +186,7 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
         <button class="kbtn gas" id="kGas">Gas</button>
       </div>
     </div>
+    <div class="kmp" id="kMenuP"></div>
     <div class="center" id="kWatch" style="display:none"><div class="title">You're watching</div><div class="muted" id="kWatchSub">Up to 4 racers per race</div></div>
   </div>
 
@@ -160,6 +199,8 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
 </div>
 
 <script>
+/*KART_ART*/
+
 const COLORS = ['#FFC83D', '#5EE6C8', '#8FB4FF', '#FF9F6B', '#FF7AB6', '#B79CFF', '#9BE36B', '#F4F5FA'];
 const SUIT = { s: '♠', h: '♥', d: '♦', c: '♣' };
 const $ = (id) => document.getElementById(id);
@@ -249,13 +290,23 @@ const settingsLine = (g) => { const st = S.settings && S.settings[g.id]; return 
 
 /* ---------- Kart Racer controller ---------- */
 const K = {
-  steerMode: store.get('cp_steer') || 'tilt', // tilt | buttons
+  steerMode: store.get('cp_steer') === 'tilt' ? 'tilt' : store.get('cp_steer') ? 'stick' : 'tilt', // tilt | stick
+  stick: 0, stickId: null, stickX: 0,
   autoGas: store.get('cp_autogas') !== 'off',
   raceId: null, active: false, steer: 0, ref: null, raw: null,
   gas: false, brake: false, drift: false, item: false, left: false, right: false,
   lastSent: '', lastAt: 0, timer: null, motionOn: false,
 };
-const ITEM_NAMES = { banana: 'Banana', green: 'Green shell', red: 'Red shell', blue: 'Blue shell', boost: 'Boost', star: 'Star', bolt: 'Lightning', rolling: '…' };
+const ITEM_NAMES = { banana: 'Banana peel', green: 'Bouncer', red: 'Homing rocket', blue: 'Leader zapper', boost: 'Turbo', star: 'Star power', bolt: 'Lightning', rolling: '…' };
+const ITEM_SVG = {
+  banana: '<svg viewBox="0 0 40 40"><path d="M7 12 C8 30 28 36 35 22 C25 25 15 22 12 9 Z" fill="#ffd93b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 9 L10 4" stroke="#5a3a12" stroke-width="3" stroke-linecap="round"/><path d="M14 20 C18 26 24 28 30 26" fill="none" stroke="#fff6b0" stroke-width="2" stroke-linecap="round"/></svg>',
+  green: '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="36" rx="10" ry="2.5" fill="rgba(0,0,0,.35)"/><circle cx="20" cy="20" r="14" fill="#3ddc84" stroke="#1b1b3a" stroke-width="2.5"/><circle cx="14" cy="14" r="4" fill="#fff" opacity=".85"/><circle cx="16" cy="21" r="2.2" fill="#1b1b3a"/><circle cx="24" cy="21" r="2.2" fill="#1b1b3a"/><path d="M16 26 Q20 29 24 26" fill="none" stroke="#1b1b3a" stroke-width="2" stroke-linecap="round"/></svg>',
+  red: '<svg viewBox="0 0 40 40"><g transform="rotate(45 20 20)"><path d="M20 3 C26 9 26 22 25 28 H15 C14 22 14 9 20 3 Z" fill="#ff3b3b" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 C23 6 24.5 9 25 12 H15 C15.5 9 17 6 20 3 Z" fill="#fff" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/><rect x="15" y="17" width="10" height="3" fill="#ffc83d"/><path d="M15 22 L10 30 L15 28 Z M25 22 L30 30 L25 28 Z" fill="#fff" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/><path d="M17 29 L20 37 L23 29 Z" fill="#ffa31a"/></g></svg>',
+  blue: '<svg viewBox="0 0 40 40"><path d="M10 24 A6 6 0 0 1 11 13 A8 8 0 0 1 26 10 A7 7 0 0 1 31 24 Z" fill="#5b6bd6" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><path d="M15 17 L18 18.5 M25 17 L22 18.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M21 24 L16 31 H20 L17 38 L25 28 H21 L23 24 Z" fill="#fff15a" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  boost: '<svg viewBox="0 0 40 40"><rect x="12" y="8" width="16" height="24" rx="5" fill="#ff7a00" stroke="#1b1b3a" stroke-width="2.5"/><rect x="15" y="4" width="10" height="5" rx="2" fill="#c9d3e6" stroke="#1b1b3a" stroke-width="2"/><path d="M21 12 L15 21 H19 L17 28 L25 18 H21 Z" fill="#ffe14d" stroke="#1b1b3a" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 33 L20 39 L25 33 Z" fill="#ffd34d"/></svg>',
+  star: '<svg viewBox="0 0 40 40"><defs><linearGradient id="psg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7ac6"/><stop offset=".5" stop-color="#ffd34d"/><stop offset="1" stop-color="#5ee6c8"/></linearGradient></defs><path d="M20 3 L25 14.5 L37.5 15.5 L28 23.5 L31 36 L20 29.5 L9 36 L12 23.5 L2.5 15.5 L15 14.5 Z" fill="url(#psg)" stroke="#1b1b3a" stroke-width="2.5" stroke-linejoin="round"/><circle cx="34" cy="6" r="2" fill="#fff"/><circle cx="6" cy="31" r="1.5" fill="#fff"/></svg>',
+  bolt: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#2b2f6b" stroke="#1b1b3a" stroke-width="2"/><path d="M24 4 L9 22 H18 L14 37 L31 16 H22 Z" fill="#fff15a" stroke="#1b1b3a" stroke-width="2" stroke-linejoin="round"/></svg>',
+};
 const ITEM_DOT = { banana: '#FFE14D', green: '#22C55E', red: '#EF4444', blue: '#3B82F6', boost: '#FB923C', star: '#FACC15', bolt: '#FDE047', rolling: '#A9AEC8' };
 const ordinal = (n) => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 
@@ -276,7 +327,8 @@ function onMotion(e) {
   let d = ang - K.ref;
   while (d > 180) d -= 360;
   while (d < -180) d += 360;
-  K.steer = Math.max(-1, Math.min(1, d / 35)); // 35 degrees of wheel turn = full lock
+  const t = Math.max(-1, Math.min(1, d / 35)); // 35 degrees of wheel turn = full lock
+  K.steer += (t - K.steer) * 0.55; // light filter: removes hand shake
   if (K.steerMode === 'tilt') { $('kNeedle').setAttribute('transform', `rotate(${(-K.steer * 70).toFixed(1)} 150 160)`); kartSend(); }
 }
 async function enableTilt() {
@@ -284,11 +336,11 @@ async function enableTilt() {
     const DME = window.DeviceMotionEvent;
     if (DME && typeof DME.requestPermission === 'function') {
       const r = await DME.requestPermission();
-      if (r !== 'granted') { K.steerMode = 'buttons'; store.set('cp_steer', 'buttons'); renderKartPrefs(); kartLayout(); return; }
+      if (r !== 'granted') { K.steerMode = 'stick'; store.set('cp_steer', 'stick'); renderKartPrefs(); kartLayout(); return; }
     }
     if (!K.motionOn) { window.addEventListener('devicemotion', onMotion); K.motionOn = true; }
     K.ref = null;
-  } catch { K.steerMode = 'buttons'; }
+  } catch { K.steerMode = 'stick'; }
   renderKartPrefs(); kartLayout();
 }
 function renderKartPrefs() {
@@ -297,28 +349,100 @@ function renderKartPrefs() {
   const show = S && S.phase === 'lobby' && S.selected === 'kart';
   box.style.display = show ? 'flex' : 'none';
   if (!show) return;
-  box.innerHTML = `<label>Your steering</label><div class="opts"><button data-steer="tilt" aria-pressed="${K.steerMode === 'tilt'}">Tilt phone</button><button data-steer="buttons" aria-pressed="${K.steerMode === 'buttons'}">◀ ▶ buttons</button></div>` +
+  box.innerHTML = `<label>Your steering</label><div class="opts"><button data-steer="tilt" aria-pressed="${K.steerMode === 'tilt'}">Tilt phone</button><button data-steer="stick" aria-pressed="${K.steerMode === 'stick'}">Joystick</button></div>` +
     `<label>Gas</label><div class="opts"><button data-gas="on" aria-pressed="${K.autoGas}">Automatic</button><button data-gas="off" aria-pressed="${!K.autoGas}">Hold to go</button></div>` +
-    (K.steerMode === 'tilt' && !K.motionOn ? '<button class="ghost" data-enable="1">Allow motion sensors</button><div class="muted">iPhone asks once. If you say no, use buttons.</div>' : '');
+    (K.steerMode === 'tilt' && !K.motionOn ? '<button class="ghost" data-enable="1">Allow motion sensors</button><div class="muted">iPhone asks once. If you say no, use the joystick.</div>' : '');
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-steer],[data-gas],[data-enable]');
   if (!b || !b.closest('#kartPrefs')) return;
-  if (b.dataset.steer) { K.steerMode = b.dataset.steer; store.set('cp_steer', K.steerMode); if (K.steerMode === 'tilt') enableTilt(); }
+  if (b.dataset.steer) { setSteerMode(b.dataset.steer); }
   if (b.dataset.gas) { K.autoGas = b.dataset.gas === 'on'; store.set('cp_autogas', K.autoGas ? 'on' : 'off'); }
   if (b.dataset.enable) enableTilt();
   renderKartPrefs();
 });
+function setSteerMode(mode) {
+  K.steerMode = mode; store.set('cp_steer', mode);
+  if (mode === 'tilt') enableTilt(); else { renderKartPrefs(); kartLayout(); }
+  buzz(10); kartSend(true);
+}
 function kartLayout() {
-  $('kGrid').classList.toggle('kbuttons', K.steerMode !== 'tilt');
+  $('kGrid').classList.toggle('kstickmode', K.steerMode !== 'tilt');
+  $('kMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.km === K.steerMode)));
   $('kGas').style.display = K.autoGas ? 'none' : '';
   $('kRecenter').style.display = K.steerMode === 'tilt' ? '' : 'none';
   $('kTiltBtn').style.display = K.steerMode === 'tilt' && !K.motionOn ? '' : 'none';
-  $('kTip').textContent = K.steerMode === 'tilt' ? 'Hold it like a wheel · Recenter anytime' : 'Tap Tilt in the lobby to steer by turning your phone';
+  $('kTip').textContent = K.steerMode === 'tilt' ? 'Hold it like a wheel · Recenter anytime' : 'Switch to Tilt anytime, top right';
 }
+
+/* ---------- Kart menus on the phone ---------- */
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const KSTEPN = { mode: 'Choose a mode', speed: 'How fast?', driver: 'Your driver', course: 'Pick a course', rules: 'Ready to race?' };
+const kmSend = (a, v) => { send({ t: 'kmenu', a, v }); buzz(10); };
+const kFind = (list, id) => list.find((x) => x.id === id);
+function renderKartMenuP(g) {
+  const box = $('kMenuP'), L = g.lists, me = YOU.id, cap = YOU.g && YOU.g.captain, racer = YOU.g && YOU.g.racer;
+  const capName = esc(g.captainName || 'The host');
+  const steps = g.phase === 'standings' ? [] : g.steps, at = steps.indexOf(g.step);
+  const back = cap && g.phase === 'menu' && at > 0 ? '<button class="back" data-km="back" aria-label="Back">‹</button>' : '';
+  let h = `<div class="kmh">${back}<div class="t">${g.phase === 'standings' ? 'Cup standings' : KSTEPN[g.step]}</div><div class="kmdots">${steps.map((_, i) => `<i class="${i <= at ? 'on' : ''}"></i>`).join('')}</div></div>`;
+  if (!racer) {
+    box.innerHTML = h + `<div class="kmwait">You're watching this race.<br>Up to 4 racers per race.</div>`;
+    return;
+  }
+  const list = (items, art, sel) => items.map((x, i) => `<button class="kmcard${x.id === sel ? ' sel' : ''}" data-kchoose="${x.id}" ${cap ? '' : 'disabled'}><div class="art">${art(x)}</div><div><div class="n">${esc(x.name)}</div><div class="d">${esc(x.blurb || '')}</div></div></button>`).join('');
+  const waitCap = (what) => `<div class="kmwait">${capName} is ${what}…</div>`;
+  if (g.phase === 'standings') {
+    const last = g.raceNo >= g.races;
+    h += g.standings.map((r, i) => `<div class="kmme" style="${r.id === me ? 'outline:3px solid #FFC83D' : ''}"><div class="n" style="width:28px">${i + 1}</div><span style="width:18px;height:18px;border-radius:50%;background:${r.color}"></span><div style="flex:1;font-weight:800">${esc(r.name)}</div><div style="color:#5EE6C8;font-weight:900">+${r.last || 0}</div><div class="n" style="width:46px;text-align:right">${r.pts}</div></div>`).join('');
+    h += cap ? `<button class="kmbig" data-km="next">${last ? 'Finish cup' : 'Next race ›'}</button>` : waitCap(last ? 'wrapping up' : 'starting the next race');
+  } else if (g.step === 'mode') {
+    h += list(L.modes, (m) => KA.mode(m.id), g.mode) + (cap ? '' : waitCap('picking a mode'));
+  } else if (g.step === 'speed') {
+    h += list(L.speeds, (m) => KA.speed(m.id), g.speed) + (cap ? '' : waitCap('picking the speed'));
+  } else if (g.step === 'course') {
+    h += list(L.courses, (c) => KA.course(c), g.course) + (cap ? '' : waitCap('picking a course'));
+  } else if (g.step === 'driver') {
+    const mine = g.picks.find((p) => p.id === me) || {};
+    const myD = kFind(L.drivers, mine.driver) || L.drivers[0];
+    h += `<div class="kmme"><div class="art">${KA.driver(myD)}</div><div style="flex:1"><div class="n">${esc(myD.name)}</div>${KA.bars(myD)}</div></div>`;
+    h += `<div class="kmgrid" style="--me:${myD.color}">` + L.drivers.map((d) => {
+      const others = g.picks.map((p, i) => ({ p, i })).filter((x) => x.p.driver === d.id && x.p.id !== me);
+      const tag = others.length ? `<span class="tag" style="background:${(g.racers.find((r) => r.id === others[0].p.id) || {}).color || '#fff'}">P${others[0].i + 1}</span>` : '';
+      return `<button class="kmdrv${d.id === mine.driver ? ' mine' : ''}" data-kdrv="${d.id}" ${mine.ready ? 'disabled' : ''} aria-label="${esc(d.name)}">${tag}${KA.driver(d)}</button>`;
+    }).join('') + '</div>';
+    h += `<label style="margin-top:4px">Steering</label><div class="opts"><button data-steer="tilt" aria-pressed="${K.steerMode === 'tilt'}">Tilt phone</button><button data-steer="stick" aria-pressed="${K.steerMode === 'stick'}">Joystick</button></div>`;
+    h += `<button class="kmbig${mine.ready ? ' ready' : ''}" data-km="ready">${mine.ready ? '✓ Ready! (tap to change)' : 'Ready'}</button>`;
+    const waiting = g.picks.filter((p) => !p.ready).length;
+    if (cap && waiting) h += `<button class="kmbig alt" data-km="start">Start without waiting (${waiting} not ready)</button>`;
+  } else if (g.step === 'rules') {
+    const md = kFind(L.modes, g.mode), sp = kFind(L.speeds, g.speed);
+    const cs = g.mode === 'cup' ? g.cup : [g.course];
+    h += `<div class="kmme"><div class="art">${KA.mode(md.id)}</div><div><div class="n">${esc(md.name)} · ${esc(sp.name)}</div><div class="muted">${cs.map((c) => esc(kFind(L.courses, c).name)).join(' → ')}</div></div></div>`;
+    if (cap) {
+      h += `<label>Laps</label><div class="opts">${L.laps.map((n) => `<button data-klaps="${n}" aria-pressed="${g.laps === n}">${n}</button>`).join('')}</div>`;
+      if (g.mode !== 'tt') h += `<label>Items</label><div class="opts"><button data-kitems="1" aria-pressed="${g.items}">On</button><button data-kitems="0" aria-pressed="${!g.items}">Off</button></div>`;
+      h += `<button class="kmbig" data-km="go">Start race!</button>`;
+    } else h += waitCap('about to start');
+  }
+  box.innerHTML = h;
+}
+$('kMenuP').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  if (b.dataset.km) kmSend(b.dataset.km);
+  else if (b.dataset.kchoose) kmSend('choose', b.dataset.kchoose);
+  else if (b.dataset.kdrv) kmSend('driver', b.dataset.kdrv);
+  else if (b.dataset.klaps) kmSend('laps', Number(b.dataset.klaps));
+  else if (b.dataset.kitems) kmSend('items', b.dataset.kitems === '1');
+  else if (b.dataset.steer) { setSteerMode(b.dataset.steer); renderKartMenuP(S.g); }
+});
 function renderKart() {
   show('kart');
   const g = S.g;
+  const inMenu = g.phase !== 'race';
+  $('kMenuP').style.display = inMenu ? 'flex' : 'none';
+  if (inMenu) { $('kGrid').style.display = 'none'; $('kWatch').style.display = 'none'; kartStop(); renderKartMenuP(g); return; }
   const racing = YOU.g && YOU.g.racing;
   $('kGrid').style.display = racing ? 'grid' : 'none';
   $('kWatch').style.display = racing ? 'none' : 'flex';
@@ -339,7 +463,7 @@ function renderKart() {
 }
 function kartStop() { if (K.active) { K.active = false; clearInterval(K.timer); K.raceId = null; } }
 function kartItem(kind) {
-  $('kItemIcon').innerHTML = kind ? `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${ITEM_DOT[kind] || '#A9AEC8'}"></span>` : '';
+  $('kItemIcon').innerHTML = kind ? (ITEM_SVG[kind] ? `<span style="display:inline-block;width:52px;height:52px">${ITEM_SVG[kind]}</span>` : `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${ITEM_DOT[kind] || '#A9AEC8'}"></span>`) : '';
   $('kItemName').textContent = kind ? ITEM_NAMES[kind] || kind : 'No item';
 }
 function kartHud(h) {
@@ -357,11 +481,11 @@ function kartEvent(m) {
 }
 function kartSend(force) {
   if (!K.active) return;
-  const steer = K.steerMode === 'tilt' ? K.steer : (K.left ? 1 : 0) - (K.right ? 1 : 0);
+  const steer = K.steerMode === 'tilt' ? K.steer : K.stick;
   const m = { t: 'kin', s: Math.round(steer * 100) / 100, g: K.autoGas ? !K.brake : K.gas, b: K.brake, d: K.drift, i: K.item };
   const key = JSON.stringify(m);
   const now = Date.now();
-  if (!force && (key === K.lastSent || now - K.lastAt < 33)) return;
+  if (!force && (key === K.lastSent || now - K.lastAt < 20)) return;
   K.lastSent = key; K.lastAt = now;
   send(m);
 }
@@ -375,7 +499,32 @@ function holdButton(id, field) {
   el.addEventListener('pointerleave', off);
 }
 holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift'); holdButton('kItem', 'item');
-holdButton('kLeft', 'left'); holdButton('kRight', 'right');
+$('kMode').onclick = (e) => { const b = e.target.closest('button'); if (b && b.dataset.km !== K.steerMode) setSteerMode(b.dataset.km); };
+// Floating joystick: center is wherever the thumb lands; slide left/right for analog steering
+(function () {
+  const pad = $('kStick'), knob = $('kKnob');
+  const RANGE = 70; // px of thumb travel for full lock
+  const move = (e) => {
+    if (e.pointerId !== K.stickId) return;
+    e.preventDefault();
+    const dx = Math.max(-RANGE, Math.min(RANGE, e.clientX - K.stickX));
+    K.stick = -dx / RANGE; // left is positive
+    knob.style.transform = `translateX(${dx}px)`;
+    kartSend();
+  };
+  const end = (e) => {
+    if (e.pointerId !== K.stickId) return;
+    K.stickId = null; K.stick = 0; pad.classList.remove('held');
+    knob.style.transform = ''; kartSend(true);
+  };
+  pad.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); pad.setPointerCapture(e.pointerId);
+    K.stickId = e.pointerId; K.stickX = e.clientX; pad.classList.add('held'); buzz(6);
+  });
+  pad.addEventListener('pointermove', move);
+  pad.addEventListener('pointerup', end);
+  pad.addEventListener('pointercancel', end);
+})();
 $('kRecenter').onclick = () => { K.ref = K.raw; buzz(15); };
 $('kTiltBtn').onclick = () => enableTilt();
 
@@ -438,6 +587,9 @@ function renderFinal() {
   if (me && me.money) {
     $('finalTitle').textContent = me.score > 0 ? `You're up ${signed(me.score)}` : me.score < 0 ? `You're down ${money(-me.score)}` : 'You broke even';
     $('finalSub').textContent = `Bought in ${money(me.bought)} · cashed out ${money(me.final)} · play money`;
+  } else if (me && me.place && me.unit === 'pts') {
+    $('finalTitle').textContent = rank === 1 ? 'You won the Cup!' : `You finished ${ordinal(rank)} in the Cup`;
+    $('finalSub').textContent = `${me.score} points · winner: ${r[0].name}`;
   } else if (me && me.place) {
     $('finalTitle').textContent = rank === 1 ? 'You won the race!' : `You finished ${ordinal(rank)}`;
     $('finalSub').textContent = (me.time != null ? `${Math.floor(me.time / 60)}:${String((me.time % 60).toFixed(1)).padStart(4, '0')}` : 'Did not finish') + (me.bestLap ? ` · best lap ${me.bestLap.toFixed(1)}s` : '');
