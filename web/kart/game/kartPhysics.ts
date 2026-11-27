@@ -6,6 +6,7 @@ import { soundEngine } from './audio';
 import { KartMeshHandles } from './kartModel';
 
 export class KartPhysicsEngine {
+  public totalLaps = 3;
   private track: TrackSystem;
   private particles: ParticleSystem;
 
@@ -46,7 +47,9 @@ export class KartPhysicsEngine {
     // 1. Check if on road surface or grass
     const closest = this.track.getClosestTrackPoint(state.position.x, state.position.z);
     const halfW = this.track.roadWidth / 2;
-    const isOffTrack = closest.distanceToCenter > halfW + 0.5;
+    const scY = this.track.onShortcut(state.position.x, state.position.z);
+    const onDirt = scY !== null && closest.distanceToCenter > halfW + 0.5;
+    const isOffTrack = closest.distanceToCenter > halfW + 0.5 && !onDirt;
 
     // 2. Handle Boost Timers
     if (state.boostTimer > 0) {
@@ -61,6 +64,8 @@ export class KartPhysicsEngine {
     if (state.shrinkTimer && state.shrinkTimer > 0) { state.shrinkTimer -= delta; effectiveTopSpeed *= 0.72; }
     if (state.starTimer && state.starTimer > 0) { state.starTimer -= delta; effectiveTopSpeed *= 1.18; }
     let accelRate = config.acceleration;
+    // Shortcut dirt: slow, unless you're boosting through it
+    if (onDirt && state.boostTimer <= 0 && !(state.starTimer && state.starTimer > 0)) { effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.66); }
 
     if (isOffTrack) {
       effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.45);
@@ -201,13 +206,21 @@ export class KartPhysicsEngine {
 
     state.position.x += vx * delta;
     state.position.z += vz * delta;
+    // Bump shove decays fast
+    if (state.bumpX || state.bumpZ) {
+      state.position.x += (state.bumpX || 0) * delta;
+      state.position.z += (state.bumpZ || 0) * delta;
+      const k = Math.exp(-delta * 6);
+      state.bumpX = (state.bumpX || 0) * k; state.bumpZ = (state.bumpZ || 0) * k;
+      if (Math.abs(state.bumpX) + Math.abs(state.bumpZ) < 0.05) state.bumpX = state.bumpZ = 0;
+    }
 
     // Follow terrain elevation smoothly
-    state.position.y = THREE.MathUtils.lerp(state.position.y, closest.point.y + 0.1, delta * 12);
+    state.position.y = THREE.MathUtils.lerp(state.position.y, (onDirt ? scY! : closest.point.y) + 0.1, delta * 12);
 
     // 7. Track Wall / Outer Boundary Soft Barrier Physics
     const maxBound = halfW + 6;
-    if (closest.distanceToCenter > maxBound) {
+    if (closest.distanceToCenter > maxBound && !onDirt) {
       // Push back towards track center
       const toTrackX = closest.point.x - state.position.x;
       const toTrackZ = closest.point.z - state.position.z;
@@ -295,19 +308,31 @@ export class KartPhysicsEngine {
         const nx = dx / dist;
         const nz = dz / dist;
 
-        state.position.x += nx * overlap * 0.5;
-        state.position.z += nz * overlap * 0.5;
-        other.position.x -= nx * overlap * 0.5;
-        other.position.z -= nz * overlap * 0.5;
+        // Heavier karts move less and shove harder
+        const wa = state.config.weight || 2, wb = other.config.weight || 2;
+        const shareA = wb / (wa + wb), shareB = wa / (wa + wb);
+        state.position.x += nx * overlap * shareA;
+        state.position.z += nz * overlap * shareA;
+        other.position.x -= nx * overlap * shareB;
+        other.position.z -= nz * overlap * shareB;
 
-        // Exchange some speed
-        const avgSpeed = (state.speed + other.speed) * 0.48;
-        state.speed = avgSpeed;
-        other.speed = avgSpeed;
-
-        if (state.config.isPlayer || other.config.isPlayer) {
-          soundEngine.playCollisionSound(0.7);
+        // Sideways shove, stronger the harder they hit
+        const closing = Math.min(30, Math.abs(state.speed - other.speed) + 6);
+        const now = performance.now();
+        if (!state.bumpedAt || now - state.bumpedAt > 250) {
+          const star = (r: RacerState) => (r.starTimer && r.starTimer > 0 ? 3 : 1);
+          state.bumpX = (state.bumpX || 0) + nx * closing * 0.55 * shareA * star(other) / star(state);
+          state.bumpZ = (state.bumpZ || 0) + nz * closing * 0.55 * shareA * star(other) / star(state);
+          other.bumpX = (other.bumpX || 0) - nx * closing * 0.55 * shareB * star(state) / star(other);
+          other.bumpZ = (other.bumpZ || 0) - nz * closing * 0.55 * shareB * star(state) / star(other);
+          state.bumpedAt = other.bumpedAt = now;
+          if (state.config.isPlayer || other.config.isPlayer) soundEngine.playCollisionSound(0.7);
         }
+
+        // Exchange some speed (light karts lose more)
+        const avgSpeed = (state.speed * wa + other.speed * wb) / (wa + wb);
+        state.speed = THREE.MathUtils.lerp(state.speed, avgSpeed, 0.5 * shareA);
+        other.speed = THREE.MathUtils.lerp(other.speed, avgSpeed, 0.5 * shareB);
       }
     }
   }
@@ -336,7 +361,7 @@ export class KartPhysicsEngine {
         }
 
         if (state.config.isPlayer) {
-          soundEngine.playLapChime(state.currentLap === 3);
+          soundEngine.playLapChime(state.currentLap === (this.totalLaps || 3));
         }
 
         state.currentLapTime = 0;

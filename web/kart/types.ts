@@ -17,7 +17,8 @@ export interface RacerConfig {
   driftMultiplier: number;
   aiAggression?: number;
   audioLead?: boolean; // the one racer whose engine hum plays (couch mode has several humans)
-  topper?: string; // character headwear: ears, crown, cap, horns, bow
+  topper?: string;
+  weight?: number; // 1 light .. 3 heavy: heavier karts shove lighter ones // character headwear: ears, crown, cap, horns, bow
 }
 
 export interface RacerState {
@@ -29,6 +30,8 @@ export interface RacerState {
   steerAngle: number;
   steerSmooth?: number;
   slideAngle?: number;
+  bumpX?: number; bumpZ?: number; // sideways shove from a bump, decays quickly
+  bumpedAt?: number;
   isDrifting: boolean;
   driftDirection: number; // -1 left, 1 right, 0 none
   driftTime: number;

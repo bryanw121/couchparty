@@ -14,10 +14,15 @@ export interface HeldItem {
   kind: ItemKind | null; // null while the roulette spins
   rollLeft: number;
   shown: ItemKind; // what the roulette currently displays
+  count: number; // 3 for triples
+  trailing: boolean; // dragged behind the kart as a shield
+  trail: THREE.Object3D[];
+  justStarted?: boolean; // the press that started trailing shouldn't also throw on release
 }
+const TRAILABLE: ItemKind[] = ['banana', 'green', 'red'];
 
 export interface ItemEvent {
-  type: 'pickup' | 'use' | 'hit' | 'bolt';
+  type: 'pickup' | 'use' | 'hit' | 'bolt' | 'block';
   racer: string; // who it happened to
   by?: string; // who caused it
   item?: ItemKind;
@@ -201,6 +206,7 @@ export class ItemSystem {
   public reset() {
     for (const t of this.thrown) this.group.remove(t.mesh);
     this.thrown = [];
+    for (const h of this.held.values()) for (const m of h.trail) this.group.remove(m);
     this.held.clear();
     for (const b of this.boxes) { b.respawn = 0; b.mesh.visible = true; }
   }
@@ -223,7 +229,7 @@ export class ItemSystem {
           b.mesh.visible = false;
           b.respawn = 2.5;
           if (!this.held.has(r.config.id)) {
-            this.held.set(r.config.id, { kind: null, rollLeft: 1.3, shown: 'banana' });
+            this.held.set(r.config.id, { kind: null, rollLeft: 1.3, shown: 'banana', count: 1, trailing: false, trail: [] });
             this.onEvent?.({ type: 'pickup', racer: r.config.id });
             if (r.config.isPlayer) soundEngine.playLapChime(false);
           }
@@ -241,6 +247,8 @@ export class ItemSystem {
         const r = racers.find((x) => x.config.id === id);
         h.kind = rollFor(r ? r.rank : racers.length, racers.length);
         h.shown = h.kind;
+        // Sometimes a triple: all three trail behind you, one per tap
+        if (TRAILABLE.includes(h.kind) && Math.random() < 0.22) { h.count = 3; this.startTrail(h); }
         if (r && !r.config.isPlayer) this.aiTimers.set(id, 0.6 + Math.random() * 3.5);
       }
     }
@@ -251,13 +259,8 @@ export class ItemSystem {
       if (left <= 0) { this.aiTimers.delete(id); useRequests.add(id); } else this.aiTimers.set(id, left);
     }
 
-    for (const id of useRequests) {
-      const h = this.held.get(id);
-      const r = racers.find((x) => x.config.id === id);
-      if (!h || !h.kind || !r) continue;
-      this.held.delete(id);
-      this.use(h.kind, r, racers);
-    }
+    for (const id of useRequests) this.fire(id, racers);
+    this.updateTrails(racers);
 
     this.updateThrown(delta, racers, time);
 
@@ -272,6 +275,67 @@ export class ItemSystem {
       }
       scaleOf(r.config.id, (r.shrinkTimer || 0) > 0 ? 0.6 : 1);
     }
+  }
+
+  // Item button pressed: bananas, bouncers and rockets start trailing behind you as a shield;
+  // everything else fires right away.
+  public press(id: string, racers: RacerState[]) {
+    const h = this.held.get(id);
+    if (!h || !h.kind) return;
+    if (TRAILABLE.includes(h.kind)) { if (!h.trailing) this.startTrail(h); }
+    else this.fire(id, racers);
+  }
+  // Item button released: throw the trailing item (one of a triple).
+  public release(id: string, racers: RacerState[]) {
+    const h = this.held.get(id);
+    if (h && h.kind && h.trailing) this.fire(id, racers);
+  }
+  // Fire one item now (computer racers, or a release).
+  private fire(id: string, racers: RacerState[]) {
+    const h = this.held.get(id);
+    const r = racers.find((x) => x.config.id === id);
+    if (!h || !h.kind || !r) return;
+    const kind = h.kind;
+    h.count--;
+    const m = h.trail.pop();
+    if (m) this.group.remove(m);
+    if (h.count <= 0) { for (const t of h.trail) this.group.remove(t); this.held.delete(id); }
+    else if (!r.config.isPlayer) this.aiTimers.set(id, 0.8 + Math.random() * 2);
+    this.use(kind, r, racers);
+  }
+  private startTrail(h: HeldItem) {
+    h.trailing = true;
+    for (let i = h.trail.length; i < h.count; i++) {
+      const m = makeProjectile(h.kind!);
+      m.scale.setScalar(0.85);
+      this.group.add(m);
+      h.trail.push(m);
+    }
+  }
+  private updateTrails(racers: RacerState[]) {
+    for (const [id, h] of this.held) {
+      if (!h.trailing) continue;
+      const r = racers.find((x) => x.config.id === id);
+      if (!r) continue;
+      const hd = r.rotation.y;
+      h.trail.forEach((m, i) => {
+        const back = 1.9 + i * 1.1;
+        const wob = Math.sin(performance.now() / 120 + i) * 0.15;
+        m.position.set(r.position.x - Math.sin(hd) * back + Math.cos(hd) * wob, r.position.y, r.position.z - Math.cos(hd) * back - Math.sin(hd) * wob);
+        m.rotation.y = hd;
+      });
+    }
+  }
+  // A trailing item blocks one hit
+  private shield(r: RacerState): boolean {
+    const h = this.held.get(r.config.id);
+    if (!h || !h.trailing || h.count <= 0) return false;
+    h.count--;
+    const m = h.trail.pop();
+    if (m) this.group.remove(m);
+    if (h.count <= 0) { for (const t of h.trail) this.group.remove(t); this.held.delete(r.config.id); }
+    this.onEvent?.({ type: 'block', racer: r.config.id });
+    return true;
   }
 
   private use(kind: ItemKind, r: RacerState, racers: RacerState[]) {
@@ -375,6 +439,7 @@ export class ItemSystem {
           const radius = t.kind === 'blue' && r.config.id === t.target ? 2.6 : 1.7;
           if (dx * dx + dz * dz < radius * radius) {
             if (t.kind === 'blue' && t.target && r.config.id !== t.target) continue; // flies over everyone else
+            if (t.kind !== 'blue' && r.config.id !== t.owner && this.shield(r)) { done = true; break; }
             this.hit(r, t.owner, t.kind);
             done = true;
             break;

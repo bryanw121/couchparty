@@ -7,7 +7,7 @@ export interface CourseTheme {
   ambient: number; sun: number; sunColor: number; hemiSky: number;
   clouds: number; curbA: string; curbB: string; padColor: string;
 }
-export interface Course { id: string; name: string; points: Array<[number, number, number]>; theme: CourseTheme }
+export interface Course { id: string; name: string; points: Array<[number, number, number]>; theme: CourseTheme; shortcut?: [number, number] }
 
 const MEADOW: Array<[number, number, number]> = [
   [0, 0, 0], [0, 0, -80], [25, 2, -140], [75, 4, -170], [130, 2, -140], [150, 0, -80], [135, -2, -20], [95, -3, 25],
@@ -17,7 +17,7 @@ const MEADOW: Array<[number, number, number]> = [
 
 export const COURSES: Record<string, Course> = {
   meadow: {
-    id: 'meadow', name: 'Meadow Loop', points: MEADOW,
+    id: 'meadow', shortcut: [124, 158], name: 'Meadow Loop', points: MEADOW,
     theme: {
       skyTop: 0x2f8cff, skyMid: 0x7cc8ff, skyLow: 0xd8f3ff, fog: 0xd8f3ff, ground: 0x5ccf45,
       trees: [0x3ec94e, 0x2fb543, 0x7ad94a, 0x52d17a, 0xff9ccd, 0xffd166], trunk: 0x9a5b2c,
@@ -26,7 +26,7 @@ export const COURSES: Record<string, Course> = {
     },
   },
   sunset: {
-    id: 'sunset', name: 'Sunset Bay',
+    id: 'sunset', shortcut: [124, 158], name: 'Sunset Bay',
     // mirror image of the meadow layout with rolling dunes
     points: MEADOW.map(([x, y, z], i) => [-x, y * 1.6 + (i % 3 === 0 ? 1.5 : 0), z]),
     theme: {
@@ -37,7 +37,7 @@ export const COURSES: Record<string, Course> = {
     },
   },
   frosty: {
-    id: 'frosty', name: 'Frosty Peaks',
+    id: 'frosty', shortcut: [220, 262], name: 'Frosty Peaks',
     points: [
       [0, 0, 0], [0, 0, -80], [-20, 3, -130], [-70, 6, -150], [-120, 5, -120], [-130, 3, -60], [-90, 1, -20], [-60, 0, 30],
       [-100, 2, 80], [-80, 5, 140], [-20, 7, 160], [40, 5, 130], [60, 2, 80], [110, 0, 60], [150, 2, 10], [140, 4, -60],
@@ -51,7 +51,7 @@ export const COURSES: Record<string, Course> = {
     },
   },
   neon: {
-    id: 'neon', name: 'Neon Night',
+    id: 'neon', shortcut: [166, 186], name: 'Neon Night',
     points: [
       [0, 0, 0], [0, 0, -80], [10, 2, -150], [60, 4, -190], [120, 3, -170], [140, 1, -110], [110, 0, -60], [130, -1, 0],
       [180, 1, 40], [170, 3, 110], [110, 4, 140], [50, 2, 110], [20, 0, 140], [-40, 1, 170], [-110, 3, 150], [-150, 4, 90],

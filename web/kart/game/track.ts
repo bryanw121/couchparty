@@ -22,6 +22,8 @@ export class TrackSystem {
   public roadWidth = 18;
 
   public course: Course;
+  // Dirt cut-through where the road doubles back near itself: slow unless you're boosting.
+  public shortcut: { ax: number; ay: number; az: number; bx: number; by: number; bz: number; w: number; ia: number; ib: number } | null = null;
 
   constructor(scene: THREE.Scene, courseId?: string) {
     this.scene = scene;
@@ -42,10 +44,12 @@ export class TrackSystem {
 
     // 3. Build geometry & scenery
     this.buildRoadMesh();
+    this.findShortcut();
     this.buildTerrainAndHills();
     this.buildStartGantry();
     this.buildScenery();
     this.buildBarriers();
+    this.buildShortcut();
   }
 
   private sampleTrackPoints(samples: number) {
@@ -216,6 +220,8 @@ export class TrackSystem {
       // Keep the grass a little under the road so hills never poke through the asphalt
       const near = this.getClosestTrackPointInfo(vx, vz);
       if (near.dist < this.roadWidth * 0.5 + 6) y = Math.min(y, near.y - 0.35);
+      const scY = this.shortcut ? this.segDist(vx, vz, this.shortcut.ax, this.shortcut.az, this.shortcut.bx, this.shortcut.bz) : null;
+      if (scY && scY.d < this.shortcut!.w / 2 + 6) y = Math.min(y, this.shortcut!.ay + (this.shortcut!.by - this.shortcut!.ay) * scY.t - 0.3);
       pos.setY(i, y);
     }
     groundGeo.computeVertexNormals();
@@ -228,6 +234,75 @@ export class TrackSystem {
     const groundMesh = new THREE.Mesh(groundGeo, grassMat);
     groundMesh.receiveShadow = true;
     this.sceneryGroup.add(groundMesh);
+  }
+
+
+  // Each course has one hand-picked cut-through (indices into the 300 sampled track points)
+  private findShortcut() {
+    const pair = this.course.shortcut;
+    if (!pair) return;
+    const a = this.trackPoints[pair[0]], b = this.trackPoints[pair[1]];
+    if (!a || !b) return;
+    this.shortcut = { ax: a.x, ay: a.y, az: a.z, bx: b.x, by: b.y, bz: b.z, w: 11, ia: pair[0], ib: pair[1] };
+  }
+  private segDist(px: number, pz: number, ax: number, az: number, bx: number, bz: number) {
+    const vx = bx - ax, vz = bz - az, L = vx * vx + vz * vz || 1;
+    const t = Math.max(0, Math.min(1, ((px - ax) * vx + (pz - az) * vz) / L));
+    const qx = ax + vx * t, qz = az + vz * t;
+    return { d: Math.hypot(px - qx, pz - qz), t };
+  }
+  // Is (x, z) on the shortcut strip? Returns its ground height if so.
+  public onShortcut(x: number, z: number): number | null {
+    const sc = this.shortcut;
+    if (!sc) return null;
+    const r = this.segDist(x, z, sc.ax, sc.az, sc.bx, sc.bz);
+    if (r.d > sc.w / 2 + 0.8) return null;
+    return sc.ay + (sc.by - sc.ay) * r.t;
+  }
+  private buildShortcut() {
+    const sc = this.shortcut;
+    if (!sc) return;
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 256;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#c98b4f'; g.fillRect(0, 0, 64, 256);
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 4, 256); g.fillRect(60, 0, 4, 256); // bright edges
+    for (let i = 0; i < 260; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(90,55,25,.35)' : 'rgba(230,190,140,.35)'; g.fillRect(Math.random() * 64, Math.random() * 256, 3, 3); }
+    g.fillStyle = 'rgba(70,40,20,.35)'; g.fillRect(14, 0, 6, 256); g.fillRect(44, 0, 6, 256); // tire ruts
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapT = THREE.RepeatWrapping;
+    const len = Math.hypot(sc.bx - sc.ax, sc.bz - sc.az);
+    tex.repeat.set(1, len / 10);
+    const geo = new THREE.PlaneGeometry(sc.w, len, 1, 8);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, roughness: 1, polygonOffset: true, polygonOffsetFactor: 1 }));
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.rotation.z = -Math.atan2(sc.bx - sc.ax, sc.bz - sc.az) + Math.PI;
+    mesh.position.set((sc.ax + sc.bx) / 2, (sc.ay + sc.by) / 2 - 0.05, (sc.az + sc.bz) / 2);
+    this.sceneryGroup.add(mesh);
+    const coneMat = new THREE.MeshStandardMaterial({ color: 0xff7a00 });
+    const ux = (sc.bx - sc.ax) / len, uz = (sc.bz - sc.az) / len;
+    for (let d = 12; d < len - 12; d += 9) for (const sd of [-1, 1]) {
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.2, 8), coneMat);
+      cone.position.set(sc.ax + ux * d + -uz * sd * (sc.w / 2 + 0.6), sc.ay + (sc.by - sc.ay) * (d / len) + 0.5, sc.az + uz * d + ux * sd * (sc.w / 2 + 0.6));
+      this.sceneryGroup.add(cone);
+    }
+    // Signs at both ends, facing the way in
+    for (const [x, y, z, tx, tz] of [[sc.ax, sc.ay, sc.az, sc.bx, sc.bz], [sc.bx, sc.by, sc.bz, sc.ax, sc.az]] as const) {
+      const sign = document.createElement('canvas'); sign.width = 256; sign.height = 96;
+      const sg = sign.getContext('2d')!;
+      sg.fillStyle = '#ffc83d'; sg.fillRect(0, 0, 256, 96);
+      sg.fillStyle = '#1b1b3a'; sg.font = 'bold 44px sans-serif'; sg.textAlign = 'center'; sg.textBaseline = 'middle'; sg.fillText('SHORTCUT', 128, 50);
+      const st = new THREE.CanvasTexture(sign); st.colorSpace = THREE.SRGBColorSpace;
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.6), new THREE.MeshStandardMaterial({ map: st, side: THREE.DoubleSide }));
+      const dx = tx - x, dz = tz - z, dl = Math.hypot(dx, dz) || 1;
+      const into = this.roadWidth / 2 + 7, side = sc.w / 2 + 2.2;
+      const sx = x + (dx / dl) * into + (-dz / dl) * side, sz = z + (dz / dl) * into + (dx / dl) * side;
+      board.position.set(sx, y + 2.6, sz);
+      board.lookAt(x, y + 2.6, z);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.6, 6), new THREE.MeshStandardMaterial({ color: 0x6b4a2b }));
+      post.position.set(sx, y + 1.3, sz);
+      this.sceneryGroup.add(board, post);
+    }
   }
 
   private getClosestTrackPointInfo(x: number, z: number): { dist: number, y: number } {
@@ -578,6 +653,7 @@ export class TrackSystem {
 
       // Position to outer edge
       barrier.position.set(tp.x + tp.normalX * halfW, tp.y + 0.9, tp.z + tp.normalZ * halfW);
+      if (this.shortcut && this.segDist(barrier.position.x, barrier.position.z, this.shortcut.ax, this.shortcut.az, this.shortcut.bx, this.shortcut.bz).d < this.shortcut.w + 4) return;
       barrier.lookAt(barrier.position.x + tp.tangentX, barrier.position.y, barrier.position.z + tp.tangentZ);
       barrier.castShadow = true;
       this.sceneryGroup.add(barrier);

@@ -21,6 +21,9 @@ class SoundEngine {
 
   private masterGain: GainNode | null = null;
 
+  // For the course music: the shared context and master output (null until audio starts)
+  public output(): { ctx: AudioContext; out: GainNode } | null { this.init(); return this.ctx && this.masterGain ? { ctx: this.ctx, out: this.masterGain } : null; }
+
   constructor() {
     // Lazy init on first user interaction
   }

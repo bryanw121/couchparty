@@ -141,7 +141,14 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   const nearRoad = (x: number, z: number) => {
     let best = 1e9;
     for (let i = 0; i < track.trackPoints.length; i += 3) { const q = track.trackPoints[i]; const d = (q.x - x) ** 2 + (q.z - z) ** 2; if (d < best) best = d; }
-    return Math.sqrt(best) < track.roadWidth * 0.5 + 9;
+    if (Math.sqrt(best) < track.roadWidth * 0.5 + 9) return true;
+    const sc = track.shortcut;
+    if (sc) {
+      const vx = sc.bx - sc.ax, vz = sc.bz - sc.az, L = vx * vx + vz * vz || 1;
+      const t = Math.max(0, Math.min(1, ((x - sc.ax) * vx + (z - sc.az) * vz) / L));
+      if (Math.hypot(x - (sc.ax + vx * t), z - (sc.az + vz * t)) < sc.w / 2 + 6) return true;
+    }
+    return false;
   };
   for (const p of pines) {
     track.sceneryGroup.remove(p);
