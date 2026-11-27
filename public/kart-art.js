@@ -1,4 +1,4 @@
-/* Kart Racer menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
+/* Kario Mart menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
 var KA = (function () {
   var INK = '#1b1b3a';
   function toppers(t, c) {
@@ -9,23 +9,27 @@ var KA = (function () {
       case 'horns': return '<path d="M28 30 C14 22 14 8 22 4 C22 14 28 20 38 22 Z" fill="#fff6e0" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M72 30 C86 22 86 8 78 4 C78 14 72 20 62 22 Z" fill="#fff6e0" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>';
       case 'bow': return '<path d="M62 20 L50 10 L50 30 Z M62 20 L74 10 L74 30 Z" fill="#ff5d8f" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round" transform="translate(6 2)"/><circle cx="68" cy="22" r="5" fill="#ff9ccd" stroke="' + INK + '" stroke-width="3"/>';
       case 'antenna': return '<path d="M50 22 L50 6" stroke="' + INK + '" stroke-width="3"/><circle cx="50" cy="6" r="6" fill="#fff15a" stroke="' + INK + '" stroke-width="3"/>';
-      case 'cap': return '<path d="M24 36 C24 14 76 14 76 36 Z" fill="#3b5bdb" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M50 36 L88 36 C88 42 70 44 50 40 Z" fill="#3b5bdb" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="20" r="3" fill="#fff"/>';
+      case 'cap': return '<path d="M24 36 C24 14 76 14 76 36 Z" fill="' + c + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M50 36 L88 36 C88 42 70 44 50 40 Z" fill="' + c + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="20" r="3" fill="#fff"/>';
       case 'bear': return '<circle cx="26" cy="24" r="12" fill="' + c + '" stroke="' + INK + '" stroke-width="3"/><circle cx="74" cy="24" r="12" fill="' + c + '" stroke="' + INK + '" stroke-width="3"/><circle cx="26" cy="24" r="6" fill="#ffc9d6"/><circle cx="74" cy="24" r="6" fill="#ffc9d6"/>';
     }
     return '';
   }
   // Round-headed driver portrait
   function driver(d) {
+    var human = d.topper === 'cap' || d.topper === 'crown' || d.topper === 'bow';
+    var face = human ? '#ffcf9e' : d.topper === 'bunny' ? '#fff2eb' : d.color;
     var c = d.color, behind = (d.topper === 'cat' || d.topper === 'bunny' || d.topper === 'horns' || d.topper === 'bear') ? toppers(d.topper, c) : '';
     var front = behind ? '' : toppers(d.topper, c);
     return '<svg viewBox="0 0 100 100" width="100%" height="100%">' + behind +
-      '<circle cx="50" cy="58" r="34" fill="' + c + '" stroke="' + INK + '" stroke-width="3.5"/>' +
+      '<circle cx="50" cy="58" r="34" fill="' + face + '" stroke="' + INK + '" stroke-width="3.5"/>' +
       '<ellipse cx="50" cy="66" rx="22" ry="17" fill="rgba(255,255,255,.28)"/>' +
       '<ellipse cx="39" cy="55" rx="7" ry="9" fill="#fff" stroke="' + INK + '" stroke-width="2"/><ellipse cx="61" cy="55" rx="7" ry="9" fill="#fff" stroke="' + INK + '" stroke-width="2"/>' +
       '<ellipse cx="40" cy="56" rx="3.8" ry="5.2" fill="' + INK + '"/><ellipse cx="62" cy="56" rx="3.8" ry="5.2" fill="' + INK + '"/>' +
       '<circle cx="41.5" cy="53.5" r="1.6" fill="#fff"/><circle cx="63.5" cy="53.5" r="1.6" fill="#fff"/>' +
       '<ellipse cx="29" cy="68" rx="5" ry="3" fill="#ff8fa3" opacity=".8"/><ellipse cx="71" cy="68" rx="5" ry="3" fill="#ff8fa3" opacity=".8"/>' +
-      '<path d="M43 70 Q50 77 57 70" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linecap="round"/>' + front + '</svg>';
+      '<path d="M43 70 Q50 77 57 70" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linecap="round"/>' + (d.topper === 'cap' ? '<ellipse cx="50" cy="64" rx="9" ry="7" fill="#f2b180"/><path d="M34 70Q40 61 50 68Q60 61 66 70Q58 78 50 72Q42 78 34 70" fill="#63321d"/>' : '') +
+      (d.topper === 'horns' ? '<ellipse cx="50" cy="70" rx="25" ry="15" fill="'+ c +'" stroke="'+INK+'" stroke-width="2"/><circle cx="42" cy="66" r="2" fill="'+INK+'"/><circle cx="58" cy="66" r="2" fill="'+INK+'"/>' : '') +
+      (d.topper === 'antenna' ? '<path d="M12 42C10 -2 90 -2 88 42Z" fill="'+ c +'" stroke="'+INK+'" stroke-width="3"/><ellipse cx="50" cy="21" rx="10" ry="13" fill="#fff"/><ellipse cx="22" cy="28" rx="6" ry="10" fill="#fff"/><ellipse cx="78" cy="28" rx="6" ry="10" fill="#fff"/>' : front) + '</svg>';
   }
   function mode(id) {
     if (id === 'cup') return '<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M28 14 H72 V34 C72 52 62 60 50 60 C38 60 28 52 28 34 Z" fill="#ffd34d" stroke="' + INK + '" stroke-width="4" stroke-linejoin="round"/><path d="M28 20 C12 20 12 42 30 44 M72 20 C88 20 88 42 70 44" fill="none" stroke="' + INK + '" stroke-width="4"/><rect x="44" y="60" width="12" height="14" fill="#ffb800" stroke="' + INK + '" stroke-width="4"/><rect x="32" y="74" width="36" height="12" rx="3" fill="#9b6bff" stroke="' + INK + '" stroke-width="4"/><path d="M50 22 L53 30 L61 30 L55 35 L57 43 L50 38 L43 43 L45 35 L39 30 L47 30 Z" fill="#fff"/></svg>';

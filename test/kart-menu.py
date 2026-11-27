@@ -50,7 +50,7 @@ async def main():
             state = {}
             mt = asyncio.create_task(mia(code, state))
             await ph.wait_for_timeout(800)
-            # Bryan (host) picks Kart Racer and starts
+            # Bryan (host) picks Kario Mart and starts
             await ph.evaluate("send({t:'pick', game:'kart'})")
             await ph.wait_for_timeout(300)
             await ph.evaluate("send({t:'start'})")

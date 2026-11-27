@@ -1,5 +1,5 @@
 /**
- * Procedural Web Audio Engine for Low-Poly Arcade Kart Racer
+ * Procedural Web Audio Engine for Low-Poly Arcade Kario Mart
  * Zero external audio files — 100% synthesized in real time.
  */
 
@@ -35,10 +35,16 @@ class SoundEngine {
     this.ctx = ctx;
     this.masterGain = ctx.createGain();
     this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, ctx.currentTime);
-    this.masterGain.connect(ctx.destination);
+    this.connectOutput(ctx);
     this.setupEngineSynth();
     this.setupScreechSynth();
     this.isInitialized = true;
+  }
+  private connectOutput(ctx: AudioContext) {
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -15; compressor.knee.value = 12;
+    compressor.ratio.value = 4; compressor.attack.value = 0.008; compressor.release.value = 0.18;
+    this.masterGain!.connect(compressor).connect(ctx.destination);
   }
   public running() { return !!this.ctx && this.ctx.state === 'running'; }
 
@@ -56,7 +62,7 @@ class SoundEngine {
       
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, this.ctx.currentTime);
-      this.masterGain.connect(this.ctx.destination);
+      this.connectOutput(this.ctx);
 
       this.setupEngineSynth();
       this.setupScreechSynth();
@@ -77,10 +83,10 @@ class SoundEngine {
     this.engineFilter = this.ctx.createBiquadFilter();
     this.engineFilter.type = 'lowpass';
     this.engineFilter.frequency.setValueAtTime(600, this.ctx.currentTime);
-    this.engineFilter.Q.setValueAtTime(2.5, this.ctx.currentTime);
+    this.engineFilter.Q.setValueAtTime(0.7, this.ctx.currentTime);
 
     this.engineOsc1 = this.ctx.createOscillator();
-    this.engineOsc1.type = 'sawtooth';
+    this.engineOsc1.type = 'triangle';
     this.engineOsc1.frequency.setValueAtTime(55, this.ctx.currentTime);
 
     this.engineOsc2 = this.ctx.createOscillator();
@@ -136,17 +142,17 @@ class SoundEngine {
     const absSpeed = Math.abs(speedNormalized);
 
     // RPM mapping: idle ~65Hz, redline ~340Hz, boosted ~480Hz
-    let targetFreq = 65 + absSpeed * 220;
+    let targetFreq = 55 + Math.min(absSpeed, 1.6) * 120;
     if (throttle) targetFreq += 25;
     if (isBoosted) targetFreq += 80;
 
     // Frequency filter expands as throttle opens
     const filterFreq = 400 + absSpeed * 1200 + (throttle ? 400 : 0);
 
-    const targetGain = 0.05 + absSpeed * 0.15 + (throttle ? 0.08 : 0);
+    const targetGain = 0.025 + Math.min(absSpeed, 1.6) * 0.065 + (throttle ? 0.025 : 0);
 
     this.engineOsc1.frequency.setTargetAtTime(targetFreq, t, 0.08);
-    this.engineOsc2.frequency.setTargetAtTime(targetFreq * 1.5, t, 0.08);
+    this.engineOsc2.frequency.setTargetAtTime(targetFreq * 2.005, t, 0.08);
     this.engineFilter.frequency.setTargetAtTime(filterFreq, t, 0.08);
     this.engineGain.gain.setTargetAtTime(targetGain, t, 0.08);
   }
@@ -159,7 +165,7 @@ class SoundEngine {
 
     const t = this.ctx.currentTime;
     if (isDrifting && Math.abs(speed) > 5) {
-      const targetGain = 0.1 + driftLevel * 0.08;
+      const targetGain = 0.04 + driftLevel * 0.025;
       const targetFreq = 1200 + driftLevel * 500;
       this.screechGain.gain.setTargetAtTime(targetGain, t, 0.05);
       this.screechFilter.frequency.setTargetAtTime(targetFreq, t, 0.05);
@@ -228,7 +234,7 @@ class SoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
-    osc.type = 'sawtooth';
+    osc.type = 'triangle';
     osc.frequency.setValueAtTime(250, t);
     osc.frequency.exponentialRampToValueAtTime(950, t + 0.35);
 

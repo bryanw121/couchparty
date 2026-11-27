@@ -1,9 +1,9 @@
-// Kart Racer: the race itself runs in 3D on the TV (web/kart). The server runs the menus
+// Kario Mart: the race itself runs in 3D on the TV (web/kart). The server runs the menus
 // (mode, speed, drivers, course), seats racers, passes phone controls straight to the TV
 // (no state round trip, to keep steering snappy), relays per-player events back to phones,
 // and keeps Cup points across races.
 
-export const meta = { id: 'kart', name: 'Kart Racer', min: 1, max: 8, blurb: 'Tilt or joystick. 3D split screen for up to 4.', needs: 'webgl' };
+export const meta = { id: 'kart', name: 'Kario Mart', min: 1, max: 8, blurb: 'Tilt or joystick. 3D split screen for up to 4.', needs: 'webgl' };
 
 // Picked in the in-game menu now, not the lobby.
 export const OPTIONS = {};

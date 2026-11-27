@@ -40,16 +40,16 @@ export function createRoadTexture(): THREE.CanvasTexture {
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
-  // Dark asphalt base
-  ctx.fillStyle = '#27272a';
+  // Cool slate asphalt keeps the candy-colored karts legible.
+  ctx.fillStyle = '#41495e';
   ctx.fillRect(0, 0, 512, 512);
 
   // Subtle asphalt grain
   for (let i = 0; i < 6000; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
-    const shade = Math.floor(35 + Math.random() * 15);
-    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+    const shade = Math.floor(62 + Math.random() * 12);
+    ctx.fillStyle = `rgb(${shade},${shade + 7},${shade + 21})`;
     ctx.fillRect(x, y, 2, 2);
   }
 

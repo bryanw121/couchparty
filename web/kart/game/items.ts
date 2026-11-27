@@ -74,37 +74,18 @@ function rollFor(rank: number, total: number): ItemKind {
 
 const GIFT_COLORS = ['#ff5d8f', '#4cc9f0', '#ffc83d', '#7bd389', '#b388ff'];
 
-// Wrapping paper with a ribbon cross and polka dots
+// Luminous mystery cubes, shared by pickups and the decoy.
 function giftTexture(color: string): THREE.Texture {
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
+  const c = document.createElement('canvas'); c.width = c.height = 128;
   const g = c.getContext('2d')!;
-  g.fillStyle = color;
-  g.fillRect(0, 0, 128, 128);
-  g.fillStyle = 'rgba(255,255,255,0.35)';
-  for (let y = 10; y < 128; y += 26) for (let x = (y / 26) % 2 ? 22 : 9; x < 128; x += 26) { g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.fill(); }
-  g.fillStyle = '#ffffff';
-  g.fillRect(52, 0, 24, 128);
-  g.fillRect(0, 52, 128, 24);
-  g.fillStyle = 'rgba(0,0,0,0.12)';
-  g.fillRect(52, 0, 4, 128); g.fillRect(0, 52, 128, 4);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-function addBow(parent: THREE.Object3D) {
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
-  for (const sx of [-1, 1]) {
-    const loop = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.08, 8, 14), mat);
-    loop.position.set(sx * 0.22, 0.82, 0);
-    loop.rotation.set(0, Math.PI / 2, sx * 0.5);
-    loop.scale.set(1, 1, 0.6);
-    parent.add(loop);
-  }
-  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat);
-  knot.position.y = 0.78;
-  parent.add(knot);
+  const wash = g.createLinearGradient(0, 0, 128, 128);
+  wash.addColorStop(0, '#efffff'); wash.addColorStop(0.3, color); wash.addColorStop(1, '#6745cb');
+  g.fillStyle = wash; g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = '#e1ffff'; g.lineWidth = 7; g.strokeRect(5, 5, 118, 118);
+  g.font = '900 96px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 5; g.strokeStyle = '#4842a0'; g.strokeText('?', 64, 70);
+  g.fillStyle = '#ffffff'; g.fillText('?', 64, 70);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; return tex;
 }
 
 function sparkleMat(color: number) {
@@ -124,14 +105,18 @@ function makeProjectile(kind: ItemKind): THREE.Object3D {
     spark.position.set(0.14, 1.55, 0); spark.name = 'flame'; g.add(spark);
     const shine = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
     shine.position.set(-0.22, 0.85, 0.35); g.add(shine);
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      eye.scale.set(0.65, 1.4, 0.4); eye.position.set(sx * 0.16, 0.65, 0.52); g.add(eye);
+      const foot = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffc83d }));
+      foot.scale.set(1, 0.55, 1.4); foot.position.set(sx * 0.28, 0.1, 0.15); g.add(foot);
+    }
     return g;
   }
   if (kind === 'fake') {
     const box = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), new THREE.MeshStandardMaterial({ map: giftTexture('#ff5d8f'), roughness: 0.35 }));
     box.position.y = 0.75; g.add(box);
-    const rib = new THREE.MeshStandardMaterial({ color: 0xd62839 });
-    const bow = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.07, 8, 12), rib);
-    bow.position.y = 1.5; bow.rotation.y = Math.PI / 2; g.add(bow);
+    box.rotation.z = Math.PI / 9;
     return g;
   }
   if (kind === 'banana') {
@@ -150,59 +135,34 @@ function makeProjectile(kind: ItemKind): THREE.Object3D {
     const tip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 5), new THREE.MeshStandardMaterial({ color: 0x5a3a12 }));
     tip.position.set(-0.5, 0.17, 0);
     g.add(tip);
-  } else if (kind === 'green') {
-    // Bouncer: a glossy jelly ball with a cheeky face
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 18, 14), new THREE.MeshStandardMaterial({ color: 0x3ddc84, roughness: 0.15, transparent: true, opacity: 0.92, emissive: 0x1a7a44, emissiveIntensity: 0.25 }));
-    ball.position.y = 0.5;
-    ball.name = 'body';
-    g.add(ball);
-    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    shine.position.set(-0.18, 0.78, 0.3);
-    g.add(shine);
-    const eye = new THREE.MeshBasicMaterial({ color: 0x1b1b3a });
-    for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), eye); e.position.set(sx * 0.15, 0.58, 0.45); g.add(e); }
-  } else if (kind === 'red') {
-    // Homing rocket: points along +z, its direction of travel
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.0, 12), sparkleMat(0xff3b3b));
-    body.rotation.x = Math.PI / 2;
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.45, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
-    nose.rotation.x = Math.PI / 2;
-    nose.position.z = 0.72;
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.235, 0.12, 12), new THREE.MeshStandardMaterial({ color: 0xffc83d }));
-    band.rotation.x = Math.PI / 2;
-    band.position.z = 0.25;
-    g.add(body, nose, band);
-    const finMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
-    for (let i = 0; i < 3; i++) {
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.3), finMat);
-      const a = (i / 3) * Math.PI * 2;
-      fin.position.set(Math.sin(a) * 0.28, Math.cos(a) * 0.28, -0.4);
-      fin.rotation.z = -a;
-      g.add(fin);
-    }
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.6, 10), new THREE.MeshBasicMaterial({ color: 0xffa31a, transparent: true, opacity: 0.85 }));
-    flame.rotation.x = -Math.PI / 2;
-    flame.position.z = -0.8;
-    flame.name = 'flame';
-    g.add(flame);
-    g.children.forEach((c) => (c.position.y += 0.45));
   } else {
-    // Leader zapper: a little storm cloud that hunts the race leader
-    const cloudMat = new THREE.MeshStandardMaterial({ color: 0x5b6bd6, roughness: 0.6, emissive: 0x2a3a9a, emissiveIntensity: 0.4 });
-    for (const [x, y, r] of [[0, 0, 0.45], [-0.42, -0.08, 0.32], [0.42, -0.06, 0.34], [0.12, 0.22, 0.32]] as const) {
-      const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), cloudMat);
-      puff.position.set(x, y, 0);
-      g.add(puff);
+    const color = kind === 'green' ? 0x29bd61 : kind === 'red' ? 0xf04a45 : 0x4285ff;
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.61, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), sparkleMat(color));
+    dome.position.y = 0.32; g.add(dome);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.59, 0.105, 8, 24), new THREE.MeshStandardMaterial({ color: 0xfff3d5 }));
+    rim.rotation.x = Math.PI / 2; rim.position.y = 0.32; g.add(rim);
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.52, 16, 8), new THREE.MeshStandardMaterial({ color: 0xe8b766 }));
+    belly.scale.y = 0.25; belly.position.y = 0.27; g.add(belly);
+    const seam = new THREE.MeshStandardMaterial({ color: kind === 'green' ? 0x13743e : kind === 'red' ? 0xa32635 : 0x2543ab });
+    for (let i = 0; i < 6; i++) {
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(0.612, 0.018, 4, 12, Math.PI / 2), seam);
+      arc.rotation.y = i * Math.PI / 3; arc.position.y = 0.32; g.add(arc);
     }
-    const boltShape = new THREE.Shape();
-    boltShape.moveTo(0.05, 0); boltShape.lineTo(-0.15, -0.35); boltShape.lineTo(0, -0.35); boltShape.lineTo(-0.1, -0.7); boltShape.lineTo(0.2, -0.25); boltShape.lineTo(0.05, -0.25); boltShape.lineTo(0.2, 0);
-    const bolt = new THREE.Mesh(new THREE.ExtrudeGeometry(boltShape, { depth: 0.06, bevelEnabled: false }), new THREE.MeshBasicMaterial({ color: 0xfff15a }));
-    bolt.position.set(0, -0.3, 0);
-    bolt.name = 'flame';
-    g.add(bolt);
-    const eye = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.04), eye); e.position.set(sx * 0.15, 0.05, 0.44); e.rotation.z = sx * 0.35; g.add(e); }
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.018, 4, 20), seam);
+    ring.rotation.x = Math.PI / 2; ring.position.y = 0.78; g.add(ring);
+    if (kind === 'blue') {
+      for (let i = 0; i < 5; i++) {
+        const a = i * Math.PI * 2 / 5;
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.32, 8), new THREE.MeshStandardMaterial({ color: 0xfff8e9 }));
+        spike.position.set(Math.sin(a) * 0.36, 0.9, Math.cos(a) * 0.36); g.add(spike);
+      }
+      for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) {
+        const feather = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.38 - i * 0.06, 4, 8), new THREE.MeshStandardMaterial({ color: 0xeaf7ff }));
+        feather.position.set(sx * (0.65 + i * 0.12), 0.65 + i * 0.1, -i * 0.08); feather.rotation.z = -sx * 0.65; g.add(feather);
+      }
+    }
   }
+
   return g;
 }
 
@@ -228,7 +188,7 @@ export class ItemSystem {
         const x = p.x + p.normalX * lane * w;
         const z = p.z + p.normalZ * lane * w;
         const mesh = new THREE.Mesh(this.boxGeo, this.boxMats[n++ % this.boxMats.length]);
-        addBow(mesh);
+        mesh.rotation.z = Math.PI / 9;
         mesh.position.set(x, p.y + 1.2, z);
         this.group.add(mesh);
         this.boxes.push({ mesh, x, y: p.y, z, respawn: 0 });
@@ -544,7 +504,7 @@ export class ItemSystem {
         t.x += Math.sin(t.heading) * t.speed * delta;
         t.z += Math.cos(t.heading) * t.speed * delta;
         if (t.kind === 'red') t.mesh.rotation.y = t.heading;
-        else if (t.kind === 'green') { t.mesh.rotation.y = t.heading; const body = t.mesh.getObjectByName('body'); if (body) { const sq = Math.abs(Math.sin(time * 9)); body.position.y = 0.5 + sq * 0.35; body.scale.set(1 + (1 - sq) * 0.15, 1 - (1 - sq) * 0.15, 1 + (1 - sq) * 0.15); } }
+        else if (t.kind === 'green') t.mesh.rotation.y += delta * 7;
         else t.mesh.rotation.y += delta * 3;
         const fl = t.mesh.getObjectByName('flame'); if (fl) fl.scale.setScalar(0.8 + Math.random() * 0.4);
       }

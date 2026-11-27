@@ -6,7 +6,7 @@ import { CourseTheme } from './tracks';
 // round candy-colored trees, and glowing boost pads on the road.
 
 function toonGradient(): THREE.Texture {
-  const steps = new Uint8Array([90, 170, 255]); // three bands of light: shadow, mid, lit
+  const steps = new Uint8Array([115, 178, 222, 255]); // softer illustrated shadows
   const tex = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
   tex.minFilter = THREE.NearestFilter;
   tex.magFilter = THREE.NearestFilter;
@@ -85,7 +85,7 @@ function roundTree(scale: number, th: CourseTheme): THREE.Group {
   const leafMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8, emissive: th.glow ? color : 0x000000, emissiveIntensity: th.glow ? 0.55 : 0 });
   const blobs: Array<[number, number, number, number]> = [[0, 4.4, 0, 2.4], [1.3, 3.8, 0.3, 1.6], [-1.2, 3.9, -0.2, 1.7], [0.2, 5.6, 0.2, 1.6]];
   for (const [x, y, z, r] of blobs) {
-    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), leafMat);
+    const s = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), leafMat);
     s.position.set(x, y, z);
     g.add(s);
   }
@@ -186,6 +186,7 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
     }
   }
 
+  addCourseLandmarks(track, nearRoad);
   toonify(scene, toonGradient());
 
   return {
@@ -195,6 +196,55 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
       padMat.opacity = 0.75 + Math.sin(t * 8) * 0.2;
     },
   };
+}
+
+// Broad silhouettes read well on split-screen TVs; all decorations stay off the racing line.
+function addCourseLandmarks(track: TrackSystem, nearRoad: (x: number, z: number) => boolean) {
+  const th = track.course.theme;
+  const mat = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+  const cream = mat(0xfff4d9), cap = mat(th.glow ? 0xf45de1 : track.course.id === 'frosty' ? 0x65c9ec : 0xf85d65);
+  const stemGeo = new THREE.CylinderGeometry(1.1, 1.5, 4, 12);
+  const capGeo = new THREE.SphereGeometry(3.4, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+  const dotGeo = new THREE.SphereGeometry(0.55, 8, 6);
+  const hillGeo = new THREE.SphereGeometry(1, 20, 12);
+  // Distant rounded hills / snow peaks / neon towers frame the horizon.
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6;
+    const x = Math.cos(a) * 245, z = Math.sin(a) * 245;
+    if (nearRoad(x, z)) continue;
+    const h = 20 + (i % 4) * 9;
+    const hill = new THREE.Mesh(hillGeo, mat(th.trees[i % th.trees.length]));
+    hill.position.set(x, -5, z); hill.scale.set(28 + i % 3 * 9, h, 28); track.sceneryGroup.add(hill);
+    if (track.course.id === 'frosty') {
+      const snow = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 0.9), cream);
+      snow.position.copy(hill.position); snow.scale.set(28.2 + i % 3 * 9, h + 0.3, 28.2); track.sceneryGroup.add(snow);
+    }
+  }
+  for (let i = 0; i < track.trackPoints.length; i += 24) {
+    const p = track.trackPoints[i]; const side = i % 48 ? -1 : 1;
+    const x = p.x + p.normalX * (track.roadWidth / 2 + 17) * side;
+    const z = p.z + p.normalZ * (track.roadWidth / 2 + 17) * side;
+    if (nearRoad(x, z)) continue;
+    const g = new THREE.Group(); g.position.set(x, p.y - 0.5, z);
+    const stem = new THREE.Mesh(stemGeo, cream); stem.position.y = 2; g.add(stem);
+    const hat = new THREE.Mesh(capGeo, cap); hat.position.y = 3.7; g.add(hat);
+    for (let d = 0; d < 5; d++) {
+      const a = d * Math.PI * 2 / 5;
+      const dot = new THREE.Mesh(dotGeo, cream); dot.position.set(Math.sin(a) * 2.35, 5.9, Math.cos(a) * 2.35); dot.scale.y = 0.4; g.add(dot);
+    }
+    g.scale.setScalar(0.8 + (i % 3) * 0.25); track.sceneryGroup.add(g);
+  }
+  // Pennants on the opening straight make the starting grid feel like a festival.
+  for (const side of [-1, 1]) for (let i = 0; i < 6; i++) {
+    const p = track.trackPoints[Math.floor(i * 0.007 * track.trackPoints.length)];
+    const x = p.x + p.normalX * (track.roadWidth / 2 + 2.5) * side;
+    const z = p.z + p.normalZ * (track.roadWidth / 2 + 2.5) * side;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 5.5, 6), cream);
+    pole.position.set(x, p.y + 2.75, z); track.sceneryGroup.add(pole);
+    const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.lineTo(2.3 * side, -0.5); shape.lineTo(0, -1.2); shape.closePath();
+    const flag = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: th.trees[i % th.trees.length], side: THREE.DoubleSide }));
+    flag.position.set(x, p.y + 5.3, z); track.sceneryGroup.add(flag);
+  }
 }
 
 // Soft round shadow under each kart: grounds them even with real shadows off.

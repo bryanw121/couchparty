@@ -225,7 +225,7 @@ sub render(s as object)
         ' 3D races need a TV browser; tell everyone and let OK back out.
         showScreen("lobby")
         m.kartNotice = true
-        m.top.findNode("toast").text = "Kart Racer needs a Fire TV or browser TV. Press OK to go back."
+        m.top.findNode("toast").text = "Kario Mart needs a Fire TV or browser TV. Press OK to go back."
     end if
     if s.phase <> "game" then m.kartNotice = false
 end sub

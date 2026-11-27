@@ -348,7 +348,7 @@ export class TrackSystem {
 
     const metalMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.7 });
     const bannerMat = new THREE.MeshStandardMaterial({
-      map: createSponsorBannerTexture('🏁 SUPER ARCADE GP 🏁', '#dc2626', '#ffffff'),
+      map: createSponsorBannerTexture('KARIO MART', '#dc2626', '#ffffff'),
     });
 
     const halfW = this.roadWidth / 2 + 2.5;

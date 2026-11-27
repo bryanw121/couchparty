@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { createDriver } from './driverModel';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RacerConfig } from '../types';
 import { createTireTexture, createNumberDecal } from './proceduralTextures';
 
@@ -26,8 +28,6 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   const accentColor = new THREE.Color(config.accentColor);
   const darkMetal = new THREE.Color(0x1e293b);
   const chromeColor = new THREE.Color(0x94a3b8);
-  const helmetColor = new THREE.Color(config.helmetColor);
-  const visorColor = new THREE.Color(config.visorColor);
 
   const mainMat = new THREE.MeshStandardMaterial({
     color: mainColor,
@@ -62,7 +62,7 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   bodyGroup.add(floorMesh);
 
   // Front nose cone (tapered wedge)
-  const noseGeo = new THREE.BoxGeometry(1.0, 0.22, 1.0);
+  const noseGeo = new RoundedBoxGeometry(1.1, 0.32, 1.0, 2, 0.13);
   const noseMesh = new THREE.Mesh(noseGeo, mainMat);
   noseMesh.position.set(0, 0.36, 0.7);
   noseMesh.rotation.x = -0.12;
@@ -70,14 +70,14 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   bodyGroup.add(noseMesh);
 
   // Front bumper / splitter
-  const bumperGeo = new THREE.BoxGeometry(1.5, 0.12, 0.4);
+  const bumperGeo = new RoundedBoxGeometry(1.5, 0.18, 0.4, 2, 0.08);
   const bumperMesh = new THREE.Mesh(bumperGeo, accentMat);
   bumperMesh.position.set(0, 0.2, 1.25);
   bumperMesh.castShadow = true;
   bodyGroup.add(bumperMesh);
 
   // Side pods (left & right)
-  const sidePodGeo = new THREE.BoxGeometry(0.3, 0.32, 1.2);
+  const sidePodGeo = new RoundedBoxGeometry(0.36, 0.4, 1.2, 2, 0.12);
   const leftPod = new THREE.Mesh(sidePodGeo, mainMat);
   leftPod.position.set(-0.68, 0.35, -0.1);
   leftPod.castShadow = true;
@@ -162,57 +162,7 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   steeringWheel.rotation.x = -0.5;
   bodyGroup.add(steeringWheel);
 
-  // --- 4. Driver Character ---
-  // Body / Suit
-  const driverBodyGeo = new THREE.BoxGeometry(0.42, 0.4, 0.28);
-  const driverSuitMat = new THREE.MeshStandardMaterial({
-    color: mainColor,
-    roughness: 0.6,
-  });
-  const driverBody = new THREE.Mesh(driverBodyGeo, driverSuitMat);
-  driverBody.position.set(0, 0.55, -0.12);
-  bodyGroup.add(driverBody);
-
-  // Driver Head / Helmet Group
-  const driverHead = new THREE.Group();
-  driverHead.position.set(0, 0.88, -0.12);
-  bodyGroup.add(driverHead);
-
-  const helmetGeo = new THREE.SphereGeometry(0.24, 12, 10);
-  const helmetMat = new THREE.MeshStandardMaterial({
-    color: helmetColor,
-    roughness: 0.2,
-    metalness: 0.3,
-  });
-  const helmetMesh = new THREE.Mesh(helmetGeo, helmetMat);
-  helmetMesh.castShadow = true;
-  driverHead.add(helmetMesh);
-
-  // Helmet Visor (facing forward along +Z)
-  // Cartoon face instead of a visor: big shiny eyes and rosy cheeks
-  const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
-  const pupil = new THREE.MeshStandardMaterial({ color: 0x1b1b3a, roughness: 0.2 });
-  const cheek = new THREE.MeshStandardMaterial({ color: 0xff8fa3, roughness: 0.6 });
-  for (const sx of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), eyeWhite);
-    eye.scale.set(0.85, 1.15, 0.5);
-    eye.position.set(sx * 0.085, 0.04, 0.205);
-    driverHead.add(eye);
-    const p = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), pupil);
-    p.scale.set(0.9, 1.2, 0.5);
-    p.position.set(sx * 0.085, 0.03, 0.235);
-    driverHead.add(p);
-    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 4), eyeWhite);
-    shine.position.set(sx * 0.085 + 0.015, 0.06, 0.255);
-    driverHead.add(shine);
-    const c = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), cheek);
-    c.scale.set(1, 0.6, 0.4);
-    c.position.set(sx * 0.15, -0.07, 0.18);
-    driverHead.add(c);
-  }
-  void visorColor;
-
-  addTopper(driverHead, config.topper, accentColor, mainColor);
+  const driverHead = createDriver(bodyGroup, config);
 
   // --- 5. Wheels Builder ---
   const tireTex = createTireTexture();
@@ -283,58 +233,4 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
     rearLeftSparkPos: new THREE.Vector3(-0.76, 0.15, -0.95),
     rearRightSparkPos: new THREE.Vector3(0.76, 0.15, -0.95),
   };
-}
-
-// Simple low-poly headwear sitting on the helmet (radius 0.24, centered at the head origin).
-function addTopper(head: THREE.Group, kind: string | undefined, accent: THREE.Color, main: THREE.Color) {
-  if (!kind) return;
-  const mat = new THREE.MeshStandardMaterial({ color: accent, roughness: 0.45, metalness: 0.15 });
-  const inner = new THREE.MeshStandardMaterial({ color: 0xffc9d6, roughness: 0.6 });
-  const add = (geo: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number, rx = 0, rz = 0) => {
-    const mesh = new THREE.Mesh(geo, m);
-    mesh.position.set(x, y, z);
-    mesh.rotation.x = rx;
-    mesh.rotation.z = rz;
-    mesh.castShadow = true;
-    head.add(mesh);
-  };
-  if (kind === 'bear') {
-    const ear = new THREE.MeshStandardMaterial({ color: main, roughness: 0.6 });
-    for (const sx of [-1, 1]) {
-      add(new THREE.SphereGeometry(0.1, 10, 8), ear, sx * 0.17, 0.2, -0.02);
-      add(new THREE.SphereGeometry(0.055, 8, 6), inner, sx * 0.17, 0.2, 0.05);
-    }
-    return;
-  }
-  if (kind === 'cat') {
-    add(new THREE.ConeGeometry(0.09, 0.2, 4), mat, -0.13, 0.27, 0, 0, 0.35);
-    add(new THREE.ConeGeometry(0.09, 0.2, 4), mat, 0.13, 0.27, 0, 0, -0.35);
-  } else if (kind === 'bunny') {
-    add(new THREE.CapsuleGeometry(0.05, 0.3, 4, 8), mat, -0.08, 0.42, -0.02, 0, 0.12);
-    add(new THREE.CapsuleGeometry(0.05, 0.3, 4, 8), mat, 0.08, 0.42, -0.02, 0, -0.12);
-    add(new THREE.CapsuleGeometry(0.025, 0.2, 4, 8), inner, -0.08, 0.42, 0.03, 0, 0.12);
-    add(new THREE.CapsuleGeometry(0.025, 0.2, 4, 8), inner, 0.08, 0.42, 0.03, 0, -0.12);
-  } else if (kind === 'crown') {
-    const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, roughness: 0.25, metalness: 0.8 });
-    add(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 10, 1, true), gold, 0, 0.26, 0);
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      add(new THREE.ConeGeometry(0.04, 0.1, 4), gold, Math.sin(a) * 0.14, 0.35, Math.cos(a) * 0.14);
-    }
-  } else if (kind === 'cap') {
-    add(new THREE.SphereGeometry(0.2, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat, 0, 0.14, 0);
-    add(new THREE.BoxGeometry(0.26, 0.03, 0.2), mat, 0, 0.15, 0.2);
-  } else if (kind === 'horns') {
-    const bone = new THREE.MeshStandardMaterial({ color: 0xf4f1e6, roughness: 0.5 });
-    add(new THREE.ConeGeometry(0.05, 0.2, 8), bone, -0.16, 0.24, 0.02, 0, 0.6);
-    add(new THREE.ConeGeometry(0.05, 0.2, 8), bone, 0.16, 0.24, 0.02, 0, -0.6);
-  } else if (kind === 'bow') {
-    add(new THREE.ConeGeometry(0.08, 0.14, 4), mat, -0.08, 0.27, -0.05, 0, Math.PI / 2);
-    add(new THREE.ConeGeometry(0.08, 0.14, 4), mat, 0.08, 0.27, -0.05, 0, -Math.PI / 2);
-    add(new THREE.SphereGeometry(0.04, 8, 6), mat, 0, 0.27, -0.05);
-  } else if (kind === 'antenna') {
-    const stem = new THREE.MeshStandardMaterial({ color: 0x1e293b });
-    add(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 6), stem, 0, 0.34, 0);
-    add(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshStandardMaterial({ color: main, emissive: main, emissiveIntensity: 0.6 }), 0, 0.47, 0);
-  }
 }
