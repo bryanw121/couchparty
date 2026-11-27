@@ -1,29 +1,32 @@
 # CouchParty
 
-Party games for the TV. The TV shows the game, everyone's phone is the controller. No app installs, no accounts.
+Texas Hold'em for the TV with play money. The TV shows the game, everyone's phone is the controller. No app installs, no accounts.
 
 **Live:** https://is.gd/couchpartytv
 (redirects to https://br-raspy-feather-bdoyz6f3-couchparty.compute.c-8.us-east-2.aws.neon.tech/, a Neon Function in the `couchparty` Neon project)
 
 ## Getting started
 
-1. Open the link in the TV's browser. Press **OK** once on the remote to turn on sound.
+1. Open the link in the TV's browser. Press **OK** once on the remote to turn on sound and music.
 2. Everyone scans the QR code, types a name and picks a color.
-3. The first player to join is the host. The host picks a game on their phone (or use **left/right + OK** on the remote) and taps **Start**.
-4. At the end, the TV shows the leaderboard. Press OK, or the host taps **Back to menu**.
+3. The first player to join is the host. The host picks table options (buy-in, blinds, rebuys) on their phone and taps **Start**.
+4. At the end, the TV shows the play-money ledger. Press OK, or the host taps **Back to menu**.
 
-## Light Cycles (1-8 players)
+## Texas Hold'em (2-8 players, play money only)
 
-- Each player rides a light cycle that leaves a trail. Hitting a wall or any trail (yours too) crashes you.
-- Swipe on your phone, or tap the arrows, to turn. Your phone buzzes when you crash.
-- Points per round = riders you outlasted; the last rider standing gets a bonus point. 5 rounds.
+- Host options: buy-in $100 / $200 / $500, blinds $1/$2, $2/$5 or $5/$10, rebuys on/off.
+- Your two cards show only on your phone (tap them to hide). On your turn your phone pings and buzzes: Fold, Check/Call, or Raise (min, half pot, pot, all in, or the slider). 30 seconds per turn.
+- **Rebuy**: when you're below the buy-in and not in a hand, tap Rebuy to add another buy-in. If only one player has chips left, the table waits for a rebuy.
+- **Cash out**: leave the table between hands and keep your stack on the ledger.
+- The TV shows the board, pot, everyone's stack and running net. Side pots and split pots are handled.
+- **Ledger**: when the host ends the game (or one player has all the money and rebuys are off), the TV shows bought in, cashed out and net for everyone. Nets always add up to $0. No real money is involved.
 
-## Texas Hold'em (2-8 players, play chips only)
+## Audio
 
-- Everyone starts with 1,000 chips. Blinds 10/20. Your two cards show only on your phone (tap them to hide).
-- On your turn your phone pings and buzzes: Fold, Check/Call, or Raise (presets for min, half pot, pot and all in, or use the slider). 30 seconds per turn; time out checks or folds.
-- The TV shows the board, pot, everyone's chips and bets, and the showdown. Side pots and split pots are handled.
-- The game ends when one player has all the chips, or the host taps **End game**.
+Recorded sounds stream from the public `bryanw121/couchparty-audio` repo through jsDelivr; if they can't load, the TV falls back to synthesized sounds.
+
+- Card sounds: [Casino Audio](https://kenney.nl/assets/casino-audio) by Kenney, CC0.
+- Music: "Airport Lounge" by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 (credited on screen).
 
 ## Run it on your own computer
 
@@ -46,15 +49,13 @@ npx neon functions deploy couchparty --src dist/index.mjs --no-bundle
 
 | File | What it does |
 | - | - |
-| `public/tv.html` | TV screen: lobby + game menu, Light Cycles arena, poker table, leaderboard, sounds (Web Audio). ES5 JavaScript for old TV browsers. |
-| `public/play.html` | Phone controller: join, game picker (host), D-pad/swipe, poker controls. |
+| `public/tv.html` | TV screen: lobby, poker table, ledger, sounds and music. ES5 JavaScript for old TV browsers. |
+| `public/play.html` | Phone controller: join, host table options, poker controls, rebuy and cash out. |
 | `src/game.js` | Rooms, players, game menu; hands input to the active game. Works with any standard WebSocket. |
-| `src/games/cycles.js` | Light Cycles rules. |
 | `src/games/poker.js`, `src/games/handeval.js` | Hold'em rules, betting, side pots, hand ranking. |
-| `src/questions.js` | Old trivia questions (trivia is no longer in the menu). |
 | `src/function.js` | Neon Function entry (pages + `/ws` WebSocket). |
 | `src/local.js` | Local Node server for development. |
-| `test/sim2.mjs` | Plays both games with a fake TV and 3 bot phones and checks chip totals: run the server with `CP_FAST=1 npm start`, then `node test/sim2.mjs`. |
+| `test/sim2.mjs` | Plays poker with a fake TV and 3 bot phones (with rebuys) and checks the money always balances: run the server with `CP_FAST=1 npm start`, then `node test/sim2.mjs`. |
 
 ## TV compatibility
 

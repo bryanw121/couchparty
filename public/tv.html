@@ -33,13 +33,9 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 .chip .avatar { width: 1.8rem; height: 1.8rem; font-size: 0.8rem; margin-right: 0.5rem; }
 .okkey { width: 2rem; height: 2rem; border-radius: 50%; background: #FFC83D; color: #0E1020; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.7rem; flex-shrink: 0; }
 #soundHint { position: absolute; bottom: 1.2rem; left: 3.4rem; font-size: 0.9rem; color: #A9AEC8; }
+#credits { position: absolute; bottom: 0.4rem; left: 3.4rem; font-size: 0.65rem; }
 #status { position: absolute; bottom: 1.2rem; right: 1.6rem; font-size: 0.8rem; color: #A9AEC8; }
 #toast { position: absolute; top: 1.2rem; left: 50%; transform: translateX(-50%); background: #FF9F6B; color: #0E1020; font-weight: 800; padding: 0.6rem 1.2rem; border-radius: 0.8rem; font-size: 1.1rem; display: none; }
-/* Light Cycles */
-#arenaWrap { position: absolute; left: 3.4rem; right: 3.4rem; top: 5.6rem; bottom: 2.4rem; display: flex; align-items: center; justify-content: center; }
-#arena { border: 0.15rem solid #3A3F63; border-radius: 0.6rem; background: #0A0C18; }
-#overlay { position: absolute; left: 0; right: 0; top: 40%; text-align: center; font-size: 4rem; font-weight: 800; text-shadow: 0 0.2rem 1rem #000; }
-.score { margin-left: 1.2rem; font-size: 1.1rem; font-weight: 800; }
 /* Poker */
 .felt { margin-top: 1rem; height: 18rem; border-radius: 9rem; background: #14523A; border: 0.6rem solid #3B2A1E; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .pc { display: inline-flex; align-items: center; justify-content: center; width: 4.2rem; height: 5.9rem; border-radius: 0.5rem; background: #fff; color: #0E1020; font-size: 1.8rem; font-weight: 800; margin: 0 0.3rem; }
@@ -86,15 +82,6 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   </div>
 </div>
 
-<div id="cycles" class="screen">
-  <div class="row between">
-    <div class="logo">Light <span>Cycles</span> <span class="muted" style="font-size:1.1rem; font-weight:600" id="cyRound"></span></div>
-    <div class="row" id="cyScores"></div>
-  </div>
-  <div id="arenaWrap"><canvas id="arena"></canvas></div>
-  <div id="overlay"></div>
-</div>
-
 <div id="poker" class="screen">
   <div class="row between">
     <div class="logo">Hold'em · <span id="pkStreet">Preflop</span></div>
@@ -123,13 +110,13 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 
 <div id="toast"></div>
 <div id="soundHint">Press OK on the remote to turn on sound</div>
+<div id="credits" class="muted">Music: “Airport Lounge” by Kevin MacLeod (incompetech.com), CC BY 4.0 · Card sounds: Kenney.nl (CC0)</div>
 <div id="status"></div>
 
 <script>
 (function () {
   // ES5 on purpose so older TV browsers (Samsung Tizen, LG webOS, Fire TV Silk) run it.
-  var ws = null, code = null, S = null, retry = 500, tick = null, lastRound = -1, lastPhase = '';
-  var cv = document.getElementById('arena'), cx = cv.getContext('2d'), cell = 10, bikes = [];
+  var ws = null, code = null, S = null, retry = 500, tick = null, lastPhase = '';
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -139,11 +126,15 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   }
   function avatar(p) { return '<div class="avatar" style="background:' + p.color + '">' + esc(p.name.charAt(0).toUpperCase()) + '</div>'; }
   function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function money(n) { return (n < 0 ? '−' : '') + '$' + fmt(Math.abs(n)); }
+  function signed(n) { return (n > 0 ? '+' : '') + money(n); }
+  function netColor(n) { return n > 0 ? '#5EE6C8' : n < 0 ? '#FF9F9F' : '#A9AEC8'; }
+  function tableLine(st) { return 'Buy-in $' + st.buyIn + ' · Blinds $' + st.blinds.split('/').join('/$') + ' · Rebuys ' + (st.rebuys ? 'on' : 'off'); }
   function roomFromUrl() { var m = /[?&]room=([A-Za-z0-9]{4})/.exec(location.search); return m ? m[1].toUpperCase() : ''; }
   function toast(msg) { if (!msg) return; var t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 3000); }
 
   /* ---------- Sound: synthesized with Web Audio, no files ---------- */
-  var AC = null, music = null;
+  var AC = null;
   function ac() {
     if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; try { AC = new C(); } catch (e) { return null; } }
     if (AC.state === 'suspended' && AC.resume) AC.resume();
@@ -166,27 +157,58 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     s.buffer = b; g.gain.value = vol; f.type = 'lowpass'; f.frequency.value = 1400;
     s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
   }
+  /* Recorded sounds (open-licensed), streamed from the couchparty-audio repo via jsDelivr.
+     Synth sounds above stay as the fallback if a file can't load. */
+  var AUDIO_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty-audio@main/';
+  var SAMPLES = { shuffle: ['cardShuffle'], deal: ['cardSlide1', 'cardSlide2', 'cardSlide3'], place: ['cardPlace1', 'cardPlace2'], fold: ['cardShove1'], fan: ['cardFan1'] };
+  var buffers = {}, samplesLoading = false, musicEl = null;
+  function loadSamples() {
+    var a = ac(); if (!a || samplesLoading) return;
+    samplesLoading = true;
+    for (var name in SAMPLES) {
+      for (var i = 0; i < SAMPLES[name].length; i++) (function (name, file) {
+        var x = new XMLHttpRequest();
+        x.open('GET', AUDIO_BASE + file + '.mp3'); x.responseType = 'arraybuffer';
+        x.onload = function () {
+          if (x.status !== 200) return;
+          a.decodeAudioData(x.response, function (b) { (buffers[name] = buffers[name] || []).push(b); }, function () {});
+        };
+        x.send();
+      })(name, SAMPLES[name][i]);
+    }
+  }
+  function sample(name, vol, delay) {
+    var a = AC, list = buffers[name];
+    if (!a || a.state !== 'running' || !list || !list.length) return false;
+    var src = a.createBufferSource(), g = a.createGain();
+    src.buffer = list[Math.floor(Math.random() * list.length)]; g.gain.value = vol || 0.9;
+    src.connect(g); g.connect(a.destination); src.start(a.currentTime + (delay || 0));
+    return true;
+  }
+  // Lounge music loop (CC BY 4.0, credited on the lobby screen). Starts after the first remote press.
+  function music(on) {
+    if (!musicEl) {
+      try { musicEl = new Audio(AUDIO_BASE + 'airport-lounge.mp3'); musicEl.loop = true; musicEl.volume = 0.22; } catch (e) { return; }
+    }
+    if (on && musicEl.paused) { var pr = musicEl.play(); if (pr && pr['catch']) pr['catch'](function () {}); }
+    if (!on && !musicEl.paused) musicEl.pause();
+  }
   var FX = {
     join: function () { tone(660, 0.08, 'square', 0.07); tone(990, 0.12, 'square', 0.07, 0.08); },
     count: function () { tone(440, 0.18, 'square', 0.1); },
     go: function () { tone(660, 0.35, 'sawtooth', 0.1, 0, 1320); },
     crash: function () { noise(0.6, 0.5); tone(160, 0.5, 'sawtooth', 0.12, 0, 40); },
     win: function () { var n = [523, 659, 784, 1047]; for (var i = 0; i < n.length; i++) tone(n[i], 0.2, 'square', 0.08, i * 0.12); },
-    deal: function () { for (var i = 0; i < 3; i++) noise(0.05, 0.25, i * 0.08); },
+    shuffle: function () { if (!sample('shuffle')) FX.deal(); for (var i = 0; i < 2; i++) sample('deal', 0.8, 0.9 + i * 0.18); },
+    deal: function () { var ok = false; for (var i = 0; i < 3; i++) ok = sample('deal', 0.85, i * 0.15) || ok; if (!ok) for (var j = 0; j < 3; j++) noise(0.05, 0.25, j * 0.08); },
     chip: function () { tone(2200, 0.04, 'triangle', 0.1); tone(2600, 0.04, 'triangle', 0.08, 0.05); },
     raise: function () { FX.chip(); tone(1800, 0.05, 'triangle', 0.08, 0.1); tone(2400, 0.05, 'triangle', 0.08, 0.15); },
     allin: function () { tone(220, 0.6, 'sawtooth', 0.1, 0, 880); FX.chip(); },
-    fold: function () { tone(300, 0.2, 'triangle', 0.07, 0, 150); },
-    check: function () { tone(900, 0.05, 'square', 0.05); tone(900, 0.05, 'square', 0.05, 0.09); },
+    fold: function () { if (!sample('fold')) tone(300, 0.2, 'triangle', 0.07, 0, 150); },
+    check: function () { if (!sample('place', 0.7)) { tone(900, 0.05, 'square', 0.05); tone(900, 0.05, 'square', 0.05, 0.09); } },
     turn: function () { tone(740, 0.1, 'sine', 0.06); },
-    pot: function () { for (var i = 0; i < 6; i++) tone(1800 + i * 150, 0.05, 'triangle', 0.07, i * 0.05); }
+    pot: function () { sample('fan', 0.8); for (var i = 0; i < 6; i++) tone(1800 + i * 150, 0.05, 'triangle', 0.07, 0.2 + i * 0.05); }
   };
-  function startMusic() {
-    if (music) return;
-    var bass = [110, 110, 165, 110, 131, 110, 196, 165], step = 0;
-    music = setInterval(function () { tone(bass[step % 8], 0.13, 'triangle', 0.07); if (step % 2 === 0) noise(0.03, 0.06); step++; }, 160);
-  }
-  function stopMusic() { if (music) { clearInterval(music); music = null; } }
 
   /* ---------- Connection ---------- */
   function connect() {
@@ -204,8 +226,6 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
         $('qr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=0&data=' + encodeURIComponent(location.protocol + '//' + location.host + '/play?room=' + code);
         $('joinUrl').textContent = location.host.length > 30 ? 'this site/play' : location.host + '/play';
       } else if (m.t === 'state') render(m.s);
-      else if (m.t === 'cy') cyTick(m);
-      else if (m.t === 'cyc') $('overlay').textContent = m.c;
       else if (m.t === 'fx' && FX[m.n]) FX[m.n]();
     };
     ws.onclose = function () { $('status').textContent = 'Reconnecting…'; setTimeout(connect, retry); retry = Math.min(retry * 2, 8000); };
@@ -216,10 +236,8 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function render(s) {
     S = s;
     toast(s.notice);
-    if (s.phase !== 'game' || !s.g || s.g.kind !== 'cycles' || s.g.phase !== 'play') stopMusic();
     if (s.phase === 'lobby') renderLobby(s);
     else if (s.phase === 'final') renderFinal(s);
-    else if (s.g && s.g.kind === 'cycles') renderCycles(s.g);
     else if (s.g && s.g.kind === 'poker') renderPoker(s.g);
   }
 
@@ -228,7 +246,8 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     var i, html = '', host = null;
     for (i = 0; i < s.games.length; i++) {
       var g = s.games[i];
-      html += '<div class="tile' + (g.id === s.selected ? ' sel' : '') + '"><div class="t">' + esc(g.name) + '</div><div class="b muted">' + esc(g.blurb) + '</div><div class="b muted">' + g.min + '–' + g.max + ' players</div></div>';
+      var st = s.settings && s.settings[g.id];
+      html += '<div class="tile' + (g.id === s.selected ? ' sel' : '') + '"><div class="t">' + esc(g.name) + '</div><div class="b muted">' + esc(g.blurb) + '</div><div class="b muted">' + g.min + '–' + g.max + ' players' + (st ? ' · ' + tableLine(st) : '') + '</div></div>';
     }
     $('tiles').innerHTML = html;
     html = '';
@@ -244,72 +263,24 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 
   function renderFinal(s) {
     show('final');
-    var r = s.results || [], html = '';
+    var r = s.results || [], html = '', i;
+    if (r.length && r[0].money) {
+      // Play-money ledger: bought in, cashed out, net.
+      $('winner').innerHTML = r[0].score > 0 ? esc(r[0].name) + ' is up <span style="color:#5EE6C8">' + signed(r[0].score) + '</span>' : 'Everyone broke even';
+      html = '<div class="lb muted" style="font-size:1rem;font-weight:700;padding-top:0"><span class="rank"></span><span class="name" style="font-size:1rem">Player</span><span style="width:9rem">Bought in</span><span style="width:9rem">Cashed out</span><span style="width:8rem;text-align:right">Net</span></div>';
+      for (i = 0; i < r.length && i < 8; i++) {
+        html += '<div class="card lb"><span class="rank">' + (i + 1) + '</span>' + avatar(r[i]) + '<span class="name">' + esc(r[i].name) + '</span><span style="width:9rem;font-size:1.3rem">' + money(r[i].bought) + '</span><span style="width:9rem;font-size:1.3rem">' + money(r[i].final) + '</span><span class="pts" style="width:8rem;text-align:right;color:' + netColor(r[i].score) + '">' + signed(r[i].score) + '</span></div>';
+      }
+      $('board').innerHTML = html;
+      $('finalGame').textContent = "Texas Hold'em · play money";
+      return;
+    }
     $('winner').textContent = r.length ? r[0].name + ' wins!' : 'Game over';
-    for (var i = 0; i < r.length && i < 8; i++) {
+    for (i = 0; i < r.length && i < 8; i++) {
       html += '<div class="card lb"><span class="rank">' + (i + 1) + '</span>' + avatar(r[i]) + '<span class="name">' + esc(r[i].name) + '</span><span class="pts">' + fmt(r[i].score) + ' <span class="muted" style="font-size:1rem">' + r[i].unit + '</span></span></div>';
     }
     $('board').innerHTML = html;
-    $('finalGame').textContent = s.selected === 'poker' ? "Texas Hold'em" : 'Light Cycles';
-  }
-
-  /* ---------- Light Cycles ---------- */
-  function sizeArena(g) {
-    var wrap = $('arenaWrap'), w = wrap.clientWidth, h = wrap.clientHeight;
-    cell = Math.max(2, Math.floor(Math.min(w / g.W, h / g.H)));
-    cv.width = cell * g.W; cv.height = cell * g.H;
-  }
-  function drawAll(g) {
-    cx.fillStyle = '#0A0C18'; cx.fillRect(0, 0, cv.width, cv.height);
-    cx.fillStyle = '#141833';
-    for (var x = 0; x < g.W; x += 4) cx.fillRect(x * cell, 0, 1, cv.height);
-    for (var y = 0; y < g.H; y += 4) cx.fillRect(0, y * cell, cv.width, 1);
-    for (var i = 0; i < g.bikes.length; i++) {
-      var b = g.bikes[i], t = b.trail || [];
-      cx.globalAlpha = b.alive ? 1 : 0.3;
-      cx.fillStyle = b.color;
-      for (var k = 0; k < t.length; k += 2) cx.fillRect(t[k] * cell, t[k + 1] * cell, cell, cell);
-      if (b.alive && t.length) { cx.fillStyle = '#FFFFFF'; cx.fillRect(t[t.length - 2] * cell, t[t.length - 1] * cell, cell, cell); }
-    }
-    cx.globalAlpha = 1;
-  }
-  function cyTick(m) {
-    if (!S || !S.g || S.g.kind !== 'cycles') return;
-    var mv = m.m;
-    for (var k = 0; k < mv.length; k += 3) {
-      var b = bikes[mv[k]]; if (!b) continue;
-      if (b.hx !== undefined) { cx.fillStyle = b.color; cx.fillRect(b.hx * cell, b.hy * cell, cell, cell); }
-      b.hx = mv[k + 1]; b.hy = mv[k + 2];
-      cx.fillStyle = '#FFFFFF'; cx.fillRect(b.hx * cell, b.hy * cell, cell, cell);
-    }
-    for (var d = 0; d < m.d.length; d++) {
-      var x = bikes[m.d[d]]; if (!x || x.hx === undefined) continue;
-      cx.strokeStyle = x.color; cx.lineWidth = Math.max(2, cell / 3);
-      cx.beginPath(); cx.arc((x.hx + 0.5) * cell, (x.hy + 0.5) * cell, cell * 2.5, 0, Math.PI * 2); cx.stroke();
-    }
-  }
-  function renderCycles(g) {
-    show('cycles');
-    if (g.round !== lastRound || g.phase === 'countdown' || lastPhase !== 'cycles') sizeArena(g);
-    lastRound = g.round; lastPhase = 'cycles';
-    bikes = [];
-    for (var i = 0; i < g.bikes.length; i++) {
-      var b = g.bikes[i], t = b.trail || [];
-      bikes.push({ color: b.color, hx: t.length ? t[t.length - 2] : undefined, hy: t.length ? t[t.length - 1] : undefined });
-    }
-    drawAll(g);
-    $('cyRound').textContent = 'Round ' + g.round + ' of ' + g.rounds;
-    var sorted = g.bikes.slice().sort(function (a, b) { return b.score - a.score; }), html = '';
-    for (i = 0; i < sorted.length; i++) html += '<span class="score" style="color:' + sorted[i].color + ';opacity:' + (sorted[i].alive || g.phase !== 'play' ? 1 : 0.4) + '">' + esc(sorted[i].name) + ' ' + sorted[i].score + '</span>';
-    $('cyScores').innerHTML = html;
-    var ov = '';
-    if (g.phase === 'countdown') ov = g.count;
-    else if (g.phase === 'roundover') {
-      var w = null; for (i = 0; i < g.bikes.length; i++) if (g.bikes[i].pid === g.winner) w = g.bikes[i];
-      ov = w ? '<span style="color:' + w.color + '">' + esc(w.name) + '</span> wins the round!' : 'Crashed!';
-    }
-    $('overlay').innerHTML = ov;
-    if (g.phase === 'play') startMusic(); else stopMusic();
+    $('finalGame').textContent = "Texas Hold'em";
   }
 
   /* ---------- Poker ---------- */
@@ -323,25 +294,27 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     show('poker');
     lastPhase = 'poker';
     var i, html = '';
-    $('pkStreet').textContent = g.phase === 'showdown' ? 'Showdown' : g.street.charAt(0).toUpperCase() + g.street.slice(1);
-    $('pkBlinds').textContent = 'Hand ' + g.hands + ' · Blinds ' + g.sb + ' / ' + g.bb + ' · play chips';
-    $('pkPot').textContent = g.pot ? 'Pot ' + fmt(g.pot) : '';
+    $('pkStreet').textContent = g.phase === 'showdown' ? 'Showdown' : g.phase === 'waiting' ? 'Waiting' : g.street.charAt(0).toUpperCase() + g.street.slice(1);
+    $('pkBlinds').textContent = 'Hand ' + g.hands + ' · Blinds $' + g.sb + '/$' + g.bb + ' · Buy-in $' + g.buyIn + ' · play money';
+    $('pkPot').textContent = g.pot ? 'Pot ' + money(g.pot) : '';
     for (i = 0; i < 5; i++) html += card(g.board[i]);
     $('pkBoard').innerHTML = html;
     var win = '';
-    for (i = 0; i < g.winners.length; i++) win += (i ? ' · ' : '') + esc(g.winners[i].name) + ' wins ' + fmt(g.winners[i].amount) + (g.winners[i].hand ? ' with ' + g.winners[i].hand : '');
+    for (i = 0; i < g.winners.length; i++) win += (i ? ' · ' : '') + esc(g.winners[i].name) + ' wins ' + money(g.winners[i].amount) + (g.winners[i].hand ? ' with ' + g.winners[i].hand : '');
+    if (g.phase === 'waiting') win = 'Waiting for a busted player to rebuy… (host can end the game)';
     $('pkWin').textContent = win;
     var winIds = {}; for (i = 0; i < g.winners.length; i++) winIds[g.winners[i].pid] = 1;
     html = '';
     var turnSeat = null;
     for (i = 0; i < g.seats.length; i++) {
-      var s = g.seats[i], cls = 'seat' + (s.turn ? ' turn' : '') + (winIds[s.pid] ? ' win' : '') + ((s.folded && s.dealt) || !s.dealt ? ' out' : '');
+      var s = g.seats[i], cls = 'seat' + (s.turn ? ' turn' : '') + (winIds[s.pid] ? ' win' : '') + ((s.folded && s.dealt) || !s.dealt || s.cashed ? ' out' : '');
       if (s.turn) turnSeat = s;
       var note = s.turn ? 'Thinking… <span class="gold" id="pkTimer"></span>' : esc(s.last || '');
       if (s.cards) note = card(s.cards[0], true) + card(s.cards[1], true) + ' <span style="font-size:0.9rem">' + esc(s.hand) + '</span>';
-      html += '<div class="' + cls + '"><div class="row between" style="font-size:1.15rem;font-weight:800"><span style="color:' + s.color + '">' + esc(s.name) + (s.dealer ? '<span class="dbtn">D</span>' : '') + '</span><span>' + fmt(s.chips) + '</span></div>' +
+      html += '<div class="' + cls + '"><div class="row between" style="font-size:1.15rem;font-weight:800"><span style="color:' + s.color + '">' + esc(s.name) + (s.dealer ? '<span class="dbtn">D</span>' : '') + '</span><span>' + money(s.chips) + '</span></div>' +
+        '<div style="font-size:0.85rem;font-weight:700;text-align:right;color:' + netColor(s.net) + '">net ' + signed(s.net) + '</div>' +
         '<div class="muted" style="font-size:0.95rem;margin-top:0.4rem">' + note + '</div>' +
-        (s.bet ? '<div style="font-size:0.95rem;margin-top:0.3rem;color:#FFE08A;font-weight:700">Bet ' + fmt(s.bet) + '</div>' : '') +
+        (s.bet ? '<div style="font-size:0.95rem;margin-top:0.3rem;color:#FFE08A;font-weight:700">Bet ' + money(s.bet) + '</div>' : '') +
         (s.away ? '<div class="muted" style="font-size:0.85rem">Disconnected</div>' : '') + '</div>';
     }
     $('pkSeats').innerHTML = html;
@@ -356,14 +329,13 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   /* ---------- Remote ---------- */
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode, key = null;
-    ac(); setTimeout(soundHint, 100);
+    ac(); loadSamples(); music(true); setTimeout(soundHint, 100);
     if (k === 13 || k === 32 || k === 179 || k === 415 || k === 10252) key = 'ok';
     else if (k === 37) key = 'left';
     else if (k === 39) key = 'right';
     if (key) { sendKey(key); if (e.preventDefault) e.preventDefault(); }
   });
-  document.addEventListener('click', function () { ac(); setTimeout(soundHint, 100); });
-  window.addEventListener('resize', function () { if (S && S.g && S.g.kind === 'cycles') { sizeArena(S.g); render(S); } });
+  document.addEventListener('click', function () { ac(); loadSamples(); music(true); setTimeout(soundHint, 100); });
 
   soundHint();
   connect();

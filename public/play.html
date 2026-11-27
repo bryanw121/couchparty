@@ -35,16 +35,15 @@ button { font-family: inherit; cursor: pointer; }
 .gameopt { display: block; width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: #1A1D33; border: 3px solid transparent; color: #F4F5FA; }
 .gameopt[aria-pressed="true"] { border-color: #FFC83D; background: #23284A; }
 .gameopt b { font-size: 20px; display: block; }
-/* Light Cycles pad */
-.pad { flex: 1; min-height: 380px; border-radius: 28px; background: #1A1D33; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; padding: 14px; touch-action: none; }
-.pad button { border: 0; border-radius: 20px; font-size: 38px; color: #0E1020; touch-action: none; }
-.pad button:active { filter: brightness(1.3); }
 .banner { border-radius: 14px; padding: 12px; text-align: center; font-weight: 800; font-size: 18px; }
 /* Poker */
 .hole { display: flex; gap: 14px; justify-content: center; }
 .pc { width: 120px; height: 168px; border-radius: 16px; background: #fff; color: #0E1020; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 800; }
 .pc.red { color: #D23B4C; }
 .pc.back { background: repeating-linear-gradient(45deg, #23284A 0 10px, #2C3260 10px 20px); color: transparent; }
+.opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opts button { height: 46px; border-radius: 12px; border: 2px solid #3A3F63; background: #1A1D33; color: #F4F5FA; font-size: 16px; }
+.opts button[aria-pressed="true"] { border-color: #FFC83D; background: #23284A; font-weight: 800; }
 .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .presets button { height: 44px; border-radius: 12px; border: 2px solid #3A3F63; background: #1A1D33; color: #F4F5FA; font-size: 15px; }
 .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -75,26 +74,21 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
     <div id="hostPick" style="display:none; flex-direction:column; gap:12px">
       <div class="title" style="font-size:22px">Pick a game</div>
       <div id="gameOpts" style="display:flex; flex-direction:column; gap:10px"></div>
+      <div id="tableOpts" style="display:flex; flex-direction:column; gap:8px"></div>
       <div class="err" id="lobbyErr"></div>
     </div>
     <div class="center" id="guestWait"><div class="title">You're in!</div><div class="muted" id="lobbyInfo"></div></div>
     <button class="primary" id="startBtn" style="display:none; margin-top:auto">Start</button>
   </div>
 
-  <div class="screen" id="cycles">
-    <div class="banner" id="cyBanner" style="background:#1A1D33">Get ready…</div>
-    <div class="pad" id="pad">
-      <div></div><button data-d="U" aria-label="Up">▲</button><div></div>
-      <button data-d="L" aria-label="Left">◀</button><div id="padMid" style="border-radius:50%; opacity:0.25"></div><button data-d="R" aria-label="Right">▶</button>
-      <div></div><button data-d="D" aria-label="Down">▼</button><div></div>
-    </div>
-    <div class="muted" style="text-align:center">Swipe anywhere on the pad, or tap an arrow</div>
-  </div>
-
   <div class="screen" id="poker">
     <div class="banner" id="pkBanner" style="background:#1A1D33"></div>
     <div class="hole" id="hole"></div>
     <div class="muted" style="text-align:center" id="pkHand"></div>
+    <div id="pkBank" style="margin-top:auto; display:none; flex-direction:column; gap:10px">
+      <button class="primary" id="rebuyBtn">Rebuy</button>
+      <button class="ghost" id="cashBtn">Cash out &amp; watch</button>
+    </div>
     <div id="pkControls" style="margin-top:auto; display:none; flex-direction:column; gap:10px">
       <div class="presets" id="presets"></div>
       <input type="range" id="raise" min="0" max="100" step="10" aria-label="Raise amount">
@@ -120,6 +114,8 @@ const COLORS = ['#FFC83D', '#5EE6C8', '#8FB4FF', '#FF9F6B', '#FF7AB6', '#B79CFF'
 const SUIT = { s: '♠', h: '♥', d: '♦', c: '♣' };
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n).toLocaleString();
+const money = (n) => (n < 0 ? '−' : '') + '$' + fmt(Math.abs(n));
+const signed = (n) => (n > 0 ? '+' : '') + money(n);
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
 let ws, joined = false, pid = store.get('cp_pid'), color = store.get('cp_color') || COLORS[Math.floor(Math.random() * 5)];
@@ -163,7 +159,6 @@ function connect() {
     if (m.t === 'error') { joined = false; $('joinBtn').disabled = false; $('joinErr').textContent = m.msg; show('join'); $('topbar').style.display = 'none'; }
     else if (m.t === 'joined') { joined = true; pid = m.pid; store.set('cp_pid', pid); store.set('cp_room', m.room); history.replaceState(null, '', '/play?room=' + m.room); }
     else if (m.t === 'state' && joined) render(m.s, m.you);
-    else if (m.t === 'cyc' && joined) $('cyBanner').textContent = m.c;
     else if (m.t === 'fx' && joined) {
       if (m.n === 'go') PHONE_FX.go();
       if (m.pid === pid && PHONE_FX[m.n]) PHONE_FX[m.n]();
@@ -187,20 +182,17 @@ $('gameOpts').addEventListener('click', (e) => { const b = e.target.closest('[da
 $('startBtn').onclick = () => send({ t: 'start' });
 $('againBtn').onclick = () => send({ t: 'start' });
 $('endBtn').onclick = () => { if (confirm('End the game for everyone?')) send({ t: 'quit' }); };
+$('tableOpts').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  const v = b.dataset.v;
+  send({ t: 'set', game: S.selected, key: b.dataset.k, value: v === 'true' ? true : v === 'false' ? false : isNaN(v) ? v : Number(v) });
+});
+$('rebuyBtn').onclick = () => send({ t: 'rebuy' });
+$('cashBtn').onclick = () => { if (confirm('Cash out and watch the rest of the game?')) send({ t: 'cashout' }); };
+const OPT_LABEL = { buyIn: 'Buy-in', blinds: 'Blinds', rebuys: 'Rebuys' };
+const optText = (k, v) => k === 'buyIn' ? '$' + v : k === 'blinds' ? v.split('/').map((x) => '$' + x).join('/') : v ? 'On' : 'Off';
+const settingsLine = (g) => { const st = S.settings && S.settings[g.id]; return st ? Object.keys(g.options).map((k) => `${OPT_LABEL[k]} ${optText(k, st[k])}`).join(' · ') : ''; };
 
-/* Light Cycles input: arrows (pointerdown for speed) + swipes */
-$('pad').addEventListener('pointerdown', (e) => { const d = e.target.dataset && e.target.dataset.d; if (d) { send({ t: 'dir', d }); buzz(15); } });
-let sx = 0, sy = 0, swiped = false;
-$('pad').addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiped = false; }, { passive: true });
-$('pad').addEventListener('touchmove', (e) => {
-  if (swiped) return;
-  const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-  if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
-  swiped = true;
-  send({ t: 'dir', d: Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : (dy > 0 ? 'D' : 'U') });
-  buzz(15);
-}, { passive: true });
-$('pad').addEventListener('touchend', () => { swiped = false; }, { passive: true });
 
 /* Poker controls */
 $('hole').addEventListener('click', () => { hideCards = !hideCards; renderPoker(); });
@@ -211,7 +203,7 @@ $('callBtn').onclick = () => send({ t: 'act', a: YOU.g.canCheck ? 'check' : 'cal
 $('raiseBtn').onclick = () => send({ t: 'act', a: 'raise', to: raiseTo });
 function updateRaise() {
   const g = YOU.g;
-  $('raiseBtn').textContent = raiseTo >= g.maxTo ? `All in ${fmt(g.maxTo)}` : `${g.currentBet ? 'Raise to' : 'Bet'} ${fmt(raiseTo)}`;
+  $('raiseBtn').textContent = raiseTo >= g.maxTo ? `All in ${money(g.maxTo)}` : `${g.currentBet ? 'Raise to' : 'Bet'} ${money(raiseTo)}`;
 }
 
 function render(s, you) {
@@ -224,7 +216,6 @@ function render(s, you) {
   $('endBtn').style.display = you.isHost ? 'block' : 'none';
   if (s.phase === 'lobby') renderLobby();
   else if (s.phase === 'final') renderFinal();
-  else if (s.g && s.g.kind === 'cycles') renderCycles();
   else if (s.g && s.g.kind === 'poker') renderPoker();
 }
 
@@ -238,12 +229,16 @@ function renderLobby() {
   $('startBtn').style.display = YOU.isHost ? 'block' : 'none';
   if (YOU.isHost) {
     $('gameOpts').innerHTML = S.games.map((g) => `<button class="gameopt" data-g="${g.id}" aria-pressed="${g.id === S.selected}"><b data-g="${g.id}">${g.name}</b><span class="muted" data-g="${g.id}">${g.blurb} · ${g.min}–${g.max} players</span></button>`).join('');
+    const st = S.settings && S.settings[game.id];
+    $('tableOpts').innerHTML = game.options && st ? Object.entries(game.options).map(([k, vals]) =>
+      `<label>${OPT_LABEL[k]}</label><div class="opts">${vals.map((v) => `<button data-k="${k}" data-v="${v}" aria-pressed="${st[k] === v}">${optText(k, v)}</button>`).join('')}</div>`).join('') +
+      '<div class="muted">Play money only — no real money involved.</div>' : '';
     const n = S.players.filter((p) => p.connected).length;
     $('startBtn').textContent = `Start ${game.name}`;
     $('startBtn').disabled = n < game.min;
     $('lobbyErr').textContent = n < game.min ? `Needs ${game.min}+ players — ${n} here` : S.notice || '';
   } else {
-    $('lobbyInfo').textContent = `${host ? host.name : 'The host'} is picking a game — ${game.name} selected`;
+    $('lobbyInfo').textContent = `${host ? host.name : 'The host'} is picking a game — ${game.name} selected` + (game.options ? ` (${settingsLine(game)})` : '');
   }
 }
 
@@ -252,25 +247,15 @@ function renderFinal() {
   const r = S.results || [];
   const rank = r.findIndex((x) => x.id === YOU.id) + 1;
   const me = r[rank - 1];
-  $('finalTitle').textContent = rank === 1 ? 'You won!' : rank ? `You finished #${rank}` : 'Game over';
-  $('finalSub').textContent = (me ? `${fmt(me.score)} ${me.unit} · ` : '') + (r[0] ? `winner: ${r[0].name}` : '');
+  if (me && me.money) {
+    $('finalTitle').textContent = me.score > 0 ? `You're up ${signed(me.score)}` : me.score < 0 ? `You're down ${money(-me.score)}` : 'You broke even';
+    $('finalSub').textContent = `Bought in ${money(me.bought)} · cashed out ${money(me.final)} · play money`;
+  } else {
+    $('finalTitle').textContent = rank === 1 ? 'You won!' : rank ? `You finished #${rank}` : 'Game over';
+    $('finalSub').textContent = (me ? `${fmt(me.score)} ${me.unit} · ` : '') + (r[0] ? `winner: ${r[0].name}` : '');
+  }
   $('meInfo').textContent = '';
   $('againBtn').style.display = YOU.isHost ? 'block' : 'none';
-}
-
-function renderCycles() {
-  show('cycles');
-  const g = S.g, me = YOU.g;
-  $('meInfo').textContent = `${me.score} pts · round ${g.round}/${g.rounds}`;
-  const b = $('cyBanner');
-  b.style.background = '#1A1D33'; b.style.color = '#F4F5FA';
-  if (!me.riding) b.textContent = 'Joining next game — watch the TV';
-  else if (g.phase === 'countdown') b.textContent = g.count;
-  else if (g.phase === 'roundover') b.textContent = g.winner === YOU.id ? 'You won the round!' : 'Round over';
-  else if (me.alive) { b.textContent = 'Ride! Look at the TV'; b.style.background = YOU.color; b.style.color = '#0E1020'; }
-  else b.textContent = 'Crashed! Wait for the next round';
-  document.querySelectorAll('#pad button').forEach((x) => { x.style.background = me.alive || g.phase !== 'play' ? YOU.color : '#3A3F63'; });
-  $('padMid').style.background = YOU.color;
 }
 
 function cardHtml(c) {
@@ -283,14 +268,16 @@ function renderPoker() {
   if (!S || !S.g || S.g.kind !== 'poker') return;
   show('poker');
   const g = S.g, me = YOU.g;
-  $('meInfo').textContent = me.seated ? `${fmt(me.chips)} chips` : '';
+  $('meInfo').innerHTML = me.seated ? `${money(me.chips)} · <span style="color:${me.net > 0 ? '#5EE6C8' : me.net < 0 ? '#FF9F9F' : '#A9AEC8'}">net ${signed(me.net)}</span>` : '';
   const b = $('pkBanner');
   b.style.background = '#1A1D33'; b.style.color = '#F4F5FA';
   const turnSeat = g.seats.find((x) => x.turn);
   if (!me.seated) b.textContent = 'Table is full — watch the TV';
-  else if (!me.dealt) b.textContent = me.chips > 0 ? 'You join the next hand' : 'Out of chips';
-  else if (g.phase !== 'hand') b.textContent = g.winners.map((w) => `${w.pid === YOU.id ? 'You win' : w.name + ' wins'} ${fmt(w.amount)}${w.hand ? ' · ' + w.hand : ''}`).join(' · ');
-  else if (me.myTurn) { b.textContent = `Your turn · ${me.toCall ? 'Call ' + fmt(me.toCall) : 'Check or bet'}`; b.style.background = '#FFC83D'; b.style.color = '#0E1020'; }
+  else if (me.cashed) b.textContent = `Cashed out ${money(me.chips)} — watching`;
+  else if (g.phase === 'waiting') b.textContent = me.chips > 0 ? 'Waiting for someone to rebuy…' : 'Out of chips — rebuy to keep playing';
+  else if (!me.dealt) b.textContent = me.pending ? `Rebuy lands next hand` : me.chips > 0 ? 'You join the next hand' : 'Out of chips';
+  else if (g.phase !== 'hand') b.textContent = g.winners.map((w) => `${w.pid === YOU.id ? 'You win' : w.name + ' wins'} ${money(w.amount)}${w.hand ? ' · ' + w.hand : ''}`).join(' · ');
+  else if (me.myTurn) { b.textContent = `Your turn · ${me.toCall ? 'Call ' + money(me.toCall) : 'Check or bet'}`; b.style.background = '#FFC83D'; b.style.color = '#0E1020'; }
   else if (me.folded) b.textContent = 'You folded';
   else if (me.allIn) b.textContent = 'You\'re all in';
   else b.textContent = turnSeat ? `Waiting for ${turnSeat.name}` : 'Dealing…';
@@ -298,17 +285,23 @@ function renderPoker() {
   $('hole').innerHTML = me.dealt ? (me.cards || []).map(cardHtml).join('') : '';
   $('pkHand').textContent = me.dealt && !hideCards ? `${me.hand} · tap cards to ${hideCards ? 'show' : 'hide'}` : (me.dealt ? 'Tap cards to show' : '');
 
+  const showBank = me.seated && !me.myTurn && (me.canRebuy || me.canCashOut);
+  $('pkBank').style.display = showBank ? 'flex' : 'none';
+  $('rebuyBtn').style.display = me.canRebuy ? 'block' : 'none';
+  $('rebuyBtn').textContent = `Rebuy ${money(me.buyIn)}` + (me.dealt && !me.folded && g.phase === 'hand' ? ' (next hand)' : '');
+  $('cashBtn').style.display = me.canCashOut ? 'block' : 'none';
+  $('cashBtn').textContent = `Cash out ${money(me.chips + me.pending)} & watch`;
   const c = $('pkControls');
   c.style.display = me.myTurn ? 'flex' : 'none';
   if (me.myTurn) {
     if (!wasMyTurn) { raiseTo = me.minTo; }
     raiseTo = Math.min(Math.max(raiseTo, me.minTo), me.maxTo);
     const r = $('raise');
-    r.min = me.minTo; r.max = me.maxTo; r.step = 10; r.value = raiseTo;
-    const half = Math.max(me.minTo, me.currentBet + Math.round(g.pot / 2 / 10) * 10), pot = Math.max(me.minTo, me.currentBet + g.pot);
+    r.min = me.minTo; r.max = me.maxTo; r.step = me.bb; r.value = raiseTo;
+    const half = Math.max(me.minTo, me.currentBet + Math.round(g.pot / 2 / me.bb) * me.bb), pot = Math.max(me.minTo, me.currentBet + g.pot);
     $('presets').innerHTML = [['Min', me.minTo], ['½ pot', Math.min(half, me.maxTo)], ['Pot', Math.min(pot, me.maxTo)], ['All in', me.maxTo]]
       .map(([l, v]) => `<button data-v="${v}">${l}</button>`).join('');
-    $('callBtn').textContent = me.canCheck ? 'Check' : (me.toCall >= me.chips ? `All in ${fmt(me.toCall)}` : `Call ${fmt(me.toCall)}`);
+    $('callBtn').textContent = me.canCheck ? 'Check' : (me.toCall >= me.chips ? `All in ${money(me.toCall)}` : `Call ${money(me.toCall)}`);
     const canRaise = me.maxTo > me.currentBet && me.chips > me.toCall;
     $('raiseBtn').style.visibility = canRaise ? 'visible' : 'hidden';
     $('presets').style.display = canRaise ? 'grid' : 'none';

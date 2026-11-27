@@ -1,12 +1,25 @@
-// Texas Hold'em with play chips. Hole cards go only to their owner's phone.
+// Texas Hold'em with play money: buy-ins, rebuys, cash-outs and a final ledger.
+// Hole cards go only to their owner's phone.
 import { best, handName, newDeck } from './handeval.js';
 
-export const meta = { id: 'poker', name: "Texas Hold'em", min: 2, max: 8, blurb: 'Cards on your phone. Chips on the TV.' };
+export const meta = { id: 'poker', name: "Texas Hold'em", min: 2, max: 8, blurb: 'Cards on your phone. Chips on the TV. Play money only.' };
+
+// Table options the host picks in the lobby.
+export const OPTIONS = {
+  buyIn: [100, 200, 500],
+  blinds: ['1/2', '2/5', '5/10'],
+  rebuys: [true, false],
+};
+export const DEFAULTS = { buyIn: 200, blinds: '1/2', rebuys: true };
 
 const FAST = typeof process !== 'undefined' && process.env && process.env.CP_FAST; // speeds up tests
-const START = 1000, SB = 10, BB = 20, ACT_MS = 30000, AWAY_MS = 5000, SHOW_MS = FAST ? 30 : 7000, RUNOUT_MS = FAST ? 10 : 1500;
+const ACT_MS = 30000, AWAY_MS = 5000, SHOW_MS = FAST ? 30 : 7000, RUNOUT_MS = FAST ? 10 : 1500;
 
 export function start(ctx) {
+  const cfg = { ...DEFAULTS, ...(ctx.settings || {}) };
+  const BUYIN = cfg.buyIn;
+  const [SB, BB] = cfg.blinds.split('/').map(Number);
+  const REBUYS = cfg.rebuys;
   const seats = []; // { pid, name, color, chips, cards, bet, total, folded, allIn, acted, dealt, last }
   let dealer = -1, turn = -1, board = [], deck = [], street = 'preflop', currentBet = 0, minRaise = BB;
   let phase = 'hand', hands = 0, turnEnds = 0, timer = null, winners = [], ended = false;
@@ -18,10 +31,10 @@ export function start(ctx) {
   function seat(p) {
     let s = seats.find((x) => x.pid === p.id);
     if (!s && seats.length < 8) {
-      s = { pid: p.id, chips: START, cards: [], bet: 0, total: 0, folded: true, allIn: false, acted: false, dealt: false, last: 'Joins next hand' };
+      s = { pid: p.id, chips: BUYIN, bought: BUYIN, buyIns: 1, pending: 0, cashed: false, cards: [], bet: 0, total: 0, folded: true, allIn: false, acted: false, dealt: false, last: 'Joins next hand' };
       seats.push(s);
     }
-    if (s) { s.name = p.name; s.color = p.color; }
+    if (s) { s.name = p.name; s.color = p.color; if (s.cashed && p.connected) s.last = 'Cashed out'; }
     return s;
   }
   ctx.players().forEach(seat);
@@ -44,27 +57,43 @@ export function start(ctx) {
   function newHand() {
     if (ended) return;
     winners = [];
-    // Players who left the room give up their seat between hands.
-    for (const s of seats) if (!playerOf(s)) s.chips = 0;
-    const eligible = seats.filter((s) => s.chips > 0 && live(s));
-    if (eligible.length < 2) { finish(); return; }
+    // Rebuys bought during the last hand land now; players who left the room cash out.
+    for (const s of seats) {
+      if (s.pending) { s.chips += s.pending; s.pending = 0; }
+      if (!playerOf(s)) s.cashed = true;
+    }
+    const playing = (s) => s.chips > 0 && live(s) && !s.cashed;
+    const eligible = seats.filter(playing);
+    if (eligible.length < 2) {
+      // With rebuys on, wait for a busted player to buy back in (the host can still end the game).
+      const couldRebuy = REBUYS && seats.some((s) => s.chips === 0 && live(s) && !s.cashed);
+      if (couldRebuy && eligible.length === 1) {
+        phase = 'waiting';
+        turn = -1;
+        for (const s of seats) { s.dealt = false; s.cards = []; s.last = s.cashed ? 'Cashed out' : s.chips ? 'Waiting' : 'Out of chips'; }
+        ctx.broadcast();
+        return;
+      }
+      finish();
+      return;
+    }
     hands += 1;
     deck = newDeck();
     board = [];
     street = 'preflop';
     for (const s of seats) {
-      const play = s.chips > 0 && live(s);
-      Object.assign(s, { cards: play ? [deck.pop(), deck.pop()] : [], bet: 0, total: 0, folded: !play, allIn: false, acted: false, dealt: play, last: play ? '' : (s.chips > 0 ? 'Sitting out' : 'Out of chips') });
+      const play = playing(s);
+      Object.assign(s, { cards: play ? [deck.pop(), deck.pop()] : [], bet: 0, total: 0, folded: !play, allIn: false, acted: false, dealt: play, last: play ? '' : (s.cashed ? 'Cashed out' : s.chips > 0 ? 'Sitting out' : 'Out of chips') });
     }
     dealer = nextFrom(dealer < 0 ? seats.length - 1 : dealer, (s) => s.dealt);
     const heads = eligible.length === 2;
     const sb = heads ? dealer : nextFrom(dealer, isDealt);
     const bb = nextFrom(sb, isDealt);
-    post(seats[sb], SB); seats[sb].last = `Small blind ${SB}`;
-    post(seats[bb], BB); seats[bb].last = `Big blind ${BB}`;
+    post(seats[sb], SB); seats[sb].last = `Small blind $${SB}`;
+    post(seats[bb], BB); seats[bb].last = `Big blind $${BB}`;
     currentBet = BB; minRaise = BB;
     phase = 'hand';
-    ctx.fx('deal');
+    ctx.fx('shuffle');
     setTurn(nextFrom(bb, canAct));
   }
 
@@ -85,7 +114,7 @@ export function start(ctx) {
     if (kind === 'check' && toCall > 0) kind = 'call';
     if (kind === 'fold') { s.folded = true; s.last = auto ? 'Folded (timeout)' : 'Folded'; ctx.fx('fold'); }
     else if (kind === 'check') { s.last = 'Check'; ctx.fx('check'); }
-    else if (kind === 'call') { post(s, toCall); s.last = s.allIn ? 'All in' : `Call ${toCall}`; ctx.fx(s.allIn ? 'allin' : 'chip'); }
+    else if (kind === 'call') { post(s, toCall); s.last = s.allIn ? 'All in' : `Call $${toCall}`; ctx.fx(s.allIn ? 'allin' : 'chip'); }
     else if (kind === 'raise') {
       const maxTo = s.bet + s.chips;
       let to = Math.floor(Number(amount) || 0);
@@ -96,7 +125,7 @@ export function start(ctx) {
       currentBet = to;
       post(s, to - s.bet);
       for (const o of seats) if (o !== s) o.acted = false;
-      s.last = s.allIn ? `All in ${to}` : `Raise to ${to}`;
+      s.last = s.allIn ? `All in $${to}` : `Raise to $${to}`;
       ctx.fx(s.allIn ? 'allin' : 'raise');
     } else return;
     s.acted = true;
@@ -179,9 +208,10 @@ export function start(ctx) {
     if (ended) return;
     ended = true;
     clearTimeout(timer);
-    // Unfinished hand: return what everyone put in.
-    for (const s of seats) { s.chips += s.total; s.total = 0; }
-    ctx.end(seats.map((s) => ({ id: s.pid, name: s.name, color: s.color, score: s.chips, unit: 'chips' })).sort((a, b) => b.score - a.score));
+    // Unfinished hand: return what everyone put in; unplayed rebuys count as cash.
+    for (const s of seats) { s.chips += s.total + s.pending; s.total = 0; s.pending = 0; }
+    ctx.end(seats.map((s) => ({ id: s.pid, name: s.name, color: s.color, score: s.chips - s.bought, unit: 'net', bought: s.bought, final: s.chips, money: true }))
+      .sort((a, b) => b.score - a.score));
   }
 
   later(newHand, 500);
@@ -190,12 +220,13 @@ export function start(ctx) {
     pub() {
       const show = phase === 'showdown';
       return {
-        kind: 'poker', phase, street, board, hands, sb: SB, bb: BB,
+        kind: 'poker', phase, street, board, hands, sb: SB, bb: BB, buyIn: BUYIN, rebuys: REBUYS,
         pot: seats.reduce((a, s) => a + s.total, 0),
         turnEndsIn: turn >= 0 ? Math.max(0, turnEnds - Date.now()) : 0,
         winners,
         seats: seats.map((s, i) => ({
           pid: s.pid, name: s.name, color: s.color, chips: s.chips, bet: s.bet, folded: s.folded, allIn: s.allIn,
+          bought: s.bought, net: s.chips + s.total + s.pending - s.bought, cashed: s.cashed, pending: s.pending,
           dealt: s.dealt, dealer: i === dealer, turn: i === turn, last: s.last, away: !live(s),
           cards: show && s.dealt && !s.folded ? s.cards : null,
           hand: show && s.dealt && !s.folded ? handName(best(s.cards.concat(board))) : '',
@@ -209,15 +240,33 @@ export function start(ctx) {
       const toCall = Math.max(0, currentBet - s.bet);
       return {
         seated: true, cards: s.cards, chips: s.chips, bet: s.bet, dealt: s.dealt, folded: s.folded, allIn: s.allIn, myTurn,
+        bought: s.bought, buyIns: s.buyIns, net: s.chips + s.total + s.pending - s.bought, pending: s.pending, cashed: s.cashed, buyIn: BUYIN, bb: BB,
+        // Rebuy a full buy-in whenever you're below one; it lands at the start of the next hand.
+        canRebuy: REBUYS && !s.cashed && s.chips + s.pending < BUYIN && !(phase === 'hand' && s.dealt && !s.folded),
+        // Cash out only between hands or once you're not in the current hand.
+        canCashOut: !s.cashed && (phase !== 'hand' || !s.dealt || s.folded),
         toCall: Math.min(toCall, s.chips), canCheck: toCall === 0,
         minTo: Math.min(currentBet + minRaise, s.bet + s.chips), maxTo: s.bet + s.chips, currentBet,
         hand: s.dealt && s.cards.length ? handName(best(s.cards.concat(board))) : '',
       };
     },
     input(p, m) {
-      if (m.t !== 'act') return;
       const s = seats.find((x) => x.pid === p.id);
-      if (s && ['fold', 'check', 'call', 'raise'].includes(m.a)) act(s, m.a, m.to);
+      if (!s) return;
+      if (m.t === 'act' && ['fold', 'check', 'call', 'raise'].includes(m.a)) act(s, m.a, m.to);
+      else if (m.t === 'rebuy' && REBUYS && !s.cashed && s.chips + s.pending < BUYIN) {
+        s.bought += BUYIN; s.buyIns += 1;
+        const inHandNow = phase === 'hand' && s.dealt && !s.folded;
+        if (inHandNow) s.pending += BUYIN; else s.chips += BUYIN;
+        s.last = inHandNow ? `Rebuy $${BUYIN} next hand` : `Rebought $${BUYIN}`;
+        ctx.fx('chip');
+        if (phase === 'waiting') later(newHand, 800);
+        ctx.broadcast();
+      } else if (m.t === 'cashout' && !s.cashed && (phase !== 'hand' || !s.dealt || s.folded)) {
+        s.cashed = true; s.dealt = false; s.cards = []; s.last = `Cashed out $${s.chips}`;
+        ctx.broadcast();
+        if (phase === 'waiting' || seats.filter((x) => !x.cashed && x.chips > 0 && live(x)).length < 2) later(newHand, 500);
+      }
     },
     join(p) { seat(p); },
     leave() {

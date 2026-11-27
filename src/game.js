@@ -1,10 +1,9 @@
 // Room server: players, lobby with a game menu, and hand-off to a game module.
 // Transport-agnostic: handleSocket() takes any standard WebSocket (Node `ws` or Neon's upgradeWebSocket).
-import * as cycles from './games/cycles.js';
 import * as poker from './games/poker.js';
 
-const GAMES = { cycles, poker };
-const GAME_LIST = [cycles.meta, poker.meta];
+const GAMES = { poker };
+const GAME_LIST = [{ ...poker.meta, options: poker.OPTIONS }];
 const ROOM_IDLE_MS = 30 * 60 * 1000;
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const COLORS = ['#FFC83D', '#5EE6C8', '#8FB4FF', '#FF9F6B', '#FF7AB6', '#B79CFF', '#9BE36B', '#F4F5FA'];
@@ -32,7 +31,8 @@ function createRoom(code) {
     tvs: new Set(),
     players: new Map(),
     phase: 'lobby', // lobby | game | final
-    selected: 'cycles',
+    selected: 'poker',
+    settings: { poker: { ...poker.DEFAULTS } }, // table options the host picks per game
     game: null,
     results: null,
     lastActive: Date.now(),
@@ -80,13 +80,14 @@ function broadcast(room) {
     phase: room.phase,
     selected: room.selected,
     games: GAME_LIST,
+    settings: room.settings,
     players: playerList(room),
     notice: room.notice || '',
     g: g ? g.pub(false) : null,
     results: room.phase === 'final' ? room.results : null,
   };
   room.notice = '';
-  // The TV gets the full picture (e.g. light-cycle trails); phones get the lighter version.
+  // The TV may get a fuller picture than phones (game modules decide via pub(full)).
   const tvMsg = JSON.stringify({ t: 'state', s: { ...s, g: g ? g.pub(true) : null } });
   for (const tv of room.tvs) send(tv, tvMsg);
   const host = hostId(room);
@@ -108,7 +109,7 @@ function startGame(room, id) {
   room.selected = mod.meta.id;
   room.phase = 'game';
   room.results = null;
-  room.game = mod.start(makeCtx(room));
+  room.game = mod.start({ ...makeCtx(room), settings: room.settings[mod.meta.id] });
   broadcast(room);
 }
 
@@ -206,6 +207,11 @@ export function handleSocket(ws) {
     const isHost = hostId(room) === me.id;
 
     if (m.t === 'pick' && isHost && room.phase === 'lobby' && GAMES[m.game]) { room.selected = m.game; broadcast(room); return; }
+    if (m.t === 'set' && isHost && room.phase === 'lobby') {
+      const opts = GAME_LIST.find((g) => g.id === m.game)?.options;
+      if (opts && opts[m.key] && opts[m.key].includes(m.value)) { room.settings[m.game][m.key] = m.value; broadcast(room); }
+      return;
+    }
     if (m.t === 'start' && isHost) { if (room.phase === 'lobby') startGame(room, m.game); else if (room.phase === 'final') backToLobby(room); return; }
     if (m.t === 'quit' && isHost && room.phase === 'game' && room.game) { room.game.quit ? room.game.quit() : backToLobby(room); return; }
     if (m.t === 'menu' && isHost && room.phase !== 'game') { backToLobby(room); return; }

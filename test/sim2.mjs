@@ -18,9 +18,12 @@ const bot = (ws, m) => {
   if (m.t !== 'state' || !m.you || !m.you.g) return;
   const g = m.you.g, s = m.s;
   if (s.g && s.g.kind === 'poker') {
-    const total = s.g.seats.reduce((a, x) => a + x.chips, 0) + s.g.pot;
-    if (s.g.phase === 'hand' && total !== 3000) { violations++; console.log('CHIP MISMATCH', total); }
+    // Money in play (stacks + pot + rebuys waiting) must equal everything ever bought in.
+    const total = s.g.seats.reduce((a, x) => a + x.chips + x.pending, 0) + s.g.pot;
+    const bought = s.g.seats.reduce((a, x) => a + x.bought, 0);
+    if (s.g.phase === 'hand' && total !== bought) { violations++; console.log('MONEY MISMATCH', total, bought); }
     maxPot = Math.max(maxPot, s.g.pot);
+    if (g.canRebuy && g.chips === 0 && g.buyIns < 3 && !ws.asked) { ws.asked = true; setTimeout(() => { ws.asked = false; send(ws, { t: 'rebuy' }); }, 20); }
     if (g.myTurn) {
       const r = Math.random();
       setTimeout(() => {
@@ -51,11 +54,17 @@ if (which !== 'cycles') {
   send(phones[1], { t: 'pick', game: 'poker' }); await wait(100);
   console.log('non-host pick ignored ->', tv.last.s.selected);
   send(phones[0], { t: 'pick', game: 'poker' }); await wait(100);
+  send(phones[0], { t: 'set', game: 'poker', key: 'buyIn', value: 100 });
+  send(phones[0], { t: 'set', game: 'poker', key: 'blinds', value: '5/10' });
+  send(phones[0], { t: 'set', game: 'poker', key: 'buyIn', value: 12345 }); // invalid: ignored
+  await wait(100);
+  console.log('settings:', JSON.stringify(tv.last.s.settings.poker));
   send(phones[0], { t: 'start' });
   const t0 = Date.now();
-  while (tv.last.s.phase !== 'final' && Date.now() - t0 < 60000) await wait(200);
+  while (tv.last.s.phase !== 'final' && Date.now() - t0 < 25000) await wait(200);
   if (tv.last.s.phase !== 'final') { send(phones[0], { t: 'quit' }); await wait(300); }
   const res = tv.last.s.results;
-  console.log('poker final:', res.map((r) => `${r.name}:${r.score}`).join(' '), 'sum', res.reduce((a, r) => a + r.score, 0), 'hands', 'maxPot', maxPot, 'violations', violations);
+  console.log('poker final:', res.map((r) => `${r.name}: in $${r.bought} out $${r.final} net ${r.score}`).join(' | '));
+  console.log('net sum (must be 0):', res.reduce((a, r) => a + r.score, 0), 'maxPot', maxPot, 'violations', violations);
 }
 process.exit(0);
