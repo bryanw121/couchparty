@@ -32,7 +32,8 @@ button { font-family: inherit; cursor: pointer; }
 .dot { width: 34px; height: 34px; border-radius: 50%; color: #0E1020; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
 .title { font-size: 28px; font-weight: 800; }
-.gameopt { display: block; width: 100%; text-align: left; padding: 16px; border-radius: 18px; background: #1A1D33; border: 3px solid transparent; color: #F4F5FA; }
+.gameopt { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 10px; border-radius: 18px; background: #1A1D33; border: 3px solid transparent; color: #F4F5FA; }
+.gameopt .pic { width: 104px; height: 66px; border-radius: 12px; overflow: hidden; flex-shrink: 0; pointer-events: none; }
 .gameopt[aria-pressed="true"] { border-color: #FFC83D; background: #23284A; }
 .gameopt b { font-size: 20px; display: block; }
 .banner { border-radius: 14px; padding: 12px; text-align: center; font-weight: 800; font-size: 18px; }
@@ -625,7 +626,7 @@ function renderLobby() {
   $('guestWait').style.display = YOU.isHost ? 'none' : 'flex';
   $('startBtn').style.display = YOU.isHost ? 'block' : 'none';
   if (YOU.isHost) {
-    $('gameOpts').innerHTML = S.games.map((g) => `<button class="gameopt" data-g="${g.id}" aria-pressed="${g.id === S.selected}"><b data-g="${g.id}">${g.name}</b><span class="muted" data-g="${g.id}">${g.blurb} · ${g.min}–${g.max} players</span></button>`).join('');
+    $('gameOpts').innerHTML = S.games.map((g) => { const gi = KA.info(g.id); return `<button class="gameopt" data-g="${g.id}" aria-pressed="${g.id === S.selected}"><span class="pic">${KA.game(g.id)}</span><span data-g="${g.id}"><b data-g="${g.id}">${g.name}</b><span class="muted" data-g="${g.id}">${gi.tag || g.blurb} · ${gi.players || `${g.min}–${g.max} players`}</span></span></button>`; }).join('');
     const st = S.settings && S.settings[game.id];
     $('tableOpts').innerHTML = game.options && st ? Object.entries(game.options).map(([k, vals]) =>
       `<label>${OPT_LABEL[k]}</label><div class="opts">${vals.map((v) => `<button data-k="${k}" data-v="${v}" aria-pressed="${st[k] === v}">${optText(k, v)}</button>`).join('')}</div>`).join('') +

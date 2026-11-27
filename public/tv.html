@@ -24,7 +24,8 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 .qr img { width: 100%; height: 100%; display: block; }
 .code { font-size: 3.2rem; font-weight: 800; letter-spacing: 0.5rem; color: #FFC83D; }
 .tiles { display: flex; margin: 0 -0.5rem; }
-.tile { flex: 1; margin: 0 0.5rem; border-radius: 1.2rem; padding: 1.2rem; background: #1A1D33; border: 0.2rem solid transparent; }
+.tile { flex: 1; margin: 0 0.5rem; border-radius: 1.2rem; padding: 0.7rem 0.7rem 1rem; background: #1A1D33; border: 0.2rem solid transparent; }
+.tile .pic { height: 9rem; border-radius: 0.8rem; overflow: hidden; margin-bottom: 0.8rem; }
 .tile.sel { border-color: #FFC83D; background: #23284A; }
 .tile .t { font-size: 1.5rem; font-weight: 800; }
 .tile .b { font-size: 0.95rem; margin-top: 0.4rem; }
@@ -442,7 +443,8 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     for (i = 0; i < s.games.length; i++) {
       var g = s.games[i];
       var st = s.settings && s.settings[g.id];
-      html += '<div class="tile' + (g.id === s.selected ? ' sel' : '') + '"><div class="t">' + esc(g.name) + '</div><div class="b muted">' + esc(g.blurb) + '</div><div class="b muted">' + g.min + '–' + g.max + ' players' + (st ? ' · ' + tableLine(st) : '') + '</div></div>';
+      var gi = KA.info(g.id);
+      html += '<div class="tile' + (g.id === s.selected ? ' sel' : '') + '"><div class="pic">' + KA.game(g.id) + '</div><div class="t">' + esc(g.name) + '</div><div class="b muted">' + esc(gi.tag || g.blurb) + ' · ' + esc(gi.players || (g.min + '–' + g.max + ' players')) + '</div></div>';
     }
     $('tiles').innerHTML = html;
     html = '';
