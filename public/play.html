@@ -64,7 +64,7 @@ html, body, button, .kstick, .kpads { touch-action: manipulation; }
 @keyframes kroll { to { box-shadow: 0 0 0 8px rgba(255,200,61,.25); } }
 .kpad.item .lbl { display: flex; flex-direction: column; align-items: flex-start; }
 .kpad.item small { color: #A9AEC8; opacity: 1; }
-.kstick { position: relative; flex: 1; min-height: 110px; border-radius: 28px; background: #1A1D33; border: 2px solid #3A3F63; touch-action: none; overflow: hidden; }
+.kstick { container-type: size; position: relative; flex: 1; min-height: 110px; border-radius: 28px; background: #1A1D33; border: 2px solid #3A3F63; touch-action: none; overflow: hidden; }
 .kstick .track { position: absolute; left: 12%; right: 12%; top: 50%; height: 10px; margin-top: -5px; border-radius: 5px; background: #23284A; }
 .kstick .knob { position: absolute; left: 50%; top: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #F4F5FA, #A9AEC8); box-shadow: 0 6px 14px rgba(0,0,0,.45); transition: transform .12s; }
 .kstick.held .knob { transition: none; }
@@ -82,7 +82,7 @@ html, body, button, .kstick, .kpads { touch-action: manipulation; }
 
 
 /* Gamepad face buttons */
-.kface { position: relative; min-height: 0; display: grid; grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; grid-template-areas: "item gas" "drift brake"; gap: 10px; }
+.kface { position: relative; min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; grid-template-areas: "item" "drift"; gap: 12px; }
 /* Big rounded pads that fill the screen, so they're easy to hit without looking */
 .kbtn2 { position: relative; width: 100%; height: 100%; min-height: 0; border-radius: 26px; border: 0; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #0E1020; font: italic 900 22px 'Space Grotesk', Inter, sans-serif; box-shadow: inset 0 -7px 0 rgba(0,0,0,.25), 0 6px 14px rgba(0,0,0,.4); user-select: none; -webkit-user-select: none; overflow: hidden; }
 .kbtn2.on { filter: brightness(1.25); box-shadow: inset 0 4px 0 rgba(0,0,0,.25); transform: scale(.97); }
@@ -92,21 +92,24 @@ html, body, button, .kstick, .kpads { touch-action: manipulation; }
 .kbtn2.item .ic { width: auto; height: 46%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .kbtn2.item .ic span { width: 100% !important; height: 100% !important; }
 .kbtn2.item .lb { font-size: 15px; pointer-events: none; }
+.kbtn2.item .ic:empty { display: none; }
+.kbtn2.item .ic:empty + .lb { font-size: 28px; color: #6B7194; }
 .kbtn2.item .half { position: absolute; left: 0; right: 0; height: 50%; display: flex; justify-content: center; font: 800 12px Inter, sans-serif; font-style: normal; letter-spacing: .04em; color: #A9AEC8; pointer-events: none; transition: background .1s; }
 .kbtn2.item:not(.dir) .half { display: none; }
 .kbtn2.item .half.top { top: 0; align-items: flex-start; padding-top: 6px; border-bottom: 2px dashed rgba(169,174,200,.25); }
 .kbtn2.item .half.bot { bottom: 0; align-items: flex-end; padding-bottom: 6px; }
 .kbtn2.item.aim-front .half.top, .kbtn2.item.aim-back .half.bot { background: rgba(255,200,61,.22); color: #FFC83D; }
-.kbtn2.brake { grid-area: brake; background: linear-gradient(160deg, #ff9b9b, #f05b5b); }
-.kbtn2.gas { grid-area: gas; background: linear-gradient(160deg, #7ff0d6, #3fcfae); }
-.kbtn2.gas.auto { opacity: .45; }
-.kbtn2.drift { grid-area: drift; background: linear-gradient(160deg, #a9c4ff, #6f95f2); font-size: 26px; }
+.kbtn2.gas { grid-area: drive; display: none; background: linear-gradient(160deg, #7ff0d6, #3fcfae); font-size: 30px; }
+.kbtn2.gas .rev { position: absolute; left: 0; right: 0; bottom: 0; height: 26%; display: flex; align-items: center; justify-content: center; font: 800 13px Inter, sans-serif; font-style: normal; color: #0E1020; background: #ffb4b4; pointer-events: none; }
+.kbtn2.gas.rev-on .rev { background: #f05b5b; color: #fff; }
+.kbtn2.drift { grid-area: drift; background: linear-gradient(160deg, #a9c4ff, #6f95f2); font-size: 32px; }
 .kitemhint { position: absolute; left: 0; right: 0; top: -18px; text-align: center; font: 700 12px Inter, sans-serif; color: #A9AEC8; pointer-events: none; }
-.kstick .base { position: absolute; left: 50%; top: 50%; width: min(80%, 230px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 50% 45%, #2b3166 0%, #1c2046 60%, #141734 100%); border: 3px solid #3A3F63; box-shadow: inset 0 6px 18px rgba(0,0,0,.55), 0 0 0 6px rgba(255,255,255,.03); }
+.kstick .base { position: absolute; left: 50%; top: 46%; width: min(86cqw, 80cqh, 260px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 50% 45%, #2b3166 0%, #1c2046 60%, #141734 100%); border: 3px solid #3A3F63; box-shadow: inset 0 6px 18px rgba(0,0,0,.55), 0 0 0 6px rgba(255,255,255,.03); }
 .kstick .ring { position: absolute; inset: 14%; border-radius: 50%; border: 2px solid rgba(143,180,255,.18); }
 .kstick .arrow { position: absolute; top: 50%; width: 0; height: 0; margin-top: -10px; border-top: 10px solid transparent; border-bottom: 10px solid transparent; opacity: .55; transition: opacity .1s, transform .1s; }
 .kstick .arrow.l { left: 7%; border-right: 14px solid #8fb4ff; }
 .kstick .arrow.r { right: 7%; border-left: 14px solid #8fb4ff; }
+.kstick .arrow.d { top: auto; bottom: 6%; left: 50%; margin: 0 0 0 -10px; border: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 14px solid #ff9b9b; }
 .kstick .arrow.on { opacity: 1; transform: scale(1.25); }
 .kstick .knob { left: 50%; top: 50%; width: 42%; height: auto; aspect-ratio: 1; margin: 0; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #ffffff 0%, #dfe3f5 35%, #9aa0c4 100%); box-shadow: 0 8px 18px rgba(0,0,0,.5), inset 0 -4px 8px rgba(0,0,0,.18); }
 .kstick .knob::after { content: ''; position: absolute; inset: 24%; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f5fa, #c9cde6); box-shadow: inset 0 2px 4px rgba(0,0,0,.18); }
@@ -114,7 +117,8 @@ html, body, button, .kstick, .kpads { touch-action: manipulation; }
 .kstick.held .base { border-color: #FFC83D; }
 .kc.tiltmode #kLeft { display: none; }
 .kc.tiltmode .kpads { grid-template-columns: 1fr; }
-.kc.tiltmode .kface { grid-template-columns: 1fr .5fr 1fr; grid-template-areas: "item . gas" "drift . brake"; }
+.kc.tiltmode .kface { grid-template-columns: 1fr .35fr 1.15fr; grid-template-areas: "item . drive" "drift . drive"; }
+.kc.tiltmode .kbtn2.gas { display: flex; }
 .kc.tiltmode .kitemhint { top: auto; bottom: 4px; }
 
 /* Kart menus (phone) */
@@ -228,12 +232,11 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
       </div>
       <div class="kpads">
         <div class="kzone" id="kLeft">
-          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><i class="arrow l" id="kArrL"></i><i class="arrow r" id="kArrR"></i><div class="knob" id="kKnob"></div></div><div class="hint">Thumb anywhere · slide ◀ ▶</div></div>
+          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><i class="arrow l" id="kArrL"></i><i class="arrow r" id="kArrR"></i><i class="arrow d" id="kArrD"></i><div class="knob" id="kKnob"></div></div><div class="hint">Steer ◀ ▶ · pull ▼ to reverse · drives itself</div></div>
         </div>
         <div class="kface" id="kRight">
           <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="half top">▲ AHEAD</span><span class="half bot">▼ BEHIND</span><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
-          <button class="kbtn2 brake" id="kBrake" aria-label="Brake"><span class="lb">BRAKE</span></button>
-          <button class="kbtn2 gas" id="kGas" aria-label="Gas"><span class="lb" id="kGasLbl">GAS</span></button>
+          <button class="kbtn2 gas" id="kGas" aria-label="Drive"><span class="lb">DRIVE</span><span class="rev">▼ REVERSE</span></button>
           <button class="kbtn2 drift" id="kDrift" aria-label="Drift"><span class="lb">DRIFT</span></button>
           <div class="kitemhint" id="kItemHint"></div>
         </div>
@@ -404,7 +407,6 @@ function renderKartPrefs() {
   box.style.display = show ? 'flex' : 'none';
   if (!show) return;
   box.innerHTML = `<label>Your steering</label><div class="opts"><button data-steer="tilt" aria-pressed="${K.steerMode === 'tilt'}">Tilt phone</button><button data-steer="stick" aria-pressed="${K.steerMode === 'stick'}">Joystick</button></div>` +
-    `<label>Gas</label><div class="opts"><button data-gas="on" aria-pressed="${K.autoGas}">Automatic</button><button data-gas="off" aria-pressed="${!K.autoGas}">Hold to go</button></div>` +
     (K.steerMode === 'tilt' && !K.motionOn ? '<button class="ghost" data-enable="1">Allow motion sensors</button><div class="muted">iPhone asks once. If you say no, use the joystick.</div>' : '');
 }
 document.addEventListener('click', (e) => {
@@ -426,8 +428,6 @@ function kartLayout() {
   $('kMode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.km === K.steerMode)));
   // Stick: joystick on the left thumb, Item + Drift on the right.
   // Tilt: both hands hold the phone like a wheel, so Drift goes to the left thumb, Item to the right.
-  $('kGas').classList.toggle('auto', K.autoGas);
-  $('kGasLbl').textContent = K.autoGas ? 'AUTO' : 'GAS';
   $('kTiltBtn').style.display = tilt && !K.motionOn ? '' : 'none';
 }
 
@@ -575,7 +575,7 @@ function kartEvent(m) {
 function kartSend(force) {
   if (!K.active) return;
   const steer = K.steerMode === 'tilt' ? K.steer : K.stick;
-  const m = { t: 'kin', s: Math.round(steer * 100) / 100, g: K.autoGas ? !K.brake : K.gas, b: K.brake, d: K.drift, i: K.item, a: K.aim };
+  const m = { t: 'kin', s: Math.round(steer * 100) / 100, g: K.steerMode === 'tilt' ? K.gas && !K.brake : !K.brake, b: K.brake, d: K.drift, i: K.item, a: K.aim };
   const key = JSON.stringify(m);
   const now = Date.now();
   if (!force && (key === K.lastSent || now - K.lastAt < 20)) return;
@@ -591,7 +591,16 @@ function holdButton(id, field) {
   el.addEventListener('pointercancel', off);
   el.addEventListener('pointerleave', off);
 }
-holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift');
+holdButton('kDrift', 'drift');
+// Drive pad (tilt mode): hold to drive; slide into the bottom strip to reverse
+(function () {
+  const el = $('kGas'); let pid = null;
+  const at = (e) => { const r = el.getBoundingClientRect(); const rev = e.clientY > r.bottom - r.height * 0.26; if (rev !== K.brake || !K.gas) { if (rev !== K.brake) buzz(rev ? 20 : 6); K.brake = rev; K.gas = !rev; el.classList.toggle('rev-on', rev); kartSend(true); } };
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); pid = e.pointerId; try { el.setPointerCapture(pid); } catch (x) {} el.classList.add('on'); at(e); });
+  el.addEventListener('pointermove', (e) => { if (e.pointerId === pid) at(e); });
+  const off = (e) => { if (e.pointerId !== pid) return; pid = null; K.gas = false; K.brake = false; el.classList.remove('on', 'rev-on'); kartSend(true); };
+  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off);
+})();
 // Item pad: press the top half to throw ahead, the bottom half to throw behind.
 // Holding a shield item, slide up or down before letting go to pick the direction.
 (function () {
@@ -618,19 +627,22 @@ $('kMode').onclick = (e) => { const b = e.target.closest('button'); if (b && b.d
     if (e.pointerId !== K.stickId) return;
     e.preventDefault();
     const dx = Math.max(-RANGE, Math.min(RANGE, e.clientX - K.stickX));
+    const dy = Math.max(0, Math.min(RANGE * 0.8, e.clientY - K.stickY));
     K.stick = -dx / RANGE; // left is positive
-    knob.style.transform = `translateX(${dx}px) rotate(${(dx / RANGE) * 12}deg)`;
-    $('kArrL').classList.toggle('on', K.stick > 0.2); $('kArrR').classList.toggle('on', K.stick < -0.2);
+    const rev = dy > RANGE * 0.45;
+    if (rev !== K.brake) { K.brake = rev; buzz(rev ? 20 : 6); }
+    knob.style.transform = `translate(${dx}px, ${dy}px) rotate(${(dx / RANGE) * 12}deg)`;
+    $('kArrL').classList.toggle('on', K.stick > 0.2); $('kArrR').classList.toggle('on', K.stick < -0.2); $('kArrD').classList.toggle('on', rev);
     kartSend();
   };
   const end = (e) => {
     if (e.pointerId !== K.stickId) return;
-    K.stickId = null; K.stick = 0; pad.classList.remove('held');
-    knob.style.transform = ''; $('kArrL').classList.remove('on'); $('kArrR').classList.remove('on'); kartSend(true);
+    K.stickId = null; K.stick = 0; K.brake = false; pad.classList.remove('held');
+    knob.style.transform = ''; $('kArrL').classList.remove('on'); $('kArrR').classList.remove('on'); $('kArrD').classList.remove('on'); kartSend(true);
   };
   pad.addEventListener('pointerdown', (e) => {
     e.preventDefault(); pad.setPointerCapture(e.pointerId);
-    K.stickId = e.pointerId; K.stickX = e.clientX; pad.classList.add('held'); buzz(6);
+    K.stickId = e.pointerId; K.stickX = e.clientX; K.stickY = e.clientY; pad.classList.add('held'); buzz(6);
   });
   pad.addEventListener('pointermove', move);
   pad.addEventListener('pointerup', end);
