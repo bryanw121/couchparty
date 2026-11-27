@@ -215,8 +215,7 @@ export class CouchEngine {
         map.style.cssText = 'position:absolute;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))';
         this.overlay.appendChild(map);
         const ink = document.createElement('div');
-        ink.style.cssText = 'position:absolute;pointer-events:none;opacity:0;background:' +
-          'radial-gradient(circle at 30% 40%, #3b1f6e 0 12%, transparent 13%),radial-gradient(circle at 62% 55%, #4a2a85 0 16%, transparent 17%),radial-gradient(circle at 45% 70%, #2e1957 0 10%, transparent 11%),radial-gradient(circle at 75% 30%, #3b1f6e 0 9%, transparent 10%),radial-gradient(circle at 20% 75%, #4a2a85 0 8%, transparent 9%)';
+        ink.style.cssText = 'position:absolute;pointer-events:none;opacity:0;overflow:hidden';
         this.overlay.appendChild(ink);
         const banner = document.createElement('div');
         banner.style.cssText = 'position:absolute;pointer-events:none;text-align:center;font:italic 900 64px/1 "Space Grotesk",Inter,sans-serif;color:#fff;-webkit-text-stroke:5px #1b1b3a;paint-order:stroke fill;opacity:0;white-space:nowrap';
@@ -402,8 +401,8 @@ export class CouchEngine {
       if (r.human) {
         const ink = (r.state.inkTimer || 0) > 0;
         const el = r.human.ink;
-        if (ink && el.style.opacity !== '1') { el.style.transition = 'opacity .15s'; el.style.opacity = '1'; }
-        else if (!ink && el.style.opacity === '1') { el.style.transition = 'opacity 1.2s'; el.style.opacity = '0'; }
+        if (ink && el.style.opacity !== '1') { el.innerHTML = inkSplats(); el.style.transition = 'opacity .1s'; el.style.opacity = '1'; animateSplats(el); }
+        else if (!ink && el.style.opacity === '1') { el.style.transition = 'opacity .9s'; el.style.opacity = '0'; }
       }
       const sh = this.shadows.get(r.state.config.id);
       if (sh) { sh.position.set(r.state.position.x, r.state.position.y + 0.06, r.state.position.z); sh.rotation.z = r.state.rotation.y; sh.scale.setScalar(r.handles.rootGroup.scale.x); }
@@ -791,6 +790,63 @@ export class CouchEngine {
       if (r.human!.hud.innerHTML !== html) r.human!.hud.innerHTML = html;
     }
   }
+}
+
+
+// ---------- ink splats: ragged blobs with arms, droplets, drips and a wet shine ----------
+function splatPath(cx: number, cy: number, r: number) {
+  const n = 22, pts: Array<[number, number]> = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const arm = Math.random() < 0.28 ? 1.35 + Math.random() * 0.55 : 0.78 + Math.random() * 0.28;
+    pts.push([cx + Math.cos(a) * r * arm, cy + Math.sin(a) * r * arm]);
+  }
+  // smooth closed curve through the points
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    if (i === 0) d += 'M' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1);
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += 'C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+  }
+  return d + 'Z';
+}
+function inkSplats() {
+  let html = '';
+  const spots = [[28, 38, 30], [64, 48, 36], [46, 66, 24], [78, 26, 20], [16, 70, 18]];
+  spots.forEach(([x, y, size], k) => {
+    const jx = x + (Math.random() - 0.5) * 12, jy = y + (Math.random() - 0.5) * 12, sz = size * (0.85 + Math.random() * 0.35);
+    const id = 'ink' + Math.random().toString(36).slice(2, 7);
+    let drops = '';
+    for (let i = 0; i < 7; i++) {
+      const a = Math.random() * Math.PI * 2, dist = 58 + Math.random() * 30, rr = 2.5 + Math.random() * 5;
+      drops += '<circle cx="' + (100 + Math.cos(a) * dist).toFixed(1) + '" cy="' + (100 + Math.sin(a) * dist).toFixed(1) + '" r="' + rr.toFixed(1) + '"/>';
+    }
+    let drips = '';
+    for (let i = 0; i < 3; i++) {
+      const dx = 70 + Math.random() * 60, w = 5 + Math.random() * 6, len = 30 + Math.random() * 60;
+      drips += '<g class="drip" style="transform-origin:' + dx + 'px 120px"><rect x="' + (dx - w / 2).toFixed(1) + '" y="110" width="' + w.toFixed(1) + '" height="' + len.toFixed(1) + '" rx="' + (w / 2).toFixed(1) + '"/><circle cx="' + dx.toFixed(1) + '" cy="' + (110 + len).toFixed(1) + '" r="' + (w * 0.8).toFixed(1) + '"/></g>';
+    }
+    html += '<svg class="splat" viewBox="0 0 200 240" style="position:absolute;left:' + jx.toFixed(1) + '%;top:' + jy.toFixed(1) + '%;width:' + sz.toFixed(1) + '%;transform:translate(-50%,-42%) rotate(' + Math.round(Math.random() * 360) + 'deg);filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));opacity:0" data-k="' + k + '">' +
+      '<defs><radialGradient id="' + id + '" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#5b34a3"/><stop offset=".55" stop-color="#34196b"/><stop offset="1" stop-color="#1c0c3f"/></radialGradient></defs>' +
+      '<g fill="url(#' + id + ')">' + drips + '<path d="' + splatPath(100, 100, 52) + '"/>' + drops + '</g>' +
+      '<ellipse cx="82" cy="76" rx="20" ry="11" fill="#fff" opacity=".22" transform="rotate(-25 82 76)"/><circle cx="104" cy="66" r="5" fill="#fff" opacity=".3"/></svg>';
+  });
+  return html;
+}
+function animateSplats(el: HTMLElement) {
+  el.querySelectorAll<SVGElement>('svg.splat').forEach((svg) => {
+    const k = Number(svg.getAttribute('data-k')) || 0, base = svg.style.transform;
+    svg.animate([
+      { opacity: 0, transform: base + ' scale(0.2)' },
+      { opacity: 1, transform: base + ' scale(1.18)', offset: 0.55 },
+      { opacity: 1, transform: base + ' scale(1)' },
+    ], { duration: 260, delay: k * 110, easing: 'cubic-bezier(.2,1.4,.4,1)', fill: 'forwards' });
+    svg.querySelectorAll<SVGGElement>('g.drip').forEach((d) => {
+      d.animate([{ transform: 'scaleY(0.05)' }, { transform: 'scaleY(1)' }], { duration: 2600, delay: 400 + k * 110, easing: 'ease-in', fill: 'forwards' });
+    });
+  });
 }
 
 function escapeHtml(s: string) {
