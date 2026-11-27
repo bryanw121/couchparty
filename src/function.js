@@ -1,4 +1,4 @@
-// Neon Function entry: serves the pages and the /ws WebSocket.
+// Neon Function entry: serves the pages (fetched from the public repo, see pages.js) and the /ws WebSocket.
 import { upgradeWebSocket } from '@neon/functions';
 import * as game from './game.js';
 import { neonHttp } from './dbhttp.js';
@@ -11,8 +11,7 @@ const db = process.env.DATABASE_URL ? neonHttp(process.env.DATABASE_URL) : null;
 const relay = db ? createRelay({ sql: db, game, log: console.error }) : null;
 const attach = relay ? relay.attach : game.handleSocket;
 const tvApi = relay ? relay.tvApi : memTvApi;
-import tv from '../public/tv.html';
-import play from '../public/play.html';
+import { getPages } from './pages.js';
 
 function publicUrl(request) {
   const url = new URL(request.url);
@@ -34,7 +33,7 @@ const handler = {
       attach(socket);
       return response;
     }
-    const r = url.pathname.startsWith('/api/tv/') ? await tvApi(url, request.method) : await route(url, { tv, play });
+    const r = url.pathname.startsWith('/api/tv/') ? await tvApi(url, request.method) : await route(url, await getPages());
     return new Response(r.body, { status: r.status, headers: r.headers });
   },
 };
