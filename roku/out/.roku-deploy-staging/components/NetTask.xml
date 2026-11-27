@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="NetTask" extends="Task">
+    <interface>
+        <field id="base" type="string" />
+        <field id="room" type="string" />
+        <field id="key" type="string" alwaysNotify="true" />
+        <field id="batch" type="assocarray" alwaysNotify="true" />
+        <field id="status" type="string" />
+    </interface>
+    <script type="text/brightscript" uri="NetTask.brs" />
+    <script type="text/brightscript" uri="pkg:/source/bslib.brs" />
+</component>
