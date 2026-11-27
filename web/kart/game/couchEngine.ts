@@ -9,7 +9,7 @@ import { CameraController } from './camera';
 import { soundEngine } from './audio';
 import { ItemSystem, ItemEvent, ItemKind } from './items';
 import { courseById } from './tracks';
-import { CourseMusic } from './music';
+import { TrackMusic, preloadCourseTrack } from './music';
 import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
 
 // One TV, up to four players on phones, split screen like a console kart racer.
@@ -119,6 +119,7 @@ export class CouchEngine {
   private padCooldown = new Map<string, number>();
 
   constructor(private container: HTMLElement, private opts: CouchOptions) {
+    if (!opts.autopilot || opts.music) preloadCourseTrack(opts.course || 'meadow');
     this.laps = opts.laps || 3;
     const many = Math.min(opts.players.length, 4) > 1;
     this.renderer = new THREE.WebGLRenderer({ antialias: !many, powerPreference: 'high-performance' });
@@ -502,7 +503,7 @@ export class CouchEngine {
       soundEngine.playCountdownBeep(true);
       this.track.setStartingLights(4);
       this.phase = 'racing';
-      if (!this.opts.autopilot || this.opts.music) { this.music = new CourseMusic(this.opts.course || 'meadow'); this.music.start(); }
+      if (!this.opts.autopilot || this.opts.music) { this.music = new TrackMusic(this.opts.course || 'meadow'); this.music.start(); }
       // Rocket start: pressed gas during the last half second before GO
       for (const r of this.humans) {
         const at = r.human!.gasAt;

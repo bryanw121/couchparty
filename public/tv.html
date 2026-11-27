@@ -208,7 +208,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 <div id="toast"></div>
 <div id="cele"></div>
 <div id="soundHint">Click or press OK on the remote to turn on sound</div>
-<div id="credits" class="muted">Music: “Airport Lounge” by Kevin MacLeod (incompetech.com), CC BY 4.0 · Card sounds: Kenney.nl (CC0)</div>
+<div id="credits" class="muted">Music: Juhani Junkala, Centurion_of_war, nihilocrat via OpenGameArt (CC0) · “Airport Lounge” by Kevin MacLeod (incompetech.com), CC BY 4.0 · Card sounds: Kenney.nl (CC0)</div>
 <div id="status"></div>
 
 <script>
@@ -265,6 +265,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   /* Recorded sounds (open-licensed), streamed from the couchparty-audio repo via jsDelivr.
      Synth sounds above stay as the fallback if a file can't load. */
   var AUDIO_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty-audio@main/';
+  var MUSIC_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@main/audio/';
   var SAMPLES = { shuffle: ['cardShuffle'], deal: ['cardSlide1', 'cardSlide2', 'cardSlide3'], place: ['cardPlace1', 'cardPlace2'], fold: ['cardShove1'], fan: ['cardFan1'] };
   var buffers = {}, samplesLoading = false, musicEl = null;
   function loadSamples() {
@@ -290,13 +291,23 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     src.connect(g); g.connect(a.destination); src.start(a.currentTime + (delay || 0));
     return true;
   }
-  // Lounge music loop (CC BY 4.0, credited on the lobby screen). Starts after the first remote press.
+  // Background music: upbeat CC0 chiptune in the lobby and kart menus, the CC BY lounge loop at the poker table.
+  // Starts after the first remote press.
+  var musicWant = 'lobby', musicOn = false, musicTracks = {};
+  function musicFor(s) {
+    var g = s && s.phase !== 'lobby' && s.g;
+    var t = g && g.kind === 'poker' ? 'airport-lounge' : g && g.kind === 'kart' ? 'kart-menu' : 'lobby';
+    if (t !== musicWant) { musicWant = t; if (musicOn) { music(false); music(true); } }
+  }
   function music(on) {
-    if (!musicEl) {
-      try { musicEl = new Audio(AUDIO_BASE + 'airport-lounge.mp3'); musicEl.loop = true; musicEl.volume = 0.22; } catch (e) { return; }
+    var el = musicTracks[musicWant];
+    if (!el) {
+      try { el = musicTracks[musicWant] = new Audio((musicWant === 'airport-lounge' ? AUDIO_BASE : MUSIC_BASE) + musicWant + '.mp3'); el.loop = true; el.volume = musicWant === 'airport-lounge' ? 0.22 : 0.16; } catch (e) { return; }
     }
-    if (on && musicEl.paused) { var pr = musicEl.play(); if (pr && pr['catch']) pr['catch'](function () {}); }
-    if (!on && !musicEl.paused) musicEl.pause();
+    musicOn = on;
+    for (var k in musicTracks) if (k !== musicWant && !musicTracks[k].paused) musicTracks[k].pause();
+    if (on && el.paused) { var pr = el.play(); if (pr && pr['catch']) pr['catch'](function () {}); }
+    if (!on && !el.paused) el.pause();
   }
   var FX = {
     join: function () { tone(660, 0.08, 'square', 0.07); tone(990, 0.12, 'square', 0.07, 0.08); },
@@ -342,6 +353,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function render(s) {
     S = s;
     toast(s.notice);
+    musicFor(s);
     if (s.phase === 'lobby') renderLobby(s);
     else if (s.phase === 'final') renderFinal(s);
     else if (s.g && s.g.kind === 'poker') renderPoker(s.g);

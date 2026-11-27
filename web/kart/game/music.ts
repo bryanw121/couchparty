@@ -224,3 +224,91 @@ export class CourseMusic {
   }
   private hat(t: number, open: boolean) { this.noiseHit(t, open ? 0.22 : 0.045, open ? 0.08 : 0.06, 8000, 'highpass'); }
 }
+
+// Recorded CC0 tracks (OpenGameArt), streamed from this repo's audio/ folder.
+// Falls back to the synthesized CourseMusic if the file can't load.
+const TRACK_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@main/audio/';
+const bufCache: Record<string, Promise<AudioBuffer>> = {};
+function loadTrack(ctx: AudioContext, name: string): Promise<AudioBuffer> {
+  if (!bufCache[name]) {
+    bufCache[name] = fetch(TRACK_BASE + name + '.mp3')
+      .then((r) => { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
+      .then((a) => new Promise<AudioBuffer>((res, rej) => ctx.decodeAudioData(a, res, rej)));
+    bufCache[name].catch(() => delete bufCache[name]);
+  }
+  return bufCache[name];
+}
+export function preloadCourseTrack(course: string) {
+  const o = soundEngine.output();
+  if (o) loadTrack(o.ctx, 'kart-' + course).catch(() => {});
+}
+
+export class TrackMusic {
+  private course: string;
+  private ctx: AudioContext | null = null;
+  private gain: GainNode | null = null;
+  private src: AudioBufferSourceNode | null = null;
+  private synth: CourseMusic | null = null;
+  private stopped = false;
+  private fast = false;
+
+  constructor(course: string) { this.course = SONGS[course] ? course : 'meadow'; }
+
+  start() {
+    const o = soundEngine.output();
+    if (!o) return;
+    this.ctx = o.ctx;
+    this.gain = o.ctx.createGain();
+    this.gain.gain.value = 0.42;
+    this.gain.connect(o.out);
+    const fallback = setTimeout(() => this.useSynth(), 6000);
+    loadTrack(o.ctx, 'kart-' + this.course).then((buf) => {
+      clearTimeout(fallback);
+      if (this.stopped || this.synth || !this.ctx || !this.gain) return;
+      const s = this.ctx.createBufferSource();
+      s.buffer = buf; s.loop = true;
+      if (this.fast) s.playbackRate.value = 1.12;
+      s.connect(this.gain);
+      this.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      this.gain.gain.linearRampToValueAtTime(0.42, this.ctx.currentTime + 0.6);
+      s.start();
+      this.src = s;
+    }).catch(() => { clearTimeout(fallback); this.useSynth(); });
+  }
+  private useSynth() {
+    if (this.stopped || this.src || this.synth) return;
+    this.synth = new CourseMusic(this.course);
+    this.synth.start();
+    if (this.fast) this.synth.finalLap();
+  }
+  // Final lap: short fanfare, then the track speeds up (like the classic "hurry" music)
+  finalLap() {
+    this.fast = true;
+    if (this.synth) { this.synth.finalLap(); return; }
+    if (!this.ctx || !this.src || !this.gain) return;
+    const c = this.ctx, t = c.currentTime;
+    this.gain.gain.setValueAtTime(0.42, t);
+    this.gain.gain.linearRampToValueAtTime(0.12, t + 0.15);
+    [0, 4, 7, 12, 16].forEach((st, i) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'square'; o.frequency.value = hz(72 + st);
+      g.gain.setValueAtTime(0.0001, t + i * 0.09);
+      g.gain.linearRampToValueAtTime(0.1, t + i * 0.09 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + (i === 4 ? 0.5 : 0.14));
+      o.connect(g).connect(soundEngine.output()!.out); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.6);
+    });
+    this.src.playbackRate.setValueAtTime(1, t + 0.7);
+    this.src.playbackRate.linearRampToValueAtTime(1.12, t + 1.2);
+    this.gain.gain.linearRampToValueAtTime(0.46, t + 1.2);
+  }
+  stop() {
+    this.stopped = true;
+    this.synth?.stop();
+    if (this.gain && this.ctx) {
+      const g = this.gain, s = this.src;
+      g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.25);
+      setTimeout(() => { try { s?.stop(); } catch (e) {} g.disconnect(); }, 1500);
+    }
+    this.gain = null; this.src = null;
+  }
+}
