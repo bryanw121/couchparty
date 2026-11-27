@@ -269,7 +269,7 @@ export function createRelay({ sql, game, log = () => {} }) {
       if (!row) return json(404, { error: 'unknown tv' });
       if (op === 'key' && method === 'POST') {
         const k = String(url.searchParams.get('k') || '');
-        if (['ok', 'left', 'right'].includes(k)) toOwner(row.owner, { c, d: JSON.stringify({ t: 'tv:key', k }) });
+        if (['ok', 'left', 'right', 'menu'].includes(k)) toOwner(row.owner, { c, d: JSON.stringify({ t: 'tv:key', k }) });
         await flush();
         return json(200, { ok: true });
       }

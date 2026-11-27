@@ -34,6 +34,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
 .okkey { width: 2rem; height: 2rem; border-radius: 50%; background: #FFC83D; color: #0E1020; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; margin-right: 0.7rem; flex-shrink: 0; }
 #soundHint { position: absolute; bottom: 1.2rem; left: 3.4rem; font-size: 0.9rem; color: #A9AEC8; }
 #credits { position: absolute; bottom: 0.4rem; left: 3.4rem; font-size: 0.65rem; }
+#kart.on { z-index: 20; }
 #status { position: absolute; bottom: 1.2rem; right: 1.6rem; font-size: 0.8rem; color: #A9AEC8; }
 #toast { position: absolute; top: 1.2rem; left: 50%; transform: translateX(-50%); background: #FF9F6B; color: #0E1020; font-weight: 800; padding: 0.6rem 1.2rem; border-radius: 0.8rem; font-size: 1.1rem; display: none; }
 /* Poker */
@@ -95,6 +96,10 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   <div class="seats" id="pkSeats"></div>
 </div>
 
+<div id="kart" class="screen" style="padding:0">
+  <div id="kartView" style="position:absolute;inset:0;background:#0E1020"></div>
+  <div id="kartMsg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;font-size:1.6rem"></div>
+</div>
 <div id="final" class="screen">
   <div class="row between">
     <div class="logo">Couch<span>Party</span></div>
@@ -129,7 +134,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function money(n) { return (n < 0 ? '−' : '') + '$' + fmt(Math.abs(n)); }
   function signed(n) { return (n > 0 ? '+' : '') + money(n); }
   function netColor(n) { return n > 0 ? '#5EE6C8' : n < 0 ? '#FF9F9F' : '#A9AEC8'; }
-  function tableLine(st) { return 'Buy-in $' + st.buyIn + ' · Blinds $' + st.blinds.split('/').join('/$') + ' · Rebuys ' + (st.rebuys ? 'on' : 'off'); }
+  function tableLine(st) { if (st.laps) return st.laps + ' laps · items ' + (st.items ? 'on' : 'off'); return 'Buy-in $' + st.buyIn + ' · Blinds $' + st.blinds.split('/').join('/$') + ' · Rebuys ' + (st.rebuys ? 'on' : 'off'); }
   function roomFromUrl() { var m = /[?&]room=([A-Za-z0-9]{4})/.exec(location.search); return m ? m[1].toUpperCase() : ''; }
   function toast(msg) { if (!msg) return; var t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(function () { t.style.display = 'none'; }, 3000); }
 
@@ -227,6 +232,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
         $('joinUrl').textContent = location.host.length > 30 ? 'this site/play' : location.host + '/play';
       } else if (m.t === 'state') render(m.s);
       else if (m.t === 'fx' && FX[m.n]) FX[m.n]();
+      else if (m.t === 'kin' && KART.engine) KART.engine.setInput(m.p, { steer: m.s, gas: m.g, brake: m.b, drift: m.d, item: m.i });
     };
     ws.onclose = function () { $('status').textContent = 'Reconnecting…'; setTimeout(connect, retry); retry = Math.min(retry * 2, 8000); };
   }
@@ -239,6 +245,58 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     if (s.phase === 'lobby') renderLobby(s);
     else if (s.phase === 'final') renderFinal(s);
     else if (s.g && s.g.kind === 'poker') renderPoker(s.g);
+    else if (s.g && s.g.kind === 'kart') renderKart(s.g);
+    if (!(s.g && s.g.kind === 'kart')) stopKart();
+  }
+
+  /* ---------- Kart Racer (3D, loaded on demand from the public repo) ---------- */
+  var KART_JS = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@__KART_REF__/web-dist/kart.js';
+  var KART = { engine: null, raceId: null, loading: false, hud: null };
+  function gameMsg(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+  function kartMsg(html) { $('kartMsg').innerHTML = html; $('kartMsg').style.display = html ? 'flex' : 'none'; }
+  function stopKart() {
+    if (KART.hud) { clearInterval(KART.hud); KART.hud = null; }
+    if (KART.engine) { try { KART.engine.dispose(); } catch (e) {} KART.engine = null; music(true); }
+    KART.raceId = null;
+  }
+  function renderKart(g) {
+    show('kart');
+    if (KART.raceId === g.raceId) return;
+    stopKart();
+    KART.raceId = g.raceId;
+    var startRace = function () {
+      if (KART.raceId !== g.raceId) return;
+      if (!window.CouchKart.supported()) {
+        kartMsg('<div style="font-size:2.4rem;font-weight:800">This TV can\'t show 3D</div><div class="muted">Open CouchParty on a Fire TV, smart TV browser or laptop</div>');
+        setTimeout(function () { gameMsg({ t: 'tv:game', k: 'unsupported', raceId: g.raceId }); }, 4000);
+        return;
+      }
+      kartMsg('');
+      music(false);
+      var raceId = g.raceId;
+      KART.engine = window.CouchKart.start($('kartView'), {
+        players: g.racers, laps: g.laps, items: g.items,
+        onEvent: function (e) {
+          if (!e || !e.racer || e.racer.indexOf('cpu-') === 0) return;
+          gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.racer, e: e.type, item: e.item || null, rank: e.rank || 0 });
+        },
+        onFinish: function (res) {
+          var order = [];
+          for (var i = 0; i < res.length; i++) order.push({ id: res[i].id, name: res[i].name, color: res[i].color, time: res[i].time, bestLap: res[i].bestLap });
+          gameMsg({ t: 'tv:game', k: 'done', raceId: raceId, order: order });
+        }
+      });
+      KART.hud = setInterval(function () { if (KART.engine) gameMsg({ t: 'tv:game', k: 'hud', raceId: raceId, list: KART.engine.hudInfo() }); }, 400);
+    };
+    if (window.CouchKart) { startRace(); return; }
+    kartMsg('<div style="font-size:2.4rem;font-weight:800">Loading the race track…</div><div class="muted">' + g.racers.length + ' racer' + (g.racers.length > 1 ? 's' : '') + ' · ' + g.laps + ' laps</div>');
+    if (KART.loading) return;
+    KART.loading = true;
+    var sc = document.createElement('script');
+    sc.src = KART_JS;
+    sc.onload = function () { KART.loading = false; startRace(); };
+    sc.onerror = function () { KART.loading = false; kartMsg('<div style="font-size:2rem;font-weight:800">Couldn\'t load the race</div><div class="muted">Check the TV\'s internet and try again</div>'); };
+    document.head.appendChild(sc);
   }
 
   function renderLobby(s) {
@@ -273,6 +331,16 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       }
       $('board').innerHTML = html;
       $('finalGame').textContent = "Texas Hold'em · play money";
+      return;
+    }
+    if (r.length && r[0].place) {
+      $('winner').innerHTML = '<span style="color:' + r[0].color + '">' + esc(r[0].name) + '</span> wins the race!';
+      for (i = 0; i < r.length && i < 8; i++) {
+        var t = r[i].time == null ? 'DNF' : (Math.floor(r[i].time / 60) + ':' + (r[i].time % 60 < 10 ? '0' : '') + (r[i].time % 60).toFixed(1));
+        html += '<div class="card lb"' + (r[i].human ? '' : ' style="opacity:0.6"') + '><span class="rank">' + (i + 1) + '</span>' + avatar(r[i]) + '<span class="name">' + esc(r[i].name) + (r[i].human ? '' : ' <span class="muted" style="font-size:1rem">CPU</span>') + '</span><span class="pts">' + t + '</span></div>';
+      }
+      $('board').innerHTML = html;
+      $('finalGame').textContent = 'Kart Racer';
       return;
     }
     $('winner').textContent = r.length ? r[0].name + ' wins!' : 'Game over';

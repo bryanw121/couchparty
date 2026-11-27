@@ -6,7 +6,9 @@ const mini = (html, target) => html
   .replace(/<style>([\s\S]*?)<\/style>/g, (_, css) => `<style>${transformSync(css, { loader: 'css', minify: true }).code}</style>`)
   .replace(/>\s+</g, '><');
 fs.mkdirSync('dist', { recursive: true });
-fs.writeFileSync('dist/tv.html', mini(fs.readFileSync('public/tv.html', 'utf8'), 'es5'));
+// The 3D kart game loads from the public repo at a pinned commit (web-dist/KART_REF), so TVs never get a stale cached copy.
+const kartRef = (process.env.KART_REF || (fs.existsSync('web-dist/KART_REF') ? fs.readFileSync('web-dist/KART_REF', 'utf8') : 'main')).trim();
+fs.writeFileSync('dist/tv.html', mini(fs.readFileSync('public/tv.html', 'utf8').replace('__KART_REF__', kartRef), 'es5'));
 fs.writeFileSync('dist/play.html', mini(fs.readFileSync('public/play.html', 'utf8'), 'es2018'));
 await build({
   entryPoints: ['src/function.js'], bundle: true, minify: true, legalComments: 'none',

@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@neon/functions": "^0.11.0"
+    "@neon/functions": "^0.11.0",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

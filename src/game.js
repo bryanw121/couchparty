@@ -1,9 +1,10 @@
 // Room server: players, lobby with a game menu, and hand-off to a game module.
 // Transport-agnostic: handleSocket() takes any standard WebSocket (Node `ws` or Neon's upgradeWebSocket).
 import * as poker from './games/poker.js';
+import * as kart from './games/kart.js';
 
-const GAMES = { poker };
-const GAME_LIST = [{ ...poker.meta, options: poker.OPTIONS }];
+const GAMES = { poker, kart };
+const GAME_LIST = [{ ...poker.meta, options: poker.OPTIONS }, { ...kart.meta, options: kart.OPTIONS }];
 const ROOM_IDLE_MS = 30 * 60 * 1000;
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const COLORS = ['#FFC83D', '#5EE6C8', '#8FB4FF', '#FF9F6B', '#FF7AB6', '#B79CFF', '#9BE36B', '#F4F5FA'];
@@ -32,7 +33,7 @@ function createRoom(code) {
     players: new Map(),
     phase: 'lobby', // lobby | game | final
     selected: 'poker',
-    settings: { poker: { ...poker.DEFAULTS } }, // table options the host picks per game
+    settings: { poker: { ...poker.DEFAULTS }, kart: { ...kart.DEFAULTS } }, // table options the host picks per game
     game: null,
     results: null,
     lastActive: Date.now(),
@@ -119,6 +120,11 @@ function startGame(room, id) {
 }
 
 function endGame(room, results) {
+  if (results === null) {
+    room.notice = 'This TV can\'t show 3D games. Open CouchParty on a Fire TV, smart TV browser or laptop.';
+    backToLobby(room);
+    return;
+  }
   if (room.game) room.game.stop();
   room.game = null;
   room.phase = 'final';
@@ -206,6 +212,7 @@ export function handleSocket(ws) {
     if (!room) return;
     room.lastActive = Date.now();
     if (role === 'tv' && m.t === 'tv:key') { tvKey(room, String(m.k)); return; }
+    if (role === 'tv' && m.t === 'tv:game') { if (room.phase === 'game' && room.game && room.game.tvInput) room.game.tvInput(m); return; }
 
     const me = pid ? room.players.get(pid) : null;
     if (!me) return;

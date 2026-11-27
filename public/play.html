@@ -36,6 +36,29 @@ button { font-family: inherit; cursor: pointer; }
 .gameopt[aria-pressed="true"] { border-color: #FFC83D; background: #23284A; }
 .gameopt b { font-size: 20px; display: block; }
 .banner { border-radius: 14px; padding: 12px; text-align: center; font-weight: 800; font-size: 18px; }
+
+/* Kart */
+#kart.on { position: fixed; inset: 0; padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); background: #0E1020; z-index: 5; }
+.kgrid { flex: 1; display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 12px; min-height: 0; }
+.kcol { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.kbtn { flex: 1; border-radius: 24px; border: 0; font-size: 22px; font-weight: 800; color: #F4F5FA; background: #3A3F63; touch-action: none; min-height: 64px; }
+.kbtn.on { filter: brightness(1.35); transform: scale(0.97); }
+.kbtn.gas { background: #5EE6C8; color: #0E1020; }
+.kbtn.drift { background: #8FB4FF; color: #0E1020; }
+.kbtn.item { background: #1A1D33; border: 3px solid #FFC83D; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.kbtn.small { flex: 0 0 56px; font-size: 16px; background: transparent; border: 2px solid #3A3F63; color: #A9AEC8; }
+.kmid { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px; min-height: 0; }
+.kplace { font-size: 40px; font-weight: 900; color: #FFC83D; line-height: 1; }
+.karrows { display: none; width: 100%; gap: 10px; flex: 1; }
+.kbuttons .karrows { display: flex; }
+.kbuttons #kGauge { display: none; }
+@media (orientation: portrait) {
+  .kgrid { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; }
+  .kmid { grid-column: 1 / 3; grid-row: 1; }
+  .kcol.left { grid-column: 1; grid-row: 2; }
+  .kcol.right { grid-column: 2; grid-row: 2; }
+}
+.steerpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 /* Poker */
 .hole { display: flex; gap: 14px; justify-content: center; }
 .pc { width: 120px; height: 168px; border-radius: 16px; background: #fff; color: #0E1020; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 800; }
@@ -75,6 +98,7 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
       <div class="title" style="font-size:22px">Pick a game</div>
       <div id="gameOpts" style="display:flex; flex-direction:column; gap:10px"></div>
       <div id="tableOpts" style="display:flex; flex-direction:column; gap:8px"></div>
+      <div id="kartPrefs" style="display:none; flex-direction:column; gap:8px"></div>
       <div class="err" id="lobbyErr"></div>
     </div>
     <div class="center" id="guestWait"><div class="title">You're in!</div><div class="muted" id="lobbyInfo"></div></div>
@@ -99,6 +123,32 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
       </div>
     </div>
     <button class="ghost" id="endBtn" style="display:none">End game (host)</button>
+  </div>
+
+
+  <div class="screen" id="kart">
+    <div class="kgrid" id="kGrid">
+      <div class="kcol left">
+        <button class="kbtn small" id="kBrake">Brake</button>
+        <button class="kbtn drift" id="kDrift">Drift</button>
+      </div>
+      <div class="kmid">
+        <div style="display:flex;gap:10px;align-items:baseline"><span class="kplace" id="kPlace">–</span><span class="muted" id="kLap">Get ready</span></div>
+        <svg id="kGauge" width="220" height="130" viewBox="0 0 300 180" role="img" aria-label="Steering gauge">
+          <path d="M30 160 A120 120 0 0 1 270 160" fill="none" stroke="#23284A" stroke-width="22" stroke-linecap="round"/>
+          <g id="kNeedle"><line x1="150" y1="160" x2="150" y2="58" stroke="#F4F5FA" stroke-width="7" stroke-linecap="round"/></g>
+          <circle cx="150" cy="160" r="14" fill="#F4F5FA"/>
+        </svg>
+        <div class="karrows"><button class="kbtn" id="kLeft" aria-label="Steer left">◀</button><button class="kbtn" id="kRight" aria-label="Steer right">▶</button></div>
+        <div style="display:flex;gap:8px;width:100%"><button class="ghost" id="kRecenter" style="flex:1">Recenter</button><button class="ghost" id="kTiltBtn" style="flex:1;display:none">Enable tilt</button></div>
+        <div class="muted" id="kTip" style="font-size:13px;text-align:center">Hold it sideways like a wheel</div>
+      </div>
+      <div class="kcol right">
+        <button class="kbtn item" id="kItem" aria-label="Use item"><span id="kItemIcon"></span><span id="kItemName">No item</span></button>
+        <button class="kbtn gas" id="kGas">Gas</button>
+      </div>
+    </div>
+    <div class="center" id="kWatch" style="display:none"><div class="title">You're watching</div><div class="muted" id="kWatchSub">Up to 4 racers per race</div></div>
   </div>
 
   <div class="screen" id="final">
@@ -159,6 +209,8 @@ function connect() {
     if (m.t === 'error') { joined = false; $('joinBtn').disabled = false; $('joinErr').textContent = m.msg; show('join'); $('topbar').style.display = 'none'; }
     else if (m.t === 'joined') { joined = true; pid = m.pid; store.set('cp_pid', pid); store.set('cp_room', m.room); history.replaceState(null, '', '/play?room=' + m.room); }
     else if (m.t === 'state' && joined) render(m.s, m.you);
+    else if (m.t === 'khud' && joined) kartHud(m.h);
+    else if (m.t === 'kev' && joined) kartEvent(m);
     else if (m.t === 'fx' && joined) {
       if (m.n === 'go') PHONE_FX.go();
       if (m.pid === pid && PHONE_FX[m.n]) PHONE_FX[m.n]();
@@ -189,10 +241,143 @@ $('tableOpts').addEventListener('click', (e) => {
 });
 $('rebuyBtn').onclick = () => send({ t: 'rebuy' });
 $('cashBtn').onclick = () => { if (confirm('Cash out and watch the rest of the game?')) send({ t: 'cashout' }); };
-const OPT_LABEL = { buyIn: 'Buy-in', blinds: 'Blinds', rebuys: 'Rebuys' };
-const optText = (k, v) => k === 'buyIn' ? '$' + v : k === 'blinds' ? v.split('/').map((x) => '$' + x).join('/') : v ? 'On' : 'Off';
+const OPT_LABEL = { buyIn: 'Buy-in', blinds: 'Blinds', rebuys: 'Rebuys', laps: 'Laps', items: 'Items' };
+const optText = (k, v) => k === 'laps' ? String(v) : k === 'buyIn' ? '$' + v : k === 'blinds' ? v.split('/').map((x) => '$' + x).join('/') : v ? 'On' : 'Off';
 const settingsLine = (g) => { const st = S.settings && S.settings[g.id]; return st ? Object.keys(g.options).map((k) => `${OPT_LABEL[k]} ${optText(k, st[k])}`).join(' · ') : ''; };
 
+
+
+/* ---------- Kart Racer controller ---------- */
+const K = {
+  steerMode: store.get('cp_steer') || 'tilt', // tilt | buttons
+  autoGas: store.get('cp_autogas') !== 'off',
+  raceId: null, active: false, steer: 0, ref: null, raw: null,
+  gas: false, brake: false, drift: false, item: false, left: false, right: false,
+  lastSent: '', lastAt: 0, timer: null, motionOn: false,
+};
+const ITEM_NAMES = { banana: 'Banana', green: 'Green shell', red: 'Red shell', blue: 'Blue shell', boost: 'Boost', star: 'Star', bolt: 'Lightning', rolling: '…' };
+const ITEM_DOT = { banana: '#FFE14D', green: '#22C55E', red: '#EF4444', blue: '#3B82F6', boost: '#FB923C', star: '#FACC15', bolt: '#FDE047', rolling: '#A9AEC8' };
+const ordinal = (n) => n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+
+function tiltAngle(e) {
+  const g = e.accelerationIncludingGravity;
+  if (!g || g.x == null) return null;
+  const a = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+  const sx = g.x * Math.cos(a) + g.y * Math.sin(a);
+  const sy = -g.x * Math.sin(a) + g.y * Math.cos(a);
+  if (Math.hypot(sx, sy) < 2.5) return null; // phone flat on its back: no wheel angle
+  return Math.atan2(sx, sy) * 180 / Math.PI;
+}
+function onMotion(e) {
+  const ang = tiltAngle(e);
+  if (ang == null) return;
+  K.raw = ang;
+  if (K.ref == null) K.ref = ang;
+  let d = ang - K.ref;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  K.steer = Math.max(-1, Math.min(1, d / 35)); // 35 degrees of wheel turn = full lock
+  if (K.steerMode === 'tilt') { $('kNeedle').setAttribute('transform', `rotate(${(-K.steer * 70).toFixed(1)} 150 160)`); kartSend(); }
+}
+async function enableTilt() {
+  try {
+    const DME = window.DeviceMotionEvent;
+    if (DME && typeof DME.requestPermission === 'function') {
+      const r = await DME.requestPermission();
+      if (r !== 'granted') { K.steerMode = 'buttons'; store.set('cp_steer', 'buttons'); renderKartPrefs(); kartLayout(); return; }
+    }
+    if (!K.motionOn) { window.addEventListener('devicemotion', onMotion); K.motionOn = true; }
+    K.ref = null;
+  } catch { K.steerMode = 'buttons'; }
+  renderKartPrefs(); kartLayout();
+}
+function renderKartPrefs() {
+  const box = $('kartPrefs');
+  if (!box) return;
+  const show = S && S.phase === 'lobby' && S.selected === 'kart';
+  box.style.display = show ? 'flex' : 'none';
+  if (!show) return;
+  box.innerHTML = `<label>Your steering</label><div class="opts"><button data-steer="tilt" aria-pressed="${K.steerMode === 'tilt'}">Tilt phone</button><button data-steer="buttons" aria-pressed="${K.steerMode === 'buttons'}">◀ ▶ buttons</button></div>` +
+    `<label>Gas</label><div class="opts"><button data-gas="on" aria-pressed="${K.autoGas}">Automatic</button><button data-gas="off" aria-pressed="${!K.autoGas}">Hold to go</button></div>` +
+    (K.steerMode === 'tilt' && !K.motionOn ? '<button class="ghost" data-enable="1">Allow motion sensors</button><div class="muted">iPhone asks once. If you say no, use buttons.</div>' : '');
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-steer],[data-gas],[data-enable]');
+  if (!b || !b.closest('#kartPrefs')) return;
+  if (b.dataset.steer) { K.steerMode = b.dataset.steer; store.set('cp_steer', K.steerMode); if (K.steerMode === 'tilt') enableTilt(); }
+  if (b.dataset.gas) { K.autoGas = b.dataset.gas === 'on'; store.set('cp_autogas', K.autoGas ? 'on' : 'off'); }
+  if (b.dataset.enable) enableTilt();
+  renderKartPrefs();
+});
+function kartLayout() {
+  $('kGrid').classList.toggle('kbuttons', K.steerMode !== 'tilt');
+  $('kGas').style.display = K.autoGas ? 'none' : '';
+  $('kRecenter').style.display = K.steerMode === 'tilt' ? '' : 'none';
+  $('kTiltBtn').style.display = K.steerMode === 'tilt' && !K.motionOn ? '' : 'none';
+  $('kTip').textContent = K.steerMode === 'tilt' ? 'Hold it like a wheel · Recenter anytime' : 'Tap Tilt in the lobby to steer by turning your phone';
+}
+function renderKart() {
+  show('kart');
+  const g = S.g;
+  const racing = YOU.g && YOU.g.racing;
+  $('kGrid').style.display = racing ? 'grid' : 'none';
+  $('kWatch').style.display = racing ? 'none' : 'flex';
+  if (!racing) { $('kWatchSub').textContent = `Racing: ${g.racers.map((r) => r.name).join(', ')}`; return; }
+  if (K.raceId !== g.raceId) {
+    K.raceId = g.raceId;
+    K.active = true;
+    K.ref = null; // straight = however you hold it when the race starts
+    if (K.steerMode === 'tilt' && !K.motionOn && !(window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function')) enableTilt();
+    $('kPlace').textContent = '–';
+    $('kLap').textContent = 'Get ready…';
+    kartItem(null);
+    clearInterval(K.timer);
+    K.timer = setInterval(() => kartSend(true), 250);
+  }
+  kartLayout();
+  if (YOU.g.hud) kartHud(YOU.g.hud);
+}
+function kartStop() { if (K.active) { K.active = false; clearInterval(K.timer); K.raceId = null; } }
+function kartItem(kind) {
+  $('kItemIcon').innerHTML = kind ? `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${ITEM_DOT[kind] || '#A9AEC8'}"></span>` : '';
+  $('kItemName').textContent = kind ? ITEM_NAMES[kind] || kind : 'No item';
+}
+function kartHud(h) {
+  if (!h) return;
+  $('kPlace').textContent = h.rank ? ordinal(h.rank) : '–';
+  $('kLap').textContent = h.done ? 'Finished!' : `Lap ${h.lap}/${h.laps}`;
+  kartItem(h.item);
+}
+function kartEvent(m) {
+  if (m.e === 'hit') buzz([180, 60, 180]);
+  else if (m.e === 'pickup') buzz(30);
+  else if (m.e === 'use') { buzz(20); kartItem(null); }
+  else if (m.e === 'lap') buzz([40, 40, 40]);
+  else if (m.e === 'finish') buzz([100, 50, 100, 50, 300]);
+}
+function kartSend(force) {
+  if (!K.active) return;
+  const steer = K.steerMode === 'tilt' ? K.steer : (K.left ? 1 : 0) - (K.right ? 1 : 0);
+  const m = { t: 'kin', s: Math.round(steer * 100) / 100, g: K.autoGas ? !K.brake : K.gas, b: K.brake, d: K.drift, i: K.item };
+  const key = JSON.stringify(m);
+  const now = Date.now();
+  if (!force && (key === K.lastSent || now - K.lastAt < 33)) return;
+  K.lastSent = key; K.lastAt = now;
+  send(m);
+}
+function holdButton(id, field) {
+  const el = $(id);
+  const on = (e) => { e.preventDefault(); K[field] = true; el.classList.add('on'); if (field !== 'left' && field !== 'right') buzz(8); kartSend(true); };
+  const off = (e) => { e.preventDefault(); K[field] = false; el.classList.remove('on'); kartSend(true); };
+  el.addEventListener('pointerdown', on);
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+  el.addEventListener('pointerleave', off);
+}
+holdButton('kGas', 'gas'); holdButton('kBrake', 'brake'); holdButton('kDrift', 'drift'); holdButton('kItem', 'item');
+holdButton('kLeft', 'left'); holdButton('kRight', 'right');
+$('kRecenter').onclick = () => { K.ref = K.raw; buzz(15); };
+$('kTiltBtn').onclick = () => enableTilt();
 
 /* Poker controls */
 $('hole').addEventListener('click', () => { hideCards = !hideCards; renderPoker(); });
@@ -217,6 +402,9 @@ function render(s, you) {
   if (s.phase === 'lobby') renderLobby();
   else if (s.phase === 'final') renderFinal();
   else if (s.g && s.g.kind === 'poker') renderPoker();
+  else if (s.g && s.g.kind === 'kart') renderKart();
+  if (!(s.g && s.g.kind === 'kart')) kartStop();
+  renderKartPrefs();
 }
 
 function renderLobby() {
@@ -232,7 +420,7 @@ function renderLobby() {
     const st = S.settings && S.settings[game.id];
     $('tableOpts').innerHTML = game.options && st ? Object.entries(game.options).map(([k, vals]) =>
       `<label>${OPT_LABEL[k]}</label><div class="opts">${vals.map((v) => `<button data-k="${k}" data-v="${v}" aria-pressed="${st[k] === v}">${optText(k, v)}</button>`).join('')}</div>`).join('') +
-      '<div class="muted">Play money only — no real money involved.</div>' : '';
+      (game.id === 'poker' ? '<div class="muted">Play money only — no real money involved.</div>' : '') : '';
     const n = S.players.filter((p) => p.connected).length;
     $('startBtn').textContent = `Start ${game.name}`;
     $('startBtn').disabled = n < game.min;
@@ -250,6 +438,9 @@ function renderFinal() {
   if (me && me.money) {
     $('finalTitle').textContent = me.score > 0 ? `You're up ${signed(me.score)}` : me.score < 0 ? `You're down ${money(-me.score)}` : 'You broke even';
     $('finalSub').textContent = `Bought in ${money(me.bought)} · cashed out ${money(me.final)} · play money`;
+  } else if (me && me.place) {
+    $('finalTitle').textContent = rank === 1 ? 'You won the race!' : `You finished ${ordinal(rank)}`;
+    $('finalSub').textContent = (me.time != null ? `${Math.floor(me.time / 60)}:${String((me.time % 60).toFixed(1)).padStart(4, '0')}` : 'Did not finish') + (me.bestLap ? ` · best lap ${me.bestLap.toFixed(1)}s` : '');
   } else {
     $('finalTitle').textContent = rank === 1 ? 'You won!' : rank ? `You finished #${rank}` : 'Game over';
     $('finalSub').textContent = (me ? `${fmt(me.score)} ${me.unit} · ` : '') + (r[0] ? `winner: ${r[0].name}` : '');
