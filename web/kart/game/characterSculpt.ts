@@ -66,8 +66,21 @@ export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'r
   }else if(who==='peach'||who==='daisy'){
     const daisy=who==='daisy',hair=mat(daisy?0x9b3f15:0xf6c443),dress=mat(daisy?0xffbb21:0xf27bb4),trim=mat(daisy?0xf37a16:0xd83e86),jewel=mat(daisy?0x26b69a:0x228be4,.12,.2);
     add(body,dress,0,.65,-.13,.3,.34,.25);limbs(dress);for(const s of [-1,1])add(body,dress,s*.27,.82,-.09,.16,.15,.15);
-    add(body,trim,0,.57,.08,.25,.13,.11);add(body,gold,0,.82,.13,.074,.095,.035);add(body,jewel,0,.82,.163,.047,.068,.02);
-    add(head,hair,0,.015,-.13,.33,.37,.23);add(head,skin,0,-.025,.035,.245,.3,.22);add(head,skin,0,-.15,.135,.17,.16,.13);
+    add(body,trim,0,.57,.08,.25,.13,.11);add(body,gold,0,.70,.13,.074,.095,.035);add(body,jewel,0,.70,.163,.047,.068,.02);
+    add(head,hair,0,.015,-.13,.33,.37,.23);
+    // One continuous facial surface avoids the protruding separate jaw and nose lobes.
+    const faceGeometry = new THREE.SphereGeometry(1,quality === 'portrait' ? 56 : 32,quality === 'portrait' ? 40 : 24);
+    const facePositions = faceGeometry.attributes.position;
+    for(let i=0;i<facePositions.count;i++){
+      const ux=facePositions.getX(i),uy=facePositions.getY(i),uz=facePositions.getZ(i);
+      const jawTaper=uy<-.15?1-(-uy-.15)*.18:1;
+      const x=ux*.245*jawTaper,y=uy*.255+.02;
+      // Small rounded nose, smoothly blended into the bridge and upper cheeks.
+      const nose=uz>0?.033*Math.exp(-((x/.035)**2)-(((y+.012)/.045)**2)):0;
+      facePositions.setXYZ(i,x,y,uz*.22+.035+nose);
+    }
+    faceGeometry.computeVertexNormals();
+    const face=new THREE.Mesh(faceGeometry,skin);face.name='princess-face';face.castShadow=face.receiveShadow=true;head.add(face);
     for(const s of [-1,1]){
       add(head,hair,s*.257,-.12,-.06,.105,daisy?.23:.36,.14).rotation.z=s*.15;add(head,hair,s*.265,-.31,-.045,.115,.13,.16);
       eye(head,s*.092,.04,.226,.069,.096,daisy?0x20a6b0:0x278dcc);
@@ -75,7 +88,9 @@ export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'r
       tube(head,hair,[[s*.045,.19,.205],[s*.1,.207,.194],[s*.16,.183,.17]],.012);
       add(head,mat(0xf39d9a),s*.156,-.09,.213,.049,.025,.008);add(head,gold,s*.257,-.105,.087,.047,.06,.035);add(head,jewel,s*.257,-.105,.116,.032,.043,.016);
     }
-    add(head,skin,0,-.035,.25,.045,.062,.069);add(head,mat(0xda4e74),0,-.17,.244,.045,.017,.012);
+    const lips=mat(0xda4e74);
+    add(head,lips,-.012,-.11,.24,.019,.009,.007);add(head,lips,.012,-.11,.24,.019,.009,.007);
+    add(head,lips,0,-.123,.238,.026,.007,.006);
     add(head,hair,-.11,.22,.14,.16,.063,.07).rotation.z=-.35;add(head,hair,.115,.215,.13,.15,.073,.07).rotation.z=.45;add(head,hair,.025,.145,.225,.062,.1,.042);
     const crown=new THREE.Mesh(new THREE.CylinderGeometry(.18,.15,.13,16),gold);crown.position.set(0,.34,-.025);head.add(crown);
     for(let i=0;i<5;i++){const a=i*Math.PI*2/5;cone(head,gold,Math.sin(a)*.155,.465,Math.cos(a)*.155-.025,.052,.16);add(head,gold,Math.sin(a)*.155,.547,Math.cos(a)*.155-.025,.024,.024,.024);}
