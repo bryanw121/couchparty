@@ -361,7 +361,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     if (!(s.g && s.g.kind === 'kart')) stopKart();
   }
 
-  /* ---------- Kart Racer (3D, loaded on demand from the public repo) ---------- */
+  /* ---------- Kario Mart (3D, loaded on demand from the public repo) ---------- */
   var KART_JS = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@__KART_REF__/web-dist/kart.js';
   var KART = { engine: null, raceId: null, loading: false, hud: null };
   function gameMsg(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
@@ -380,7 +380,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   function renderKartMenu(g) {
     var L = g.lists, h = '', i, cap = g.captainName ? esc(g.captainName) : 'The host';
     var steps = g.phase === 'standings' ? [] : g.steps, at = steps.indexOf(g.step);
-    h += '<div class="khead"><div class="klogo">KART <b>RACER</b></div><div class="ksteps">';
+    h += '<div class="khead"><div class="klogo">KARIO <b>MART</b></div><div class="ksteps">';
     for (i = 0; i < steps.length; i++) h += '<span class="' + (i === at ? 'on' : i < at ? 'done' : '') + '">' + (i + 1) + ' ' + KSTEP[steps[i]] + '</span>';
     h += '</div></div>';
     var capChip = function () { var r = kName(g, g.captain); return '<span class="kcap"><i style="background:' + (r ? r.color : '#ffc83d') + '"></i>' + cap + '</span>'; };
@@ -527,7 +527,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
         html += '<div class="card lb"' + (r[i].human ? '' : ' style="opacity:0.6"') + '><span class="rank">' + (i + 1) + '</span>' + avatar(r[i]) + '<span class="name">' + esc(r[i].name) + (r[i].human ? '' : ' <span class="muted" style="font-size:1rem">CPU</span>') + '</span><span class="pts">' + t + '</span></div>';
       }
       $('board').innerHTML = html;
-      $('finalGame').textContent = 'Kart Racer';
+      $('finalGame').textContent = 'Kario Mart';
       return;
     }
     $('winner').textContent = r.length ? r[0].name + ' wins!' : 'Game over';

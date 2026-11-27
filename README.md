@@ -108,7 +108,7 @@ Neon can run more than one copy of the function at once, each with its own memor
 
 Without `DATABASE_URL` (local `npm start`) everything stays in memory. Test with two simulated copies: `CP_FAST=1 node test/relay.mjs` (needs `@electric-sql/pglite`).
 
-## Kart Racer (3D)
+## Kario Mart (3D)
 
 Split-screen 3D kart racing for up to 4 phones; extra players watch. Phones steer by tilting (or with ◀ ▶ buttons),
 with drift, item and brake buttons; gas is automatic by default. Items: banana, green/red/blue shells, boost, star, lightning.
@@ -117,6 +117,13 @@ with drift, item and brake buttons; gas is automatic by default. Items: banana, 
 - TVs load it from this public repo through jsDelivr, pinned to a commit (`web-dist/KART_REF`).
 - Needs a TV browser with 3D graphics (Fire TV, smart TV browser, laptop). The Roku app shows a note and backs out.
 - Credits: engine adapted from the MIT-licensed Arcade-Kart-Racer-3D; see `web/kart/NOTICE.md`.
+
+The Mario cast's names, colors, selection IDs and stats share one roster in `src/games/kart-roster.js`.
+The race uses `characterSculpt.ts` through `driverModel.ts`, with character-specific bodies in `kartBody.ts`.
+The TV resolves player appearance from the selected driver ID, so older room colors cannot recolor the karts.
+`node scripts/render-kart-portraits.mjs` renders selection portraits from those same sculptures;
+add `--karts` (and optionally `--rear`) for full kart previews in `public/kart-models/`.
+Run `npm run test:kart-models` to check menu selection through race assembly, shading and wheel animation.
 
 ## Deploying page changes
 

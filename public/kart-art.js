@@ -1,5 +1,5 @@
 /*KART_PORTRAITS*/
-/* Kart Racer menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
+/* Kario Mart menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
 var KA = (function () {
   var INK = '#1b1b3a';
   function toppers(t, c) {

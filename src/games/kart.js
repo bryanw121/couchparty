@@ -1,9 +1,12 @@
-// Kart Racer: the race itself runs in 3D on the TV (web/kart). The server runs the menus
+import { DRIVERS } from './kart-roster.js';
+export { DRIVERS } from './kart-roster.js';
+
+// Kario Mart: the race itself runs in 3D on the TV (web/kart). The server runs the menus
 // (mode, speed, drivers, course), seats racers, passes phone controls straight to the TV
 // (no state round trip, to keep steering snappy), relays per-player events back to phones,
 // and keeps Cup points across races.
 
-export const meta = { id: 'kart', name: 'Kart Racer', min: 1, max: 8, blurb: 'Tilt or joystick. 3D split screen for up to 4.', needs: 'webgl' };
+export const meta = { id: 'kart', name: 'Kario Mart', min: 1, max: 8, blurb: 'Tilt or joystick. 3D split screen for up to 4.', needs: 'webgl' };
 
 // Picked in the in-game menu now, not the lobby.
 export const OPTIONS = {};
@@ -20,16 +23,7 @@ export const SPEEDS = [
   { id: 'fast', name: 'Fast', blurb: 'The classic' },
   { id: 'turbo', name: 'Turbo', blurb: 'Hold on tight' },
 ];
-export const DRIVERS = [
-  { id: 'tabby', name: 'Tabby', color: '#FF9F43', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
-  { id: 'bunbun', name: 'Bun Bun', color: '#FF7AC6', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
-  { id: 'duke', name: 'Duke', color: '#9B6BFF', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
-  { id: 'rex', name: 'Rex', color: '#3DDC84', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
-  { id: 'lulu', name: 'Lulu', color: '#FF5D8F', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
-  { id: 'zippy', name: 'Zippy', color: '#4CC9F0', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
-  { id: 'ace', name: 'Ace', color: '#FFC83D', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
-  { id: 'grizz', name: 'Grizz', color: '#B07A4F', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
-];
+
 export const COURSES = [
   { id: 'meadow', name: 'Meadow Loop', blurb: 'Rolling hills & blossoms', sky: '#7cc8ff', ground: '#5ccf45', path: 'M48.9 47.0L49.2 46.0L49.3 44.2L49.2 41.9L49.0 39.2L48.8 36.4L48.7 33.6L48.7 30.9L48.9 28.7L49.3 26.7L49.8 24.7L50.4 22.9L51.1 21.1L51.8 19.3L52.7 17.7L53.6 16.2L54.6 14.9L55.8 13.6L57.1 12.4L58.5 11.2L60.0 10.2L61.5 9.3L63.0 8.6L64.6 8.2L66.1 8.0L67.7 8.2L69.4 8.6L71.1 9.3L72.9 10.2L74.6 11.2L76.1 12.4L77.6 13.6L78.8 14.9L79.8 16.3L80.7 17.8L81.4 19.6L82.1 21.3L82.6 23.2L83.0 25.1L83.2 26.9L83.4 28.7L83.3 30.4L83.2 32.2L82.9 34.0L82.5 35.8L82.0 37.5L81.4 39.2L80.7 40.9L79.9 42.4L78.9 43.9L77.7 45.2L76.2 46.5L74.7 47.8L73.3 49.0L72.1 50.2L71.2 51.5L70.7 52.8L70.7 54.2L71.0 55.6L71.6 57.0L72.4 58.5L73.4 60.0L74.4 61.4L75.5 62.9L76.5 64.3L77.5 65.6L78.8 66.8L80.3 68.1L81.7 69.3L83.1 70.5L84.2 71.8L85.1 73.1L85.6 74.6L85.8 76.2L85.7 78.0L85.3 80.0L84.8 81.9L84.1 83.8L83.2 85.6L82.2 87.1L81.1 88.4L79.8 89.4L78.2 90.2L76.5 90.9L74.6 91.5L72.7 91.8L70.8 92.0L69.0 92.0L67.3 91.8L65.8 91.3L64.3 90.3L63.0 89.1L61.6 87.7L60.3 86.4L58.9 85.2L57.4 84.3L55.8 83.8L54.1 83.8L52.3 84.3L50.4 85.1L48.5 86.0L46.5 86.9L44.6 87.7L42.7 88.3L40.9 88.4L39.1 88.1L37.3 87.6L35.5 86.9L33.7 86.1L32.0 85.1L30.3 84.0L28.6 82.7L27.1 81.5L25.6 80.1L24.1 78.6L22.6 76.9L21.2 75.2L19.9 73.3L18.7 71.5L17.6 69.6L16.8 67.7L16.0 65.8L15.4 63.8L14.9 61.8L14.5 59.8L14.3 57.8L14.2 55.7L14.3 53.7L14.5 51.6L14.9 49.5L15.4 47.4L16.2 45.1L17.0 42.9L18.0 40.8L19.1 38.8L20.2 37.1L21.4 35.6L22.6 34.2L24.0 33.0L25.4 32.0L27.0 31.1L28.5 30.4L30.0 30.0L31.5 29.7L32.8 29.8L34.1 30.3L35.3 31.1L36.5 32.2L37.7 33.5L38.8 35.0L39.9 36.4L41.0 37.8L42.0 39.0L43.0 40.2L44.1 41.7L45.1 43.3L46.0 44.7L46.9 46.0L47.7 46.9L48.4 47.3Z' },
   { id: 'sunset', name: 'Sunset Bay', blurb: 'Dunes at golden hour', sky: '#ff8a5c', ground: '#f0cf86', path: 'M51.1 47.0L50.8 46.0L50.7 44.2L50.8 41.9L51.0 39.2L51.2 36.4L51.3 33.6L51.3 30.9L51.1 28.7L50.7 26.7L50.2 24.7L49.6 22.9L48.9 21.1L48.2 19.3L47.3 17.7L46.4 16.2L45.4 14.9L44.2 13.6L42.9 12.4L41.5 11.2L40.0 10.2L38.5 9.3L37.0 8.6L35.4 8.2L33.9 8.0L32.3 8.2L30.6 8.6L28.9 9.3L27.1 10.2L25.4 11.2L23.9 12.4L22.4 13.6L21.2 14.9L20.2 16.3L19.3 17.8L18.6 19.6L17.9 21.3L17.4 23.2L17.0 25.1L16.8 26.9L16.6 28.7L16.7 30.4L16.8 32.2L17.1 34.0L17.5 35.8L18.0 37.5L18.6 39.2L19.3 40.9L20.1 42.4L21.1 43.9L22.3 45.2L23.8 46.5L25.3 47.8L26.7 49.0L27.9 50.2L28.8 51.5L29.3 52.8L29.3 54.2L29.0 55.6L28.4 57.0L27.6 58.5L26.6 60.0L25.6 61.4L24.5 62.9L23.5 64.3L22.5 65.6L21.2 66.8L19.7 68.1L18.3 69.3L16.9 70.5L15.8 71.8L14.9 73.1L14.4 74.6L14.2 76.2L14.3 78.0L14.7 80.0L15.2 81.9L15.9 83.8L16.8 85.6L17.8 87.1L18.9 88.4L20.2 89.4L21.8 90.2L23.5 90.9L25.4 91.5L27.3 91.8L29.2 92.0L31.0 92.0L32.7 91.8L34.2 91.3L35.7 90.3L37.0 89.1L38.4 87.7L39.7 86.4L41.1 85.2L42.6 84.3L44.2 83.8L45.9 83.8L47.7 84.3L49.6 85.1L51.5 86.0L53.5 86.9L55.4 87.7L57.3 88.3L59.1 88.4L60.9 88.1L62.7 87.6L64.5 86.9L66.3 86.1L68.0 85.1L69.7 84.0L71.4 82.7L72.9 81.5L74.4 80.1L75.9 78.6L77.4 76.9L78.8 75.2L80.1 73.3L81.3 71.5L82.4 69.6L83.2 67.7L84.0 65.8L84.6 63.8L85.1 61.8L85.5 59.8L85.7 57.8L85.8 55.7L85.7 53.7L85.5 51.6L85.1 49.5L84.6 47.4L83.8 45.1L83.0 42.9L82.0 40.8L80.9 38.8L79.8 37.1L78.6 35.6L77.4 34.2L76.0 33.0L74.6 32.0L73.0 31.1L71.5 30.4L70.0 30.0L68.5 29.7L67.2 29.8L65.9 30.3L64.7 31.1L63.5 32.2L62.3 33.5L61.2 35.0L60.1 36.4L59.0 37.8L58.0 39.0L57.0 40.2L55.9 41.7L54.9 43.3L54.0 44.7L53.1 46.0L52.3 46.9L51.6 47.3Z' },

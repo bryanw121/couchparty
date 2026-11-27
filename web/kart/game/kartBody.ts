@@ -5,13 +5,13 @@ import { RacerConfig } from '../types';
 
 // Visual bodies use the same wheelbase and attachment points, keeping driving consistent.
 export function createKartBody(body: THREE.Group, config: RacerConfig) {
-  const character=CHARACTER_FOR_TOPPER[config.topper||'cap']||'ace';
-  const royal=character==='duke'||character==='lulu',heavy=character==='grizz'||character==='rex';
+  const character=CHARACTER_FOR_TOPPER[config.topper||'cap']||'mario';
+  const royal=character==='peach'||character==='daisy',heavy=character==='bowser'||character==='donkeykong';
   const mat=(color:THREE.ColorRepresentation,roughness=.32,metalness=.15)=>{
     const m=new THREE.MeshStandardMaterial({color,roughness,metalness});m.userData.preserveShading=true;return m;
   };
   const paint=mat(config.color),cream=mat(0xfff4de),dark=mat(0x202634,.66,.05),chrome=mat(0xc7deeb,.2,.7),gold=mat(0xffc642,.25,.6);
-  const secondary=mat(({tabby:0xfff0d8,bunbun:0xffffff,duke:0xffd34d,rex:0xf4e7a1,lulu:0xffffff,zippy:0x2b3448,ace:0x2f5fe0,grizz:0xe8c79b} as Record<string,number>)[character]??0xffffff);
+  const secondary=mat(character==='mario'||character==='luigi'?0x2855ce:character==='toad'?0xf0443e:character==='yoshi'?0xfff3cf:character==='bowser'?0x288c4c:character==='donkeykong'?0x9d5d28:0xffd875);
   const trim=royal?gold:chrome;
   const sphere=new THREE.SphereGeometry(1,20,14);
   function mesh(geometry:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number){const o=new THREE.Mesh(geometry,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;body.add(o);return o;}
@@ -28,7 +28,7 @@ export function createKartBody(body: THREE.Group, config: RacerConfig) {
     // Rear fenders follow the wheel arc rather than covering it with rectangular blocks.
     const fender=mesh(new THREE.TorusGeometry(.37,.075,8,20,Math.PI),paint,s*.77,.34,-.85);fender.rotation.y=Math.PI/2;
   }
-  const hood=ellipsoid(paint,0,.43,.77,heavy?.62:.55,royal?.23:.21,character==='zippy'?.66:.6);hood.name='hood';
+  const hood=ellipsoid(paint,0,.43,.77,heavy?.62:.55,royal?.23:.21,character==='luigi'?.68:.6);hood.name='hood';
   const hoodSpot=(m:THREE.Material,x:number,z:number,radius:number)=>{
     const n=new THREE.Vector3((x-hood.position.x)/hood.scale.x,0,(z-hood.position.z)/hood.scale.z);n.y=Math.sqrt(Math.max(0,1-n.x*n.x-n.z*n.z));
     const u=new THREE.Vector3(1,0,0).addScaledVector(n,-n.x).normalize(),v=n.clone().cross(u).normalize();
@@ -40,23 +40,25 @@ export function createKartBody(body: THREE.Group, config: RacerConfig) {
     for(let ring=1;ring<3;ring++)for(let i=0;i<20;i++){const a=1+(ring-1)*20+i,b=1+(ring-1)*20+(i+1)%20,c=1+ring*20+i,d=1+ring*20+(i+1)%20;indices.push(a,c,d,a,d,b);}
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();mesh(geo,m,0,0,0);
   };
-  if(character==='tabby'||character==='grizz'){
-    // Paw print on the hood.
-    hoodSpot(secondary,0,.74,.13);for(const [x,z]of [[-.17,.96],[0,1.02],[.17,.96]])hoodSpot(secondary,x,z,.065);
-  }else if(character==='bunbun'||character==='lulu'){
-    for(const [x,z]of [[-.3,.62],[.3,.62],[0,.95],[-.22,1.0],[.22,1.0],[0,.6]])hoodSpot(secondary,x,z,.06);
-  }else if(character==='rex'){
-    hood.material=secondary;
-    for(let i=0;i<4;i++){const fin=mesh(new THREE.ConeGeometry(.09,.22,4),paint,0,.66-i*.02,.42+i*.2);fin.scale.z=.35;}
-  }else if(character==='zippy'){
-    for(const s of [-1,1])for(const z of [.45,.75,1.05])hoodSpot(chrome,s*.32,z,.035);
-  }else if(character==='ace'){
-    for(const z of [.5,.72,.94])for(const s of [-1,1])hoodSpot(secondary,s*.13,z,.08);
-  }else if(character==='duke'){
-    for(const [x,z]of [[-.3,.6],[.3,.6],[0,.98]])hoodSpot(gold,x,z,.07);
+  if(character==='toad'){
+    hood.material=cream;
+    for(const [x,z,r]of [[0,.9,.16],[-.3,.64,.105],[.3,.64,.105]])hoodSpot(secondary,x,z,r);
+  }else if(character==='yoshi'){
+    hood.material=cream;hood.scale.set(.54,.32,.61);hood.position.y=.46;
+    for(const [x,z,r]of [[0,.88,.16],[-.28,.64,.11],[.27,.61,.1]])hoodSpot(paint,x,z,r);
+  }else if(character==='bowser'){
+    hood.material=secondary;hood.scale.set(.62,.3,.59);
+    for(const s of [-1,1])for(const z of [.6,1.03]){const spike=mesh(new THREE.ConeGeometry(.075,.22,12),cream,s*.39,.7,z);spike.rotation.z=-s*.3;}
+    rounded(gold,0,.36,1.35,1.36,.16,.15,.07);
+  }else if(character==='donkeykong'){
+    hood.visible=false;
+    const wood=mat(0x995328,.55,.02),hoop=mat(0x432919,.45,.15);
+    const barrel=mesh(new THREE.CylinderGeometry(.49,.49,.91,16),wood,0,.43,.79);barrel.rotation.x=Math.PI/2;barrel.scale.z=.64;
+    for(const z of [.39,.53,1.05,1.19]){const band=mesh(new THREE.TorusGeometry(.492,.029,6,24),hoop,0,.43,z);band.scale.y=.64;}
+    for(let i=0;i<10;i++){const a=i*Math.PI*2/10;rounded(hoop,Math.sin(a)*.49,.43+Math.cos(a)*.49*.64,.8,.015,.018,.68,.006);}
   }
   // Chunky bumpers, small headlights, grille slats and a bright waist stripe.
-  rounded(trim,0,.25,1.27,1.4,.16,.25,.07);
+  if(character!=='bowser')rounded(trim,0,.25,1.27,1.4,.16,.25,.07);
   rounded(dark,0,.39,1.3,.54,.15,.035,.015);
   for(let i=-2;i<=2;i++)rounded(chrome,i*.095,.39,1.324,.025,.1,.012,.005);
   for(const s of [-1,1]){
@@ -75,23 +77,30 @@ export function createKartBody(body: THREE.Group, config: RacerConfig) {
   for(const s of [-1,1])rounded(trim,s*.39,wingY-.18,-1.04,.055,.34,.06,.02);
   const wing=rounded(royal?paint:secondary,0,wingY,-1.06,heavy?1.62:1.43,.095,.35,.04);wing.name='rear-wing';
   for(const s of [-1,1])rounded(paint,s*(heavy?.79:.69),wingY+.035,-1.06,.07,.22,.37,.025);
-  if(character==='rex')for(const x of [-.5,0,.5])mesh(new THREE.ConeGeometry(.065,.2,12),cream,x,wingY+.14,-1.06);
-  if(royal){
+  if(character==='bowser')for(const x of [-.5,0,.5])mesh(new THREE.ConeGeometry(.065,.2,12),cream,x,wingY+.14,-1.06);
+  if(character==='peach'||character==='daisy'){
     for(const s of [-1,1])ellipsoid(gold,s*.63,wingY+.14,-1.04,.047,.047,.047);
   }
   // Raised identity badges are meshes, so they stay crisp without canvas textures.
   const emblem=new THREE.Group();emblem.name=character+'-emblem';emblem.position.set(0,.61,1.02);emblem.rotation.x=-.7;body.add(emblem);
+  if(character==='donkeykong'){emblem.position.set(0,.56,1.29);emblem.rotation.x=0;}
   const badge=(geo:THREE.BufferGeometry,m:THREE.Material,x=0,y=0,z=0)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;emblem.add(o);return o;};
   const disk=badge(new THREE.CylinderGeometry(.18,.18,.025,24),royal?gold:cream);disk.rotation.x=Math.PI/2;
   const glyph=(points:number[][],m=paint)=>{const p=new THREE.Shape();p.moveTo(points[0][0],points[0][1]);points.slice(1).forEach(v=>p.lineTo(v[0],v[1]));p.closePath();badge(new THREE.ExtrudeGeometry(p,{depth:.015,bevelEnabled:true,bevelSegments:2,bevelSize:.003,bevelThickness:.003}),m,0,0,.02);};
-  const dot=(x:number,y:number,r:number,m:THREE.Material=paint)=>{const o=badge(new THREE.SphereGeometry(r,12,8),m,x,y,.03);o.scale.z=.3;};
-  if(character==='tabby'||character==='grizz'){dot(0,-.03,.06);for(const [x,y]of [[-.075,.055],[0,.085],[.075,.055]])dot(x,y,.03);}
-  else if(character==='bunbun'){glyph([[0,-.11],[-.04,.04],[.04,.04]],mat(0xff8a1f));for(const s of [-1,0,1])glyph([[s*.03,.04],[s*.05+.0,.11],[s*.03+.012,.04]],mat(0x3fbf74));}
-  else if(character==='duke')glyph([[-.11,-.07],[-.11,.06],[-.055,.0],[0,.09],[.055,.0],[.11,.06],[.11,-.07]],mat(0x8b5cf6));
-  else if(character==='rex'){dot(0,-.035,.055);for(const [x,y]of [[-.065,.05],[0,.075],[.065,.05]]){const c=badge(new THREE.ConeGeometry(.025,.07,8),paint,x,y,.03);c.rotation.z=-x*4;}}
-  else if(character==='lulu'){const h=new THREE.Shape();h.moveTo(0,-.09);h.bezierCurveTo(-.13,-.01,-.09,.1,0,.045);h.bezierCurveTo(.09,.1,.13,-.01,0,-.09);badge(new THREE.ExtrudeGeometry(h,{depth:.015,bevelEnabled:true,bevelSegments:2,bevelSize:.003,bevelThickness:.003}),mat(0xe83f6f),0,0,.02);}
-  else if(character==='zippy')glyph([[.03,.11],[-.07,-.01],[-.005,-.01],[-.03,-.11],[.07,.02],[.005,.02]],mat(0x2fb8e0));
-  else{const st:number[][]=[];for(let i=0;i<10;i++){const r=i%2?.045:.1,a=i*Math.PI/5;st.push([Math.sin(a)*r,Math.cos(a)*r]);}glyph(st,secondary);}
+  if(character==='mario')glyph([[-.09,-.09],[-.09,.09],[-.05,.09],[0,.015],[.05,.09],[.09,.09],[.09,-.09],[.05,-.09],[.05,.02],[0,-.045],[-.05,.02],[-.05,-.09]]);
+  else if(character==='luigi')glyph([[-.06,.1],[-.06,-.09],[.07,-.09],[.07,-.05],[-.015,-.05],[-.015,.1]]);
+  else if(character==='peach')glyph([[-.12,-.06],[-.13,.07],[-.055,.015],[0,.12],[.055,.015],[.13,.07],[.12,-.06]],mat(0xdc468c));
+  else if(character==='daisy'){
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;const petal=badge(new THREE.SphereGeometry(.052,10,8),cream,Math.sin(a)*.077,Math.cos(a)*.077,.035);petal.scale.z=.3;}
+    const center=badge(new THREE.SphereGeometry(.047,10,8),paint,0,0,.055);center.scale.z=.3;
+  }else if(character==='toad'){
+    const mushroom=badge(new THREE.SphereGeometry(.113,16,10,0,Math.PI*2,0,Math.PI/2),secondary,0,-.015,.025);mushroom.rotation.x=Math.PI/2;
+    const stalk=badge(new RoundedBoxGeometry(.075,.085,.025,1,.015),cream,0,-.07,.035);stalk.name='mushroom-stem';
+  }else if(character==='yoshi'){
+    const egg=badge(new THREE.SphereGeometry(.105,14,10),cream,0,0,.035);egg.scale.set(.8,1,.2);
+    const spot=badge(new THREE.SphereGeometry(.035,10,8),paint,.025,.02,.06);spot.scale.z=.25;
+  }else if(character==='bowser')glyph([[-.1,-.09],[-.12,.03],[-.055,.02],[-.04,.1],[0,.035],[.04,.1],[.055,.02],[.12,.03],[.1,-.09]],secondary);
+  else glyph([[-.065,.105],[-.065,-.015],[-.115,-.105],[-.055,-.105],[0,-.05],[.055,-.105],[.115,-.105],[.065,-.015],[.065,.105]],mat(0xd52f28));
   // Race-number plate on the rear, separate from the character's identity badge.
   const plate=new THREE.Group();plate.position.set(0,.59,-1.185);plate.rotation.y=Math.PI;body.add(plate);
   const plateBase=new THREE.Mesh(new RoundedBoxGeometry(.25,.18,.024,1,.02),cream);plate.add(plateBase);

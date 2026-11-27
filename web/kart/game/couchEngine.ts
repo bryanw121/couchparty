@@ -1,3 +1,4 @@
+import { DRIVERS, resolveDriver } from '../../../src/games/kart-roster.js';
 import * as THREE from 'three';
 import { RacerConfig, RacerState, InputState } from '../types';
 import { TrackSystem } from './track';
@@ -33,16 +34,7 @@ export interface CouchOptions {
   onEvent?: (e: ItemEvent | { type: string; racer: string; lap?: number; rank?: number; final?: boolean; level?: number }) => void;
 }
 
-const CPU: Array<{ id: string; name: string; color: string; accent: string; topper: string; spd: number; acc: number; hnd: number }> = [
-  { id: 'tabby', name: 'Tabby', color: '#FF9F43', accent: '#fff3d6', topper: 'cat', spd: 3, acc: 4, hnd: 4 },
-  { id: 'bunbun', name: 'Bun Bun', color: '#FF7AC6', accent: '#fdf2f8', topper: 'bunny', spd: 2, acc: 5, hnd: 5 },
-  { id: 'duke', name: 'Duke', color: '#9B6BFF', accent: '#fcd34d', topper: 'crown', spd: 5, acc: 2, hnd: 3 },
-  { id: 'rex', name: 'Rex', color: '#3DDC84', accent: '#ecfdf5', topper: 'horns', spd: 5, acc: 3, hnd: 2 },
-  { id: 'lulu', name: 'Lulu', color: '#FF5D8F', accent: '#ffe4ec', topper: 'bow', spd: 3, acc: 5, hnd: 4 },
-  { id: 'zippy', name: 'Zippy', color: '#4CC9F0', accent: '#f0f9ff', topper: 'antenna', spd: 4, acc: 4, hnd: 3 },
-  { id: 'ace', name: 'Ace', color: '#FFC83D', accent: '#fff7d6', topper: 'cap', spd: 4, acc: 3, hnd: 4 },
-  { id: 'grizz', name: 'Grizz', color: '#B07A4F', accent: '#f4f1e6', topper: 'bear', spd: 5, acc: 2, hnd: 2 },
-];
+const CPU = DRIVERS.map(d => ({ ...d, accent: '#ffffff' }));
 const SPEED_MULT = { chill: 0.8, fast: 1, turbo: 1.2 };
 function tune(spd: number, acc: number, hnd: number, mult: number) {
   return { weight: spd >= 5 ? 3 : acc >= 5 ? 1 : 2, topSpeed: (41.5 + (spd - 3) * 1.1) * mult, acceleration: (30 + (acc - 3) * 2.6) * mult, handling: (3.2 + (hnd - 3) * 0.18) * (mult > 1 ? 1.08 : 1) };
@@ -176,15 +168,16 @@ export class CouchEngine {
     const configs: RacerConfig[] = [];
     const mult = SPEED_MULT[this.opts.speed || 'fast'] || 1;
     players.forEach((p, i) => {
-      const st = p.stats || { spd: 3, acc: 3, hnd: 3 };
+      const driver = resolveDriver(p.driver, p.topper);
+      const st = p.stats || driver;
       configs.push({
         id: p.id, name: p.name, isPlayer: true, audioLead: i === 0,
-        color: p.color, accentColor: '#ffffff', helmetColor: p.color, visorColor: '#0f172a',
+        color: driver.color, accentColor: '#ffffff', helmetColor: driver.color, visorColor: '#0f172a',
         number: i + 1, ...tune(st.spd, st.acc, st.hnd, mult), driftMultiplier: 1.35,
-        topper: p.topper || TOPPERS[i % TOPPERS.length],
+        topper: driver.topper,
       });
     });
-    const used = new Set(players.map((p) => (p.driver || p.color).toLowerCase()));
+    const used = new Set(players.map((p) => resolveDriver(p.driver, p.topper).id));
     for (const c of this.opts.cpus === false ? [] : CPU) {
       if (configs.length >= GRID) break;
       if (used.has(c.id) || used.has(c.color.toLowerCase())) continue;
