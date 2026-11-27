@@ -190,12 +190,12 @@ export function start(ctx) {
       if (m.raceId && m.raceId !== st.raceId) return;
       if (m.k === 'ev' && typeof m.p === 'string') {
         const p = ctx.allPlayers().find((x) => x.id === m.p);
-        if (p) ctx.toPlayer(p, { t: 'kev', e: String(m.e || ''), item: m.item ? String(m.item) : null, rank: m.rank | 0 });
+        if (p) ctx.toPlayer(p, { t: 'kev', e: String(m.e || '').slice(0, 12), item: m.item ? String(m.item).slice(0, 8) : null, rank: m.rank | 0, level: m.level | 0, fin: !!m.fin });
       } else if (m.k === 'hud' && Array.isArray(m.list)) {
         for (const h of m.list.slice(0, MAX_RACERS)) {
           const p = ctx.allPlayers().find((x) => x.id === h.p);
           if (!p) continue;
-          const v = { rank: h.rank | 0, of: h.of | 0, lap: h.lap | 0, laps: st.laps, item: h.item ? String(h.item).slice(0, 8) : null, done: !!h.done };
+          const v = { rank: h.rank | 0, of: h.of | 0, lap: h.lap | 0, laps: st.laps, item: h.item ? String(h.item).slice(0, 8) : null, n: clamp(h.n | 0, 0, 3), done: !!h.done };
           hud.set(p.id, v);
           ctx.toPlayer(p, { t: 'khud', h: v });
         }

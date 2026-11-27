@@ -412,8 +412,10 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       KART.engine = window.CouchKart.start($('kartView'), {
         players: g.racers, laps: g.laps, items: g.items, course: g.course, speed: g.speed, cpus: g.cpus,
         onEvent: function (e) {
-          if (!e || !e.racer || e.racer.indexOf('cpu-') === 0) return;
-          gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.racer, e: e.type, item: e.item || null, rank: e.rank || 0 });
+          if (!e || !e.racer) return;
+          if (e.racer.indexOf('cpu-') !== 0) gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.racer, e: e.type, item: e.item || null, rank: e.rank || 0, level: e.level || 0, fin: e.final ? 1 : 0 });
+          // the attacker hears about a hit too
+          if (e.type === 'hit' && e.by && e.by !== e.racer && e.by.indexOf('cpu-') !== 0) gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.by, e: 'landed', item: e.item || null, rank: 0, level: 0, fin: 0 });
         },
         onFinish: function (res) {
           var order = [];
