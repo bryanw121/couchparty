@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { addCourseScenery, courseTree } from './courseScenery';
 import { TrackSystem } from './track';
 import { CourseTheme } from './tracks';
 
@@ -154,7 +155,8 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   for (const p of pines) {
     track.sceneryGroup.remove(p);
     if (nearRoad(p.position.x, p.position.z)) continue; // keep the racing line clear
-    const t = roundTree(p.scale.x * (0.75 + Math.random() * 0.35), th);
+    const scale = p.scale.x * (0.75 + Math.random() * 0.35);
+    const t = track.course.id === 'meadow' ? roundTree(scale, th) : courseTree(track.course.id, scale);
     t.position.copy(p.position);
     t.rotation.y = Math.random() * Math.PI;
     track.sceneryGroup.add(t);
@@ -187,6 +189,7 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
     }
   }
 
+  addCourseScenery(track);
   toonify(scene, toonGradient());
 
   return {

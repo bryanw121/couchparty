@@ -1,3 +1,5 @@
+/*KART_ITEMS*/
+/*KART_COURSES*/
 /*KART_PORTRAITS*/
 /* Kario Mart menu art: original drivers, mode and speed badges, course thumbnails (ES5, shared by tv.html and play.html) */
 var KA = (function () {
@@ -49,7 +51,13 @@ var KA = (function () {
     return '<svg viewBox="0 0 100 100" width="100%" height="100%">' + s + '</svg>';
   }
   var uid = 0;
+  function item(kind) {
+    var src = typeof KART_ITEMS !== 'undefined' && KART_ITEMS[kind];
+    return src ? '<img src="' + src + '" alt="Item" style="display:block;width:100%;height:100%;object-fit:contain"/>' : '';
+  }
   function course(c) {
+    var src = typeof KARIO_COURSES !== 'undefined' && KARIO_COURSES[c.id];
+    if (src) return '<img src="' + src + '" alt="' + c.name + '" style="display:block;width:100%;height:100%;object-fit:cover"/>';
     var id = 'cg' + (uid++);
     return '<svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c.sky + '"/><stop offset="1" stop-color="' + c.ground + '"/></linearGradient></defs>' +
       '<rect width="100" height="100" fill="url(#' + id + ')"/>' +
@@ -86,5 +94,5 @@ var KA = (function () {
       '</g></svg>';
   }
   var GAMEINFO = { poker: { tag: 'Bluff your friends', players: '2–12 players' }, kart: { tag: '3D kart racing', players: '1–4 players · 8 karts' } };
-  return { driver: driver, mode: mode, speed: speed, course: course, bars: bars, game: game, info: function (id) { return GAMEINFO[id] || { tag: '', players: '' }; } };
+  return { item: item, driver: driver, mode: mode, speed: speed, course: course, bars: bars, game: game, info: function (id) { return GAMEINFO[id] || { tag: '', players: '' }; } };
 })();

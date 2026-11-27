@@ -125,6 +125,16 @@ The TV resolves player appearance from the selected driver ID, so older room col
 add `--karts` (and optionally `--rear`) for full kart previews in `public/kart-models/`.
 Run `npm run test:kart-models` to check menu selection through race assembly, shading and wheel animation.
 
+Items use `itemModels.ts`: shells, mushrooms, Super Star, Bob-omb, Blooper, Boo, Bullet Bill and question boxes.
+The TV HUD and phone controller use transparent icons rendered from those meshes (`public/kart-items.json`).
+Bullet Bill also replaces the visible kart while that power-up is active.
+`courseScenery.ts` supplies Mushroom Village, Sunshine Harbor, Snowbell Village and Rainbow Metro with
+roadside towns, shops, residents, street lamps and course landmarks. Static scenery is batched by material;
+building placement leaves the road and shortcuts clear.
+Run `npm run build:kart-art` for offline item and course renders, and `npm run test:kart-world`
+for item throws, pickup boxes, shared icons and village/shortcut clearance checks.
+Preview images in `public/item-previews/` and `public/course-previews/` are offline renders of game meshes.
+
 ## Deploying page changes
 
 The server fetches the TV and phone pages from this repo at the commit in its `PAGES_REF` setting.

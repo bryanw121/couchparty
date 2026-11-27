@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Course, courseById } from './tracks';
 import { TrackPoint } from '../types';
+import { createItemModel } from './itemModels';
 import {
   createRoadTexture,
   createCurbTexture,
@@ -496,10 +497,7 @@ export class TrackSystem {
     this.buildHotAirBalloon(60, 45, -50, 0xef4444, 0xfacc15);
     this.buildHotAirBalloon(-80, 55, 60, 0x3b82f6, 0xffffff);
 
-    // 4. Wind Turbines with spinning blades, wherever they're clear of the road
-    for (const [x, z] of [[120, 60], [-110, -100], [200, -150], [-200, 120], [60, -240]]) {
-      if (this.getClosestTrackPointInfo(x, z).dist > this.roadWidth / 2 + 14) this.buildWindTurbine(x, this.getTerrainElevation(x, z), z);
-    }
+    // Each course's skyline and roadside landmarks are supplied by courseScenery.ts.
   }
 
   private buildGrandstand(x: number, y: number, z: number, rotationY: number) {
@@ -559,14 +557,8 @@ export class TrackSystem {
     balloonGroup.position.set(x, y, z);
 
     // Balloon envelope
-    const balloonGeo = new THREE.SphereGeometry(7, 14, 14);
-    balloonGeo.scale(1.0, 1.4, 1.0);
-    const balloonMat = new THREE.MeshStandardMaterial({
-      color: col1,
-      roughness: 0.4,
-    });
-    const balloon = new THREE.Mesh(balloonGeo, balloonMat);
-    balloon.castShadow = true;
+    const balloon = createItemModel(this.course.id === 'neon' ? 'star' : 'boost');
+    balloon.scale.setScalar(8); balloon.position.y = -4;
     balloonGroup.add(balloon);
 
     // Basket
@@ -575,6 +567,10 @@ export class TrackSystem {
     const basket = new THREE.Mesh(basketGeo, basketMat);
     basket.position.set(0, -11, 0);
     balloonGroup.add(basket);
+    for (const s of [-1,1]) {
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,6,6),basketMat);
+      rope.position.set(s*.8,-7.3,0);balloonGroup.add(rope);
+    }
 
     this.sceneryGroup.add(balloonGroup);
 

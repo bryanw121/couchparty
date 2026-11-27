@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/local.js",
     "build": "node build.mjs",
-    "test:kart-models": "node test/kart-models.mjs"
+    "test:kart-models": "node test/kart-models.mjs",
+    "test:kart-world": "node test/kart-items-courses.mjs",
+    "build:kart-art": "node scripts/render-item-previews.mjs && node scripts/render-course-previews.mjs"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +18,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.2.1",
     "esbuild": "^0.28.2",
     "ws": "^8.23.0"
   },

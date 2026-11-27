@@ -17,7 +17,7 @@ const MEADOW: Array<[number, number, number]> = [
 
 export const COURSES: Record<string, Course> = {
   meadow: {
-    id: 'meadow', shortcut: [142, 180], name: 'Meadow Loop', points: MEADOW,
+    id: 'meadow', shortcut: [142, 180], name: 'Mushroom Village', points: MEADOW,
     theme: {
       skyTop: 0x2f8cff, skyMid: 0x7cc8ff, skyLow: 0xd8f3ff, fog: 0xd8f3ff, ground: 0x5ccf45,
       trees: [0x3ec94e, 0x2fb543, 0x7ad94a, 0x52d17a, 0xff9ccd, 0xffd166], trunk: 0x9a5b2c,
@@ -26,7 +26,7 @@ export const COURSES: Record<string, Course> = {
     },
   },
   sunset: {
-    id: 'sunset', shortcut: [142, 180], name: 'Sunset Bay',
+    id: 'sunset', shortcut: [142, 180], name: 'Sunshine Harbor',
     // mirror image of the meadow layout with rolling dunes
     points: MEADOW.map(([x, y, z], i) => [-x, y * 1.6 + (i % 3 === 0 ? 1.5 : 0), z]),
     theme: {
@@ -37,7 +37,7 @@ export const COURSES: Record<string, Course> = {
     },
   },
   frosty: {
-    id: 'frosty', shortcut: [216, 262], name: 'Frosty Peaks',
+    id: 'frosty', shortcut: [216, 262], name: 'Snowbell Village',
     points: [
       [0, 0, 0], [0, 0, -80], [-20, 3, -130], [-70, 6, -150], [-120, 5, -120], [-130, 3, -60], [-90, 1, -20], [-60, 0, 30],
       [-100, 2, 80], [-80, 5, 140], [-20, 7, 160], [45, 5, 150], [95, 3, 120], [100, 1, 75], [60, 0, 55], [20, 0, 40],
@@ -50,7 +50,7 @@ export const COURSES: Record<string, Course> = {
     },
   },
   neon: {
-    id: 'neon', shortcut: [228, 262], name: 'Neon Night',
+    id: 'neon', shortcut: [228, 262], name: 'Rainbow Metro',
     points: [
       [0, 0, 0], [0, 0, -80], [10, 2, -150], [60, 4, -190], [120, 3, -170], [140, 1, -110], [110, 0, -60], [130, -1, 0],
       [180, 1, 40], [170, 3, 110], [110, 4, 140], [50, 2, 110], [20, 0, 140], [-40, 1, 170], [-110, 3, 155], [-165, 4, 105],
