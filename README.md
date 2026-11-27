@@ -107,3 +107,19 @@ Neon can run more than one copy of the function at once, each with its own memor
 - Long-poll TVs always go through the database, since each poll can land on any copy.
 
 Without `DATABASE_URL` (local `npm start`) everything stays in memory. Test with two simulated copies: `CP_FAST=1 node test/relay.mjs` (needs `@electric-sql/pglite`).
+
+## Kart Racer (3D)
+
+Split-screen 3D kart racing for up to 4 phones; extra players watch. Phones steer by tilting (or with ◀ ▶ buttons),
+with drift, item and brake buttons; gas is automatic by default. Items: banana, green/red/blue shells, boost, star, lightning.
+
+- The race runs on the TV in three.js (`web/kart`, built to `web-dist/kart.js` with `node build-kart.mjs`).
+- TVs load it from this public repo through jsDelivr, pinned to a commit (`web-dist/KART_REF`).
+- Needs a TV browser with 3D graphics (Fire TV, smart TV browser, laptop). The Roku app shows a note and backs out.
+- Credits: engine adapted from the MIT-licensed Arcade-Kart-Racer-3D; see `web/kart/NOTICE.md`.
+
+## Deploying page changes
+
+The server fetches the TV and phone pages from this repo at the commit in its `PAGES_REF` setting.
+After changing a page: `npm run build`, commit `web-dist/pages`, push, then set `PAGES_REF` to that commit.
+Server code changes still need a function deploy.

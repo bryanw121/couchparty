@@ -9,6 +9,7 @@ sub init()
     m.reg = CreateObject("roRegistrySection", "couchparty")
     m.turnEnds = -1
     m.musicOn = true
+    m.kartNotice = false
 
     ' Fonts: DejaVu has the card suit symbols.
     m.fontPath = "pkg:/fonts/DejaVuSans-Bold.ttf"
@@ -218,8 +219,15 @@ sub render(s as object)
     else if s.phase = "final" then
         renderFinal(s)
     else if s.g <> invalid and s.g.kind = "poker" then
+        m.kartNotice = false
         renderTable(s.g)
+    else if s.g <> invalid and s.g.kind = "kart" then
+        ' 3D races need a TV browser; tell everyone and let OK back out.
+        showScreen("lobby")
+        m.kartNotice = true
+        m.top.findNode("toast").text = "Kart Racer needs a Fire TV or browser TV. Press OK to go back."
     end if
+    if s.phase <> "game" then m.kartNotice = false
 end sub
 
 sub onToastDone()
@@ -412,6 +420,10 @@ end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     if key = "OK" then
+        if m.kartNotice = true then
+            m.net.key = "menu"
+            return true
+        end if
         m.net.key = "ok"
         return true
     else if key = "left" or key = "right" then
