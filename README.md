@@ -142,6 +142,19 @@ Cup standings and final results, even after the 3D engine is disposed. Starting 
 to the lobby changes the music. The recording is credited on the TV and in `audio/MUSIC-CREDITS.md`.
 `npm run test:kart-audio` checks the countdown samples and the celebration playback lifecycle.
 
+Each circuit has two orange trick ramps, a cyan glider ramp, a warning-marked stone crusher and a moving
+mushroom delivery cart (`courseFeatures.ts`). Aim for the middle of a ramp at speed; tap Drift **after takeoff**
+to perform a trick and earn a landing boost. Gliders open automatically; steer normally while airborne.
+The crusher leaves both outside lanes clear, and the cart can be dodged. Star/Boo/Bullet Bill protection
+and airborne height are respected by hazard and kart collisions.
+
+Time Trial saves the fastest complete run and best lap on the **current TV/browser** (`timeTrial.ts`).
+The next trial shows a translucent, non-colliding ghost of that run. Course, speed and lap count have separate
+records. These records do not sync to phones or other TVs; unavailable/full browser storage falls back to a
+session best without interrupting the race. `npm run test:kart-features` simulates complete laps on all courses,
+checks trick/glider/hazard behavior and validates ghost playback and saved-record failures.
+`node scripts/render-kart-portraits.mjs --glider` renders the actual kart/glider assembly to `public/kart-features/`.
+
 ## Deploying page changes
 
 The server fetches the TV and phone pages from this repo at the commit in its `PAGES_REF` setting.

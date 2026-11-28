@@ -137,6 +137,7 @@ export class ItemSystem {
       c.mesh.rotation.y += delta * 3;
       c.mesh.position.y = c.y + 1 + Math.sin(time * 3 + c.x) * 0.12;
       for (const r of racers) {
+        if((r.airHeight || 0) > 2)continue;
         const dx = r.position.x - c.x, dz = r.position.z - c.z;
         if (dx * dx + dz * dz < 4.5) {
           c.mesh.visible = false; c.respawn = 10;
@@ -157,6 +158,7 @@ export class ItemSystem {
       b.mesh.rotation.x = Math.sin(time * 1.3 + b.x) * 0.3;
       b.mesh.position.y = b.y + 1.2 + Math.sin(time * 2.2 + b.z) * 0.15;
       for (const r of racers) {
+        if((r.airHeight || 0) > 2)continue;
         const dx = r.position.x - b.x, dz = r.position.z - b.z;
         if (dx * dx + dz * dz < 6.5) {
           b.mesh.visible = false;
@@ -464,6 +466,7 @@ export class ItemSystem {
       if (!done) {
         for (const r of racers) {
           if (r.config.id === t.owner && t.armed > 0) continue;
+          if ((r.airHeight || 0) > 2 && t.kind !== 'blue') continue;
           const dx = r.position.x - t.x, dz = r.position.z - t.z;
           const radius = t.kind === 'blue' && r.config.id === t.target ? 2.6 : 1.7;
           if (dx * dx + dz * dz < radius * radius) {

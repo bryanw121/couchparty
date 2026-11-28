@@ -43,8 +43,8 @@ export class CameraController {
 
     if (this.currentView === 'chase') {
       // Classic 3rd person chase cam - Mario Kart 8 style dynamic framing
-      const distBehind = 5.8;
-      const height = 2.4;
+      const distBehind = playerState.isGliding ? 8.5 : 5.8;
+      const height = playerState.isGliding ? 3.6 : 2.4;
 
       // Dynamic drift camera angle swing
       const driftOffset = playerState.isDrifting ? -playerState.driftDirection * 0.9 : 0;

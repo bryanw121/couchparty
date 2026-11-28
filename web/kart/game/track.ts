@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Course, courseById } from './tracks';
 import { TrackPoint } from '../types';
 import { createItemModel } from './itemModels';
+import { CourseFeatures } from './courseFeatures';
 import {
   createRoadTexture,
   createCurbTexture,
@@ -21,6 +22,7 @@ export class TrackSystem {
   public animatedProps: Array<{ mesh: THREE.Object3D; update: (time: number, delta: number) => void }> = [];
 
   public roadWidth = 18;
+  public features: CourseFeatures;
 
   public course: Course;
   // Dirt cut-through where the road doubles back near itself: slow unless you're boosting.
@@ -51,6 +53,7 @@ export class TrackSystem {
     this.buildScenery();
     this.buildBarriers();
     this.buildShortcut();
+    this.features = new CourseFeatures(this.sceneryGroup, this);
   }
 
   private sampleTrackPoints(samples: number) {
@@ -683,6 +686,7 @@ export class TrackSystem {
   }
 
   public update(time: number, delta: number) {
+    this.features.update(delta);
     for (const prop of this.animatedProps) {
       prop.update(time, delta);
     }

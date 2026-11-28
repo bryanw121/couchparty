@@ -23,11 +23,13 @@ export class KartPhysicsEngine {
     delta: number,
     allRacers: RacerState[]
   ) {
+    this.track.features?.step(state, input, delta);
     // Spin-out recovery timer
     if (state.spinOutTimer > 0) {
       state.spinOutTimer -= delta;
       state.speed *= Math.max(0, 1 - delta * 2);
       state.rotation.y += delta * 12;
+      state.position.y = this.track.getClosestTrackPoint(state.position.x,state.position.z).point.y + .1 + (state.airHeight || 0);
       this.syncMesh(state, meshHandles, delta);
       return;
     }
@@ -38,12 +40,13 @@ export class KartPhysicsEngine {
 
     // Respawn / Reset requested
     if (input.respawn) {
+      this.track.features?.reset(state);
       this.respawnOnTrack(state);
       return;
     }
 
     const { config } = state;
-    const isGrounded = true;
+    const isGrounded = (state.airHeight || 0) < .15;
 
     // 1. Check if on road surface or grass
     const closest = this.track.getClosestTrackPoint(state.position.x, state.position.z);
@@ -73,7 +76,7 @@ export class KartPhysicsEngine {
     // Shortcut dirt: slow, unless you're boosting through it
     if (onDirt && state.boostTimer <= 0 && !(state.starTimer && state.starTimer > 0)) { effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.66); }
 
-    if (isOffTrack) {
+    if (isOffTrack && isGrounded) {
       // grass slows you down, but never to a crawl (boosts power through it)
       if (state.boostTimer <= 0) effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.66);
       accelRate *= 0.8;
@@ -135,7 +138,7 @@ export class KartPhysicsEngine {
     // Hop: pressing drift makes the kart hop; steer while airborne and you land in a drift that way
     const pressed = input.drift && !state.driftHeld;
     state.driftHeld = input.drift;
-    if (pressed && !state.isDrifting && (state.hopT || 0) <= 0 && Math.abs(state.speed) > 6) {
+    if (isGrounded && pressed && !state.isDrifting && (state.hopT || 0) <= 0 && Math.abs(state.speed) > 6) {
       state.hopT = 0.26;
       if (state.config.isPlayer && state.config.audioLead !== false) soundEngine.playCollisionSound(0.15);
     }
@@ -150,7 +153,7 @@ export class KartPhysicsEngine {
     }
 
     // Continue or Cancel Drift
-    if (state.isDrifting) {
+    if (state.isDrifting && isGrounded) {
       if (!input.drift || Math.abs(state.speed) < 8) {
         // Release Drift -> TRIGGER MINI TURBO BOOST!
         if (state.driftLevel > 0) {
@@ -225,6 +228,11 @@ export class KartPhysicsEngine {
     const vx = Math.sin(heading) * state.speed;
     const vz = Math.cos(heading) * state.speed;
 
+    if (state.isGliding) {
+      const roadHeading = Math.atan2(closest.point.tangentX, closest.point.tangentZ);
+      const difference = Math.atan2(Math.sin(roadHeading-state.rotation.y),Math.cos(roadHeading-state.rotation.y));
+      state.rotation.y += difference * Math.min(1, delta * .7);
+    }
     state.position.x += vx * delta;
     state.position.z += vz * delta;
     // Bump shove decays fast
@@ -237,7 +245,7 @@ export class KartPhysicsEngine {
     }
 
     // Follow terrain elevation smoothly
-    state.position.y = THREE.MathUtils.lerp(state.position.y, (onDirt ? scY! : closest.point.y) + 0.1, delta * 12);
+    state.position.y = (state.airHeight || 0) > 0 ? closest.point.y + 0.1 + state.airHeight! : THREE.MathUtils.lerp(state.position.y, (onDirt ? scY! : closest.point.y) + 0.1, delta * 12);
 
     // 7. Track Wall / Outer Boundary Soft Barrier Physics
     const maxBound = halfW + 10;
@@ -321,7 +329,7 @@ export class KartPhysicsEngine {
     const kartRadius = 1.35;
 
     for (const other of allRacers) {
-      if (other.config.id === state.config.id) continue;
+      if (other.config.id === state.config.id || Math.abs((state.airHeight || 0) - (other.airHeight || 0)) > 2) continue;
       if ((state.ghostTimer || 0) > 0 || (other.ghostTimer || 0) > 0) continue;
 
       const dx = state.position.x - other.position.x;
@@ -425,7 +433,7 @@ export class KartPhysicsEngine {
     rootGroup.rotation.y = state.rotation.y;
 
     // Body roll (drift lean) and pitch
-    bodyGroup.rotation.z = state.rotation.roll;
+    bodyGroup.rotation.z = state.rotation.roll + (state.trickRoll || 0);
     bodyGroup.rotation.x = state.rotation.pitch;
 
     // Wheels rotation (rolling with speed)

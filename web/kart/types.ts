@@ -33,6 +33,9 @@ export interface RacerState {
   bumpX?: number; bumpZ?: number; // sideways shove from a bump, decays quickly
   bumpedAt?: number;
   hopT?: number;
+  airHeight?: number;
+  isGliding?: boolean;
+  trickRoll?: number;
   coins?: number; // 0..10, each one a little more top speed
   rideTimer?: number; // rocket ride: auto-drive at high speed
   ghostTimer?: number; // invisible and untouchable

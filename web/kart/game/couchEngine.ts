@@ -1,3 +1,5 @@
+import { createGlider } from './courseFeatures';
+import { TimeTrial, trialKey } from './timeTrial';
 import ITEM_IMAGES from '../../../public/kart-items.json';
 import { ITEM_NAMES, createItemModel } from './itemModels';
 import { DRIVERS, resolveDriver } from '../../../src/games/kart-roster.js';
@@ -93,6 +95,7 @@ export class CouchEngine {
   private disposed = false;
   private finalLapMusic = false;
   private music: any = null;
+  private trial: TimeTrial | null = null;
   private style: { pads: BoostPad[]; update: (t: number) => void };
   private gradient = toonGradient();
   private shadows = new Map<string, THREE.Mesh>();
@@ -124,6 +127,13 @@ export class CouchEngine {
     this.scene.add(new THREE.HemisphereLight(th.hemiSky, th.ground, 0.55));
 
     this.track = new TrackSystem(this.scene, opts.course);
+    this.track.features.onEvent = (state, event) => {
+      const r = this.humans.find(r => r.state === state); if (!r) return;
+      const messages = { jump:'TAP DRIFT FOR A TRICK', glide:'GLIDER! STEER TO FLY', trick:'TRICK! LAND FOR BOOST', landing:'TRICK BOOST!', hazard:'WATCH THE OBSTACLES!' };
+      this.say(r,messages[event],event==='hazard'?'#ff9c61':'#69f1ec',event==='glide'?2200:1300);
+      if(event==='landing')soundEngine.playBoostSound();
+      if(event==='hazard')sfx.bump();
+    };
     this.scene.add(this.particles.group);
     this.physics = new KartPhysicsEngine(this.track, this.particles);
     this.physics.totalLaps = this.laps;
@@ -256,6 +266,7 @@ export class CouchEngine {
     soundEngine.stopEngine();
     this.music?.stop();
     window.removeEventListener('resize', this.onResize);
+    this.trial?.dispose();
     this.renderer.dispose();
     this.container.innerHTML = '';
   }
@@ -306,6 +317,7 @@ export class CouchEngine {
   };
 
   private update(delta: number) {
+    this.track.features.active = this.phase === 'racing';
     this.track.update(this.elapsed, delta);
     this.tickCountdown(delta);
     const states = this.racers.map((r) => r.state);
@@ -347,6 +359,7 @@ export class CouchEngine {
       if (this.phase === 'racing' && !r.state.isFinished) {
         r.state.currentLapTime += delta;
         r.state.totalRaceTime += delta;
+        if(r.human)this.trial?.capture(r.state);
         if (r.state.currentLap !== lapBefore && r.state.currentLap <= this.laps) {
           this.opts.onEvent?.({ type: 'lap', racer: r.state.config.id, lap: r.state.currentLap, final: r.state.currentLap === this.laps });
           if (r.human) this.say(r, r.state.currentLap === this.laps ? 'FINAL LAP!' : 'LAP ' + r.state.currentLap, r.state.currentLap === this.laps ? '#ffc83d' : '#ffffff', 1500);
@@ -362,6 +375,7 @@ export class CouchEngine {
             this.opts.onEvent?.({ type: 'finish', racer: r.state.config.id, rank: r.state.finishRank });
             this.say(r, r.state.finishRank === 1 ? '1ST PLACE!' : 'FINISH!', r.state.finishRank === 1 ? '#ffc83d' : '#ffffff', 2200);
             soundEngine.playFinishFanfare();
+            if(this.trial?.finish(r.state))this.say(r,this.trial.saved?'NEW RECORD SAVED!':'NEW BEST THIS SESSION!', '#69f1ec',3000);
           }
         }
       }
@@ -384,6 +398,9 @@ export class CouchEngine {
     }
     this.style.update(this.elapsed);
     for (const r of this.racers) {
+      let glider = r.handles.rootGroup.getObjectByName('kart-glider');
+      if(r.state.isGliding && !glider){glider=createGlider(r.state.config.color);r.handles.rootGroup.add(glider);}
+      if(glider)glider.visible=!!r.state.isGliding&&!r.state.isFinished;
       const riding = (r.state.rideTimer || 0) > 0;
       let bullet = r.handles.rootGroup.getObjectByName('bullet-bill-powerup');
       if (riding && !bullet) {
@@ -404,7 +421,7 @@ export class CouchEngine {
         else if (!ink && el.style.opacity === '1') { el.style.transition = 'opacity .9s'; el.style.opacity = '0'; }
       }
       const sh = this.shadows.get(r.state.config.id);
-      if (sh) { sh.position.set(r.state.position.x, r.state.position.y + 0.06, r.state.position.z); sh.rotation.z = r.state.rotation.y; sh.scale.setScalar(r.handles.rootGroup.scale.x); }
+      if (sh) { sh.position.set(r.state.position.x, r.state.position.y - (r.state.airHeight || 0) + 0.06, r.state.position.z); sh.rotation.z = r.state.rotation.y; sh.scale.setScalar(r.handles.rootGroup.scale.x); }
       const cd = (this.padCooldown.get(r.state.config.id) || 0) - delta;
       this.padCooldown.set(r.state.config.id, cd);
       if (cd <= 0 && this.phase === 'racing') {
@@ -421,6 +438,7 @@ export class CouchEngine {
         }
       }
     }
+    if(this.trial && this.phase === 'racing')this.trial.updateGhost(this.humans[0]?.state.totalRaceTime || 0);
     this.particles.update(delta);
     for (const r of this.humans) r.human!.cam.update(r.state, delta);
     if (this.humans.length === 3) this.overview.update(sorted[0].state, delta);
@@ -492,6 +510,11 @@ export class CouchEngine {
       soundEngine.playCountdownBeep(true);
       this.track.setStartingLights(4);
       this.phase = 'racing';
+      if(this.opts.cpus === false && !this.opts.autopilot && this.humans.length) {
+        let storage:Storage|null=null;try{storage=window.localStorage;}catch{}
+        this.trial=new TimeTrial(storage,trialKey(this.opts.course||'meadow',this.opts.speed||'fast',this.laps),this.scene,this.humans[0].state.config);
+        for(const r of this.humans)this.trial.capture(r.state,true);
+      }
       if (!this.opts.autopilot || this.opts.music) { this.music = new TrackMusic(this.opts.course || 'meadow'); this.music.start(); }
       // Rocket start: pressed gas during the last half second before GO
       for (const r of this.humans) {
@@ -511,6 +534,7 @@ export class CouchEngine {
     this.banner.textContent = 'FINISH!';
     this.banner.style.color = '#ffc83d';
     this.finalOrder = sorted;
+    if(this.trial?.ghost)this.trial.ghost.visible=false;
     this.music?.stop();
     soundEngine.stopEngine();
     if (!this.opts.autopilot || this.opts.music) this.opts.onCelebration?.();
@@ -609,6 +633,10 @@ export class CouchEngine {
       this.scene.add(block, plate);
       const kg = r.handles.rootGroup;
       kg.visible = true;
+      const glider=kg.getObjectByName('kart-glider'),bullet=kg.getObjectByName('bullet-bill-powerup');
+      if(glider)glider.visible=false;if(bullet)bullet.visible=false;
+      for(const part of [r.handles.bodyGroup,r.handles.frontLeftWheel,r.handles.frontRightWheel,r.handles.rearLeftWheel,r.handles.rearRightWheel])part.visible=true;
+      r.handles.bodyGroup.rotation.set(0,0,0);
       kg.position.set(block.position.x, base.y + h, block.position.z);
       kg.rotation.set(0, hd, 0);
       this.podiumKarts.push({ r, y: base.y + h, i });
@@ -823,7 +851,7 @@ export class CouchEngine {
       const spark = s.isDrifting ? ['#ffffff', '#38bdf8', '#fb923c', '#c084fc'][s.driftLevel] : 'transparent';
       const big = small ? 64 : 104;
       const placeFill = s.rank === 1 ? 'linear-gradient(#fff6a8,#ffc21a 55%,#e88a00)' : s.rank === 2 ? 'linear-gradient(#ffffff,#c9d3e6 60%,#8e9bb5)' : s.rank === 3 ? 'linear-gradient(#ffd9b3,#e08a4c 60%,#a85a2a)' : 'linear-gradient(#ffffff,#dfe7ff)';
-      const html =
+      let html =
         '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
           '<div style="width:' + (small ? 70 : 100) + 'px;height:' + (small ? 70 : 100) + 'px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#3a4a8a,#141a3a);border:5px solid #fff;box-shadow:0 0 0 4px ' + (h && !h.kind ? '#ffc83d' : '#1b1b3a') + ',0 6px 14px rgba(0,0,0,.45);padding:10px;box-sizing:border-box;position:relative">' + item + (h && h.kind && ITEM_LABEL[h.kind] ? '<div style="position:absolute;left:0;top:100%;margin-top:' + (small ? 8 : 12) + 'px;white-space:nowrap;text-shadow:0 2px 4px rgba(0,0,0,.8)"><div style="font:900 ' + (small ? 15 : 20) + 'px Inter,sans-serif;color:#fff">' + ITEM_LABEL[h.kind][0] + '</div><div style="font:700 ' + (small ? 12 : 15) + 'px Inter,sans-serif;color:#ffc83d">' + ITEM_LABEL[h.kind][1] + '</div></div>' : '') + (h && h.kind && h.count > 1 ? '<span style="position:absolute;right:-12px;bottom:-12px;font:italic 900 ' + (small ? 20 : 28) + 'px \'Space Grotesk\',Inter,sans-serif;color:#fff;-webkit-text-stroke:3px #1b1b3a;paint-order:stroke fill">×' + h.count + '</span>' : '') + '</div>' +
           '<div style="text-align:right;text-shadow:0 2px 6px rgba(0,0,0,.6)">' +
@@ -842,6 +870,7 @@ export class CouchEngine {
             '<span style="position:relative;background:' + placeFill + ';-webkit-background-clip:text;background-clip:text;color:transparent">' + ordinal(s.rank) + '</span>' +
           '</div>' +
         '</div>';
+      if(this.trial) html += '<div style="position:absolute;bottom:14px;left:18px;font:800 '+(small?14:18)+'px Inter,sans-serif;color:#7bf6f3;text-shadow:0 2px 3px #081528">TIME TRIAL · BEST '+(this.trial.best?fmtTime(this.trial.best.time):'—')+' · LAP '+(this.trial.best?.bestLap?fmtTime(this.trial.best.bestLap):'—')+(this.trial.previous?' · RACE THE GHOST':' · SET YOUR FIRST RECORD')+'</div>';
       if (r.human!.hud.innerHTML !== html) r.human!.hud.innerHTML = html;
     }
   }

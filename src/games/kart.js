@@ -16,7 +16,7 @@ const MAX_RACERS = 4;
 export const MODES = [
   { id: 'cup', name: 'Cup', blurb: '4 courses in a row · points' },
   { id: 'vs', name: 'Single Race', blurb: 'Pick one course' },
-  { id: 'tt', name: 'Time Trial', blurb: 'No CPUs, no items · beat the clock' },
+  { id: 'tt', name: 'Time Trial', blurb: 'Saved best times · race your ghost' },
 ];
 export const SPEEDS = [
   { id: 'chill', name: 'Chill', blurb: 'Relaxed · great for first-timers' },
