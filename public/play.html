@@ -582,12 +582,21 @@ function kartSend(force) {
   if (!K.active) return;
   const steer = K.steerMode === 'tilt' ? K.steer : K.stick;
   const m = { t: 'kin', s: Math.round(steer * 100) / 100, g: K.steerMode === 'tilt' ? K.gas && !K.brake : !K.brake, b: K.brake, d: K.drift, i: K.item, a: K.aim };
+  if(K.background){m.s=0;m.g=m.b=m.d=m.i=false;}
   const key = JSON.stringify(m);
   const now = Date.now();
   if (!force && (key === K.lastSent || now - K.lastAt < 20)) return;
   K.lastSent = key; K.lastAt = now;
   send(m);
 }
+function clearKartFocus(background) {
+  K.background=background;K.steer=K.stick=0;K.gas=K.brake=K.drift=K.item=false;
+  document.querySelectorAll('#kart .kpad.on').forEach(function(button){button.classList.remove('on','rev-on');});
+  kartSend(true);
+}
+window.addEventListener('blur',function(){clearKartFocus(true);});
+window.addEventListener('focus',function(){clearKartFocus(document.hidden);});
+document.addEventListener('visibilitychange',function(){clearKartFocus(document.hidden);});
 function holdButton(id, field) {
   const el = $(id);
   const on = (e) => { e.preventDefault(); K[field] = true; el.classList.add('on'); if (field !== 'left' && field !== 'right') buzz(8); kartSend(true); };

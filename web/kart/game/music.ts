@@ -66,7 +66,7 @@ export class CourseMusic {
   constructor(course: string) { this.song = SONGS[course] || SONGS.meadow;this.instrument=course==='sunset'?'marimba':course==='neon'?'brass':course==='frosty'?'marimba':'piano'; }
 
   start() {
-    const o = soundEngine.output();
+    const o = soundEngine.musicOutput();
     if (!o || this.timer) return;
     const c = (this.ctx = o.ctx);
     this.bus = c.createGain();

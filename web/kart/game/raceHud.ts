@@ -5,7 +5,7 @@ export const HUD_CSS=`
 @media(prefers-reduced-motion:reduce){.km-hud *{animation:none!important;transition:none!important}}
 `;
 export const HUD_MARKUP=`<div class="km-top"><div><div class="km-item" data-el="item"><div data-el="icon"></div><span class="km-count" data-el="count" hidden></span></div><div class="km-item-label" data-el="itemLabel"></div></div><div class="km-lap" data-el="lapBox"><div class="km-lap-main" data-el="lap"></div><div class="km-time" data-el="time"></div></div></div><div class="km-bottom"><div class="km-identity"><div class="km-player" data-el="player"></div><div class="km-tag"><div class="km-name" data-el="name"></div><div class="km-sub"><span class="km-coins"><i class="km-coin"></i><span data-el="coins"></span></span><span class="km-action" data-el="action"></span></div><div class="km-charge" data-el="charge"></div></div></div><div class="km-place" data-el="rank"></div></div><div class="km-trial" data-el="trial" hidden></div>`;
-type HudData={player:number;name:string;color:string;rank:number;lap:number;laps:number;finalLap:boolean;finished:boolean;time:string;coins:number;drifting:boolean;driftTime:number;boosting:boolean;icon:string;itemLabel:string;count:number;rolling:boolean;trial?:string};
+type HudData={player:number;name:string;color:string;rank:number;lap:number;laps:number;finalLap:boolean;finished:boolean;time:string;coins:number;drifting:boolean;driftTime:number;boosting:boolean;icon:string;itemLabel:string;count:number;rolling:boolean;warning?:string;trial?:string};
 const mounted=new WeakMap<HTMLElement,{root:HTMLElement;elements:Record<string,HTMLElement>;lastRank:number;lastIcon:string}>();
 export function updateRaceHud(host:HTMLElement,data:HudData,compact:boolean){
   let hud=mounted.get(host);
@@ -18,7 +18,7 @@ export function updateRaceHud(host:HTMLElement,data:HudData,compact:boolean){
   const text=(key:string,value:string)=>{if(e[key].textContent!==value)e[key].textContent=value;};
   root.style.setProperty('--accent',data.color);root.style.setProperty('--charge',String(data.drifting?Math.min(1,data.driftTime/2.4):data.boosting?1:0));
   text('player','P'+data.player);text('name',data.name);text('coins',String(data.coins));text('rank',data.rank+(data.rank%100>=11&&data.rank%100<=13?'th':['th','st','nd','rd'][data.rank%10]||'th'));
-  text('lap',data.finished?'FINISH!':data.finalLap?'FINAL LAP!':'LAP '+data.lap+' / '+data.laps);text('time',data.time);text('action',data.drifting?'CHARGING':data.boosting?'BOOST!':'RACING');
+  text('lap',data.finished?'FINISH!':data.finalLap?'FINAL LAP!':'LAP '+data.lap+' / '+data.laps);text('time',data.time);text('action',data.warning|| (data.drifting?'CHARGING':data.boosting?'BOOST!':'RACING'));
   text('itemLabel',data.itemLabel);text('count','×'+data.count);e.count.hidden=data.count<=1;e.item.dataset.roll=String(data.rolling);e.lapBox.dataset.final=String(data.finalLap);
   if(hud.lastIcon!==data.icon)e.icon.innerHTML=data.icon;
   e.trial.hidden=!data.trial;if(data.trial)text('trial',data.trial);

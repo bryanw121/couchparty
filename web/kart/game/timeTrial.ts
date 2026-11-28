@@ -74,5 +74,5 @@ export class TimeTrial {
     const pose=ghostPose(this.previous.samples,time);this.ghost.position.set(pose[1],pose[2],pose[3]);this.ghost.rotation.y=pose[4];
     const glider=this.ghost.getObjectByName('kart-glider');if(glider)glider.visible=!!pose[5];
   }
-  dispose(){this.ghost?.removeFromParent();if(this.ghost)this.ghost.traverse(o=>{const m=(o as THREE.Mesh);if(m.isMesh){m.geometry.dispose();for(const mat of [m.material].flat())mat.dispose();}});}
+  dispose(){this.ghost?.removeFromParent();if(this.ghost)this.ghost.traverse(o=>{const m=(o as THREE.Mesh);if(m.isMesh)for(const mat of [m.material].flat())mat.dispose();});}
 }

@@ -23,6 +23,15 @@ class SoundEngine {
   private screechSource: AudioBufferSourceNode | null = null;
 
   private masterGain: GainNode | null = null;
+  private effectsGain: GainNode | null = null;
+  private musicGain: GainNode | null = null;
+  private mix={music:.75,effects:.8};
+  public setMix(values:Partial<{music:number;effects:number}>){
+    for(const key of ['music','effects'] as const)if(Number.isFinite(values[key]))this.mix[key]=Math.max(0,Math.min(1,values[key]!));
+    if(this.ctx){this.effectsGain?.gain.setTargetAtTime(this.mix.effects,this.ctx.currentTime,.06);this.musicGain?.gain.setTargetAtTime(this.mix.music,this.ctx.currentTime,.06);}
+  }
+  private setupMix(){if(!this.ctx||!this.masterGain)return;this.effectsGain=this.ctx.createGain();this.musicGain=this.ctx.createGain();this.effectsGain.gain.value=this.mix.effects;this.musicGain.gain.value=this.mix.music;this.effectsGain.connect(this.masterGain);this.musicGain.connect(this.masterGain);}
+  public musicOutput(){this.init();return this.ctx&&this.musicGain?{ctx:this.ctx,out:this.musicGain}:null;}
   private connectMaster(){
     if(!this.ctx||!this.masterGain)return;
     if(typeof this.ctx.createDynamicsCompressor==='function'){
@@ -31,8 +40,8 @@ class SoundEngine {
     }else this.masterGain.connect(this.ctx.destination);
   }
 
-  // For the course music: the shared context and master output (null until audio starts)
-  public output(): { ctx: AudioContext; out: GainNode } | null { this.init(); return this.ctx && this.masterGain ? { ctx: this.ctx, out: this.masterGain } : null; }
+  // Effects use a dedicated mix bus; music uses musicOutput().
+  public output(): { ctx: AudioContext; out: GainNode } | null { this.init(); return this.ctx && this.masterGain ? { ctx: this.ctx, out: this.effectsGain! } : null; }
 
   constructor() {
     // Lazy init on first user interaction
@@ -45,7 +54,7 @@ class SoundEngine {
     this.ctx = ctx;
     this.masterGain = ctx.createGain();
     this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, ctx.currentTime);
-    this.connectMaster();
+    this.connectMaster();this.setupMix();
     this.setupEngineSynth();
     this.setupScreechSynth();
     this.isInitialized = true;
@@ -66,7 +75,7 @@ class SoundEngine {
       
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, this.ctx.currentTime);
-      this.connectMaster();
+      this.connectMaster();this.setupMix();
 
       this.setupEngineSynth();
       this.setupScreechSynth();
@@ -100,7 +109,7 @@ class SoundEngine {
     this.engineOsc1.connect(this.engineFilter);
     this.engineOsc2.connect(this.engineFilter);
     this.engineFilter.connect(this.engineGain);
-    this.engineGain.connect(this.masterGain);
+    this.engineGain.connect(this.effectsGain!);
 
     this.engineOsc1.start();
     this.engineOsc2.start();
@@ -131,11 +140,11 @@ class SoundEngine {
 
     this.screechSource.connect(this.screechFilter);
     this.screechFilter.connect(this.screechGain);
-    this.screechGain.connect(this.masterGain);
+    this.screechGain.connect(this.effectsGain!);
 
     this.rollingFilter=this.ctx.createBiquadFilter();this.rollingFilter.type='lowpass';this.rollingFilter.frequency.value=700;
     this.rollingGain=this.ctx.createGain();this.rollingGain.gain.value=0;
-    this.screechSource.connect(this.rollingFilter).connect(this.rollingGain).connect(this.masterGain);
+    this.screechSource.connect(this.rollingFilter).connect(this.rollingGain).connect(this.effectsGain!);
     this.screechSource.start();
   }
 
@@ -162,7 +171,7 @@ class SoundEngine {
     const c=this.ctx,t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';
     o.frequency.setValueAtTime(105,t);o.frequency.exponentialRampToValueAtTime(42,t+.18);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.13*Math.min(1,intensity),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.23);
-    o.connect(g).connect(this.masterGain);o.start(t);o.stop(t+.25);
+    o.connect(g).connect(this.effectsGain!);o.start(t);o.stop(t+.25);
   }
 
   /**
@@ -196,7 +205,7 @@ class SoundEngine {
    */
   public playCountdownBeep(isGo: boolean = false, stage = 1) {
     if (!this.ctx || !this.masterGain || this.isMuted) return;
-    playCountdownCue(this.ctx, this.masterGain, isGo, stage);
+    playCountdownCue(this.ctx, this.effectsGain!, isGo, stage);
   }
 
   /**
@@ -223,7 +232,7 @@ class SoundEngine {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(this.masterGain);
+    gain.connect(this.effectsGain!);
 
     osc.start(t);
     osc.stop(t + 0.45);
@@ -248,7 +257,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
 
     osc.connect(gain);
-    gain.connect(this.masterGain);
+    gain.connect(this.effectsGain!);
 
     osc.start(t);
     osc.stop(t + 0.2);
@@ -266,7 +275,7 @@ class SoundEngine {
       g.gain.setValueAtTime(0.0001, t + i * 0.07);
       g.gain.exponentialRampToValueAtTime(0.06, t + i * 0.07 + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.07 + 0.14);
-      o.connect(g).connect(this.masterGain!); o.start(t + i * 0.07); o.stop(t + i * 0.07 + 0.16);
+      o.connect(g).connect(this.effectsGain!); o.start(t + i * 0.07); o.stop(t + i * 0.07 + 0.16);
     });
   }
 
@@ -286,7 +295,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
 
       osc.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(this.effectsGain!);
       osc.start(t);
       osc.stop(t + 0.55);
     });
@@ -320,7 +329,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, t + note.d);
 
       osc.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(this.effectsGain!);
       osc.start(t);
       osc.stop(t + note.d + 0.05);
 

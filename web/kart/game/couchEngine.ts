@@ -1,3 +1,5 @@
+import {updateKartEffects} from './kartEffects';
+import {wrongWay} from './drivingFeedback';
 import {updateRaceHud} from './raceHud';
 import {animateDriverReaction} from './driverAnimation';
 import { createGlider } from './courseFeatures';
@@ -37,6 +39,7 @@ export interface CouchOptions {
   cpus?: boolean; // false for Time Trial
   quality?: 'low' | 'high';
   music?: boolean; // force music in autopilot/demo
+  inputTimeoutMs?: number; // zero for local event-driven controls
   practice?: boolean; // local testing never writes Time Trial records
   autopilot?: boolean; // demo / attract mode: the computer drives the player karts too
   onFinish?: (results: CouchResult[]) => void;
@@ -73,7 +76,7 @@ interface Racer {
   state: RacerState;
   handles: KartMeshHandles;
   ai?: AIController;
-  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; banner: HTMLElement; ink: HTMLElement; finishedShown: boolean; skipWas?: boolean; lastRank?: number; lastBump?: number; driftLvl?: number; wasDrifting?: boolean; onDirt?: boolean; rankCalm?: number };
+  human?: { lastInputAt?:number; disconnected?:boolean; wrongWayTime?:number; rescueAt?:number; idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; banner: HTMLElement; ink: HTMLElement; finishedShown: boolean; skipWas?: boolean; lastRank?: number; lastBump?: number; driftLvl?: number; wasDrifting?: boolean; onDirt?: boolean; rankCalm?: number };
 }
 
 export class CouchEngine {
@@ -230,7 +233,7 @@ export class CouchEngine {
         const banner = document.createElement('div');
         banner.style.cssText = 'position:absolute;pointer-events:none;text-align:center;font:italic 900 64px/1 "Space Grotesk",Inter,sans-serif;color:#fff;-webkit-text-stroke:5px #1b1b3a;paint-order:stroke fill;opacity:0;white-space:nowrap';
         this.overlay.appendChild(banner);
-        r.human = { idx: this.humans.length, cam: new CameraController(1), pad: { steer: 0, gas: false, brake: false, drift: false, item: false }, itemWas: false, gasAt: -1, hud, map, banner, ink, finishedShown: false };
+        r.human = { idx: this.humans.length, cam: new CameraController(1), lastInputAt:performance.now(),pad: { steer: 0, gas: false, brake: false, drift: false, item: false }, itemWas: false, gasAt: -1, hud, map, banner, ink, finishedShown: false };
         this.humans.push(r);
       } else {
         r.ai = new AIController(this.track, state);
@@ -245,7 +248,12 @@ export class CouchEngine {
     const r = this.humans.find((h) => h.state.config.id === id);
     if (!r || !r.human) return;
     if (pad.gas && !r.human.pad.gas) r.human.gasAt = this.countdown;
-    Object.assign(r.human.pad, pad);
+    Object.assign(r.human.pad, pad);r.human.lastInputAt=performance.now();r.human.disconnected=false;
+  }
+  public recover(id:string){
+    const racer=this.humans.find(r=>r.state.config.id===id);
+    if(!racer?.human||this.phase!=='racing'||racer.state.isFinished||performance.now()-(racer.human.rescueAt??-1e9)<5000)return false;
+    racer.human.rescueAt=performance.now();racer.human.wrongWayTime=0;this.physics.recoverRacer(racer.state);this.say(racer,'BACK ON TRACK','#8cecff',1200);return true;
   }
 
   // Place, lap and item for each phone player (sent to their phone a few times a second).
@@ -271,6 +279,7 @@ export class CouchEngine {
   }
 
   public dispose() {
+    if(this.disposed)return;
     this.disposed = true;
     cancelAnimationFrame(this.raf);
     soundEngine.stopEngine();
@@ -279,6 +288,7 @@ export class CouchEngine {
     this.trial?.dispose();
     this.artLighting?.dispose();
     this.renderer.dispose();
+    this.renderer.forceContextLoss?.();this.scene.clear();
     this.container.innerHTML = '';
   }
 
@@ -346,6 +356,10 @@ export class CouchEngine {
           if (!r.ai) r.ai = new AIController(this.track, r.state);
           input = r.ai.update(delta, states);
         } else if (r.human) {
+          const timeout=this.opts.inputTimeoutMs??2000;
+          if(timeout>0&&performance.now()-(r.human.lastInputAt??performance.now())>timeout){
+            r.human.disconnected=true;Object.assign(r.human.pad,{steer:0,gas:false,brake:false,drift:false,item:false});
+          }
           const p = r.human.pad;
           if (r.state.isFinished) input = r.ai ? r.ai.update(delta, states) : { ...idle, throttle: true };
           else input = { throttle: p.gas, brake: p.brake, steerLeft: false, steerRight: false, steer: p.steer, drift: p.drift, respawn: false, cameraToggle: false };
@@ -359,18 +373,12 @@ export class CouchEngine {
           if ((r.state.inkTimer || 0) > 0) input = { ...input, steer: (input.steer || 0) + Math.sin(this.elapsed * 3 + r.state.position.x) * 0.5 };
         }
       }
+      if(r.human)r.human.wrongWayTime=this.phase==='racing'?wrongWay(r.state,this.track,r.human.wrongWayTime||0,delta):0;
       const lapBefore = r.state.currentLap;
+      // Include the crossing frame in the lap being completed, then let physics reset its clock.
+      if(this.phase==='racing'&&!r.state.isFinished){r.state.currentLapTime+=delta;r.state.totalRaceTime+=delta;}
       this.physics.updateRacer(r.state, input, r.handles, delta, states);
-      if (r.state.starTimer && r.state.starTimer > 0) {
-        const hue = (this.elapsed * 2) % 1;
-        r.handles.bodyGroup.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial; if (m && m.emissive) { m.emissive.setHSL(hue, 1, 0.45); } });
-      } else if (r.state.starTimer !== undefined && r.state.starTimer <= 0 && r.state.starTimer > -1) {
-        r.handles.bodyGroup.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial; if (m && m.emissive) m.emissive.setRGB(0, 0, 0); });
-        r.state.starTimer = -1;
-      }
       if (this.phase === 'racing' && !r.state.isFinished) {
-        r.state.currentLapTime += delta;
-        r.state.totalRaceTime += delta;
         if(r.human)this.trial?.capture(r.state);
         if (r.state.currentLap !== lapBefore && r.state.currentLap <= this.laps) {
           this.opts.onEvent?.({ type: 'lap', racer: r.state.config.id, lap: r.state.currentLap, final: r.state.currentLap === this.laps });
@@ -421,11 +429,7 @@ export class CouchEngine {
       }
       if (bullet) bullet.visible = riding;
       for (const part of [r.handles.bodyGroup, r.handles.frontLeftWheel, r.handles.frontRightWheel, r.handles.rearLeftWheel, r.handles.rearRightWheel]) part.visible = !riding;
-      const ghost = (r.state.ghostTimer || 0) > 0;
-      if (ghost !== !!r.handles.rootGroup.userData.ghost) {
-        r.handles.rootGroup.userData.ghost = ghost;
-        r.handles.rootGroup.traverse((o) => { const m = (o as THREE.Mesh).material as THREE.Material & { opacity: number }; if (m) { m.transparent = ghost || m.transparent; m.opacity = ghost ? 0.25 : 1; } });
-      }
+      updateKartEffects(r.handles.rootGroup,r.handles.bodyGroup,(r.state.starTimer||0)>0,(r.state.ghostTimer||0)>0,this.elapsed);
       if (r.human) {
         const ink = (r.state.inkTimer || 0) > 0;
         const el = r.human.ink;
@@ -860,6 +864,7 @@ export class CouchEngine {
         player:r.human!.idx+1,name:s.config.name,color:s.config.color,rank:s.rank,lap,laps:this.laps,
         finalLap:lap===this.laps&&!s.isFinished&&this.phase==='racing',finished:s.isFinished,
         time:fmtTime(Math.floor(s.totalRaceTime*10)/10),coins:s.coins||0,drifting:s.isDrifting,
+        warning:r.human!.disconnected?'CONTROLLER LOST':(r.human!.wrongWayTime||0)>1.5?'WRONG WAY!':undefined,
         driftTime:s.driftTime,boosting:s.boostTimer>0,icon:h?ICONS[h.shown]:'',
         itemLabel:h?.kind&&ITEM_LABEL[h.kind]?ITEM_LABEL[h.kind][0]:h&&!h.kind?'ROLLING…':'ITEM',
         count:h?.count||0,rolling:!!h&&!h.kind,

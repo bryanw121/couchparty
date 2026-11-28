@@ -110,6 +110,34 @@ Without `DATABASE_URL` (local `npm start`) everything stays in memory. Test with
 
 ## Kario Mart (3D)
 
+### Holistic review and follow-up improvements
+
+This pass reviewed setup/joining, controller input, driving recovery, power-ups, race clocks/results,
+audio controls and graphics lifecycle. Findings were prioritized by player impact and reproducibility:
+
+| Finding | Implemented improvement |
+| --- | --- |
+| Solo returned directly to setup without displaying race statistics | Results table with places, race times, best laps, highlighted local player, rematch and course selection; victory music continues |
+| Setup choices were forgotten and high pixel density was always requested | Validated saved driver/course/speed/opponent/auto-gas preferences, graphics presets and Standard default |
+| One mute switch could not balance engine/effects against music | Independent saved music/effects mix buses, plus saved touch steering sensitivity |
+| A lost controller packet stream could leave throttle/steering held | Two-second remote input watchdog and phone blur/background input clearing; fresh packets restore control |
+| Players had little guidance when facing backward or getting stuck | Sustained wrong-way HUD warning, solo Recover/R with a five-second cooldown, and a short how-to panel |
+| Star/Ghost modified shared materials and did not restore all original properties | Per-kart effect material copies; exact opacity/transparency/depth-write/glow restoration |
+| Time Trial ghost cleanup disposed geometry shared with live karts | Ghost cleanup now disposes only its owned material copies |
+| Repeated races did not explicitly release their WebGL contexts | Idempotent disposal, context release and scene clearing |
+| Lap timing omitted the crossing frame; finished karts could update lap records again | Race clocks advance before physics progression, and finished progression is frozen |
+
+`npm run test:kart-review` exercises these behavior regressions with the real engine update path,
+synthetic controller loss/reconnect, shared materials/geometry, timing, cleanup and storage failure.
+The solo DOM fixture also covers results/rematch, safe text, preferences and recovery. These checks
+do not establish rendered layout, subjective audio quality, real Wi-Fi latency or mobile GPU frame rate.
+
+Remaining priorities need hands-on validation or further asset authoring: mobile portrait/landscape
+layout and touch feel; sustained two/four-player frame budgets and thermal behavior; controller loss
+on real Wi-Fi; musical balance on speakers/headphones; denser authored course scenery and full driver
+animation rigs; and AI/item-balance tuning based on human play sessions. Browser use is disabled in
+this work session, so no browser screenshot or on-device playthrough is claimed.
+
 ### Play and test on one device
 
 Open `/kart-solo` (also linked from the TV home and phone join pages). It is a CouchParty practice

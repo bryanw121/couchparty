@@ -410,6 +410,7 @@ export class KartPhysicsEngine {
   }
 
   private updateProgression(state: RacerState) {
+    if(state.isFinished)return;
     const closest = this.track.getClosestTrackPoint(state.position.x, state.position.z);
     const totalPoints = this.track.trackPoints.length;
     const currentIndex = closest.index;
@@ -460,7 +461,10 @@ export class KartPhysicsEngine {
     state.driftLevel = 0;
     state.boostTimer = 0;
     state.invulnerableTimer = 1.5;
+    state.spinOutTimer=0;state.steerSmooth=0;state.slideAngle=0;state.driftDirection=state.driftTime=0;state.hopT=0;
+    state.bumpX=state.bumpZ=0;state.boostMultiplier=1;
   }
+  public recoverRacer(state:RacerState){this.track.features?.reset(state);this.track.adventure?.reset(state);this.respawnOnTrack(state);}
 
   private syncMesh(state: RacerState, meshHandles: KartMeshHandles, delta: number) {
     const { rootGroup, bodyGroup, frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel, steeringWheel, driverHead } = meshHandles;
