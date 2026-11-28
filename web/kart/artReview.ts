@@ -26,7 +26,7 @@ try{
   }else{
    const driver=DRIVERS.find(d=>d.id===model.value)||DRIVERS[0],config={...driver,number:1};let object:THREE.Group;
    if(collection.value==='item')object=createItemModel(model.value as any);
-   else if(collection.value==='character'){object=new THREE.Group();createDriver(object,config);}
+   else if(collection.value==='character'){object=new THREE.Group();createDriver(object,config).scale.setScalar(1.18);}
    else object=createKartMesh(config).rootGroup;
    scene.add(object);const bounds=new THREE.Box3().setFromObject(object),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());const extent=Math.max(size.x,size.y,size.z);
    const floor=new THREE.Mesh(new THREE.CircleGeometry(20,80),new THREE.MeshStandardMaterial({color:0xe4f1f6,roughness:.83}));floor.rotation.x=-Math.PI/2;floor.position.y=bounds.min.y-.025;floor.receiveShadow=true;scene.add(floor);
