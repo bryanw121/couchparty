@@ -8,22 +8,25 @@ class Target {
   emit(type,event={}){for(const fn of this.listeners.get(type)||[])fn({preventDefault(){},button:0,...event});}
   setPointerCapture(){if(this.failCapture)throw Error('capture unavailable');}
   hasPointerCapture(){return false;}
-  getBoundingClientRect(){return {top:0,bottom:100,height:100};}
+  getBoundingClientRect(){return {left:0,top:0,bottom:100,height:100,width:200};}
 }
 const html=fs.readFileSync('public/play.html','utf8'),nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,new Target());return nodes.get(id);};
 const win=new Target(),doc=new Target();doc.hidden=false;doc.querySelectorAll=()=>[...nodes.values()];
 const sent=[],K={active:true,steerMode:'stick',stick:0,brake:false,aim:'front'};
 const context=vm.createContext({K,$,window:win,document:doc,Date,send:m=>sent.push(m),buzz(){},setSteerMode(){}});
 vm.runInContext(html.slice(html.indexOf('function kartSend(force)'),html.indexOf("$('kRecenter').onclick")),context);
-const stick=$('kStick'),gas=$('kGas'),drift=$('kDrift');
+const stick=$('kStick'),gas=$('kGas'),drift=$('kDrift'),brake=$('kBrake');
 stick.emit('pointerdown',{pointerId:1,clientX:100,clientY:100});
-stick.emit('pointermove',{pointerId:1,clientX:150,clientY:160});assert.equal(K.brake,true);assert.ok(K.stick<0);
+assert.equal(K.stick,0,'floating origin is wherever the thumb lands');
+assert.equal($('kStickBase').style.left,'100px');
+stick.emit('pointermove',{pointerId:1,clientX:150,clientY:160});assert.equal(K.brake,false,'vertical steering travel never brakes');assert.ok(K.stick<0);
 stick.emit('pointerdown',{pointerId:2,clientX:300,clientY:300});
-win.emit('pointerup',{pointerId:2});assert.equal(K.brake,true,'second finger cannot steal or release steering');
+win.emit('pointerup',{pointerId:2});assert.equal(K.stick,-50/70,'second finger cannot steal or release steering');
 stick.emit('lostpointercapture',{pointerId:1});assert.equal(K.stick,0);assert.equal(K.brake,false);
 // Capture failure still receives a release outside the control.
-gas.failCapture=true;gas.emit('pointerdown',{pointerId:3,clientY:99});assert.equal(K.brake,true);
-win.emit('pointerup',{pointerId:3});assert.equal(K.brake,false);assert.equal(K.gas,false);
+brake.failCapture=true;brake.emit('pointerdown',{pointerId:3,clientY:99});assert.equal(K.brake,true);
+win.emit('pointerup',{pointerId:3});assert.equal(K.brake,false);
+brake.emit('pointerdown',{pointerId:30});stick.emit('pointerdown',{pointerId:31,clientX:100,clientY:50});stick.emit('pointermove',{pointerId:31,clientX:130,clientY:100});assert.equal(K.brake,true,'steering cannot release a held Brake');win.emit('pointerup',{pointerId:31});assert.equal(K.brake,true,'steering release cannot release Brake');win.emit('pointerup',{pointerId:30});assert.equal(K.brake,false);
 // Steering + drift + item remain independent.
 stick.emit('pointerdown',{pointerId:4,clientX:50,clientY:50});
 stick.emit('pointermove',{pointerId:4,clientX:0,clientY:50});
@@ -34,11 +37,14 @@ win.emit('focus');stick.emit('pointerdown',{pointerId:7,clientX:50,clientY:50});
 stick.emit('pointermove',{pointerId:7,clientX:100,clientY:100});assert.ok(K.stick<0);
 win.emit('pagehide');assert.equal(K.stick,0);assert.equal(K.brake,false);
 win.emit('pageshow');assert.equal(K.background,false);
-gas.emit('pointerdown',{pointerId:8,clientY:99});context.clearKartFocus(false);assert.equal(K.brake,false);
-gas.emit('pointermove',{pointerId:8,clientY:99});assert.equal(K.brake,false,'old gesture cannot revive after reset');
+brake.emit('pointerdown',{pointerId:8,clientY:99});context.clearKartFocus(false);assert.equal(K.brake,false);
+brake.emit('pointermove',{pointerId:8,clientY:99});assert.equal(K.brake,false,'old gesture cannot revive after reset');
 gas.emit('pointerdown',{pointerId:9,clientY:1});assert.equal(K.gas,true);
 gas.emit('lostpointercapture',{pointerId:8});assert.equal(K.gas,true,'stale lost-capture cannot cancel a new gesture');
 win.emit('pointerup',{pointerId:9});assert.equal(K.gas,false);
+brake.emit('pointerdown',{pointerId:40});gas.emit('pointerdown',{pointerId:41,clientY:0});
+assert.equal(K.brake,true,'drive pad cannot cancel Brake');win.emit('pointerup',{pointerId:41});assert.equal(K.brake,true);
+win.emit('orientationchange');assert.equal(K.brake,false,'rotation clears all held gestures');
 context.screen={orientation:{angle:0}};
 vm.runInContext(html.slice(html.indexOf('function tiltAngle(e)'),html.indexOf('async function enableTilt()')),context);
 K.steerMode='tilt';K.steer=1;K.ref=0;

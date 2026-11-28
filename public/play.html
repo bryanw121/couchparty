@@ -169,6 +169,31 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
 .spinner { width: 36px; height: 36px; border: 4px solid #3A3F63; border-top-color: #FFC83D; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .kmh .t,.kmcard .n,.kmbig,.kpad{font-family:"Arial Black","Space Grotesk",Arial,sans-serif;letter-spacing:.025em}.kmh .t{color:#fff;text-shadow:0 3px 0 #244675;text-transform:uppercase}.kmcard.sel{box-shadow:0 0 0 2px #ffc83d44,inset 0 2px 0 #ffffff22}.kmbig:not(.alt){box-shadow:0 4px 0 #976110,inset 0 2px 0 #fff6b1;text-shadow:0 1px 0 #ffffff44;transition:transform .12s,box-shadow .12s}.kmbig:active{transform:translateY(2px);box-shadow:0 2px 0 #976110}.kpad{text-shadow:0 1px 0 #ffffff55}.kmcard .d,.kmwait{line-height:1.4}@media(prefers-reduced-motion:reduce){.kmbig,.kmcard,.kpad{transition:none!important;animation:none!important}}
+
+/* Large thumb zones: round face-button art sits inside the full touch target. */
+#kGrid .kpads{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:12px}
+#kGrid .kface{grid-template-rows:minmax(0,1fr) minmax(0,1fr) minmax(52px,.34fr);grid-template-areas:"item" "drift" "brake";gap:10px;padding-top:14px}
+#kGrid .kbtn2{border-radius:24px;min-height:0;gap:4px}
+#kGrid .kbtn2>*{pointer-events:none}
+#kGrid .kbtn2.item{background:linear-gradient(150deg,#26355b,#1b2744);border:2px solid #587ab5;flex-direction:row;gap:12px}
+#kGrid .kbtn2.item.has{border-color:#ffd34e;box-shadow:inset 0 -6px 0 #0003,0 0 0 2px #ffd34e44}
+#kGrid .kbtn2.item .ic{height:42%;max-height:64px}
+#kGrid .kbtn2.item .lb,#kGrid .kbtn2.item .ic:empty+.lb{font-size:clamp(15px,3vw,24px);color:#edf3ff}
+#kGrid .kbtn2.drift{background:linear-gradient(145deg,#f2c1d5,#b95683);color:#301c37;flex-direction:row;flex-wrap:wrap;column-gap:12px;font-size:clamp(20px,4vw,32px)}
+#kGrid .kbtn2.drift small{flex-basis:100%;margin-top:-6px;color:#40203e}
+#kGrid .kletter{width:clamp(40px,9vh,70px);aspect-ratio:1;flex-shrink:0;display:grid;place-items:center;background:radial-gradient(circle at 35% 25%,#d85c8d,#8b2655);border:2px solid #6e2245;border-radius:50%;box-shadow:0 4px 0 #561b39,inset 0 2px 1px #ffb7d144;color:#fff;font:italic 900 clamp(23px,5vh,38px) Arial,sans-serif}
+#kGrid .kbtn2.brake{grid-area:brake;min-height:52px;background:#36425a;color:#e9eef8;font:800 14px Arial,sans-serif;border:2px solid #65738c;box-shadow:inset 0 -4px 0 #0003;margin-top:4px}
+#kGrid .kitemhint{top:-3px;bottom:auto;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#kGrid .kstick{background:radial-gradient(ellipse,#26395d,#17263e);border:2px solid #4c6388}
+#kGrid .kstick .base{width:min(190px,75cqw,65cqh);top:46%;pointer-events:none}
+#kGrid .kstick .hint{color:#b5c9e4;padding:0 8px;font-size:12px;pointer-events:none}
+#kGrid .kstick .arrow.d{display:none}
+#kGrid.tiltmode .kpads{grid-template-columns:1fr}
+#kGrid.tiltmode .kface{grid-template-columns:1fr 1fr;grid-template-areas:"item drive" "drift drive" "brake brake"}
+#kGrid .kbtn2.gas .rev{background:transparent;color:#183e36;font-size:11px}
+@media(orientation:portrait){#kGrid .kbar{flex-wrap:wrap;gap:6px}#kGrid .kmode button{padding:7px 10px}#kGrid .kpads{gap:8px}#kGrid .kface{gap:8px}#kGrid .kbtn2.item{flex-direction:column;gap:4px}#kGrid .kbtn2.drift{flex-direction:column;flex-wrap:nowrap;gap:7px}#kGrid .kbtn2.drift small{flex-basis:auto;margin:0;font-size:9px!important}#kGrid .kletter{width:clamp(44px,14vw,68px)}#kGrid .kstick .hint{font-size:11px}}
+@media(max-height:420px){#kart.on{padding-top:max(5px,env(safe-area-inset-top));padding-bottom:max(5px,env(safe-area-inset-bottom))}#kGrid{gap:4px}#kGrid .kbar{min-height:36px}#kGrid .kface{padding-top:10px;gap:6px;grid-template-rows:minmax(0,1fr) minmax(0,1fr) 48px}#kGrid .kbtn2.brake{min-height:48px;margin:0}#kGrid .kbtn2.drift small{display:none}#kGrid .kletter{width:40px}#kGrid .kstick .hint{font-size:10px;bottom:6px}}
+
 </style>
 </head>
 <body>
@@ -230,16 +255,17 @@ input[type=range] { width: 100%; height: 44px; accent-color: #FFC83D; }
         <span style="flex:1"></span>
         <button class="kpill" id="kRecenter">Recenter</button>
         <button class="kpill hot" id="kTiltBtn" style="display:none">Turn on tilt</button>
-        <div class="kmode" id="kMode"><button data-km="tilt">Tilt</button><button data-km="stick">Stick</button></div>
+        <div class="kmode" id="kMode"><button data-km="tilt">Tilt</button><button data-km="stick">Joystick</button></div>
       </div>
       <div class="kpads">
         <div class="kzone" id="kLeft">
-          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base"><div class="ring"></div><i class="arrow l" id="kArrL"></i><i class="arrow r" id="kArrR"></i><i class="arrow d" id="kArrD"></i><div class="knob" id="kKnob"></div></div><div class="hint">Steer ◀ ▶ · pull ▼ to reverse · drives itself</div></div>
+          <div class="kstick" id="kStick" aria-label="Steering stick"><div class="base" id="kStickBase"><div class="ring"></div><i class="arrow l" id="kArrL"></i><i class="arrow r" id="kArrR"></i><i class="arrow d" id="kArrD"></i><div class="knob" id="kKnob"></div></div><div class="hint">Touch anywhere here · slide ◀ ▶ · auto accelerate</div></div>
         </div>
         <div class="kface" id="kRight">
-          <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="half top">▲ AHEAD</span><span class="half bot">▼ BEHIND</span><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
-          <button class="kbtn2 gas" id="kGas" aria-label="Drive"><span class="lb">DRIVE</span><span class="rev">▼ REVERSE</span></button>
-          <button class="kbtn2 drift" id="kDrift" aria-label="Drift on the ground, tap for a trick in the air"><span class="lb">DRIFT</span><small style="font:800 10px sans-serif;pointer-events:none">TAP IN AIR: TRICK</small></button>
+          <button class="kbtn2 item" id="kItem" aria-label="Use item"><span class="half top">▲ AHEAD</span><span class="half bot">▼ BEHIND</span><span class="kletter" aria-hidden="true">B</span><span class="ic" id="kItemIcon"></span><span class="lb" id="kItemName">ITEM</span></button>
+          <button class="kbtn2 gas" id="kGas" aria-label="Drive"><span class="lb">DRIVE</span><span class="rev">HOLD TO ACCELERATE</span></button>
+          <button class="kbtn2 drift" id="kDrift" aria-label="Drift on the ground, tap for a trick in the air"><span class="kletter" aria-hidden="true">A</span><span class="lb">DRIFT</span><small style="font:800 10px sans-serif;pointer-events:none">TAP IN AIR: TRICK</small></button>
+          <button class="kbtn2 brake" id="kBrake" aria-label="Hold to brake, keep holding to reverse"><span>BRAKE / REVERSE</span></button>
           <div class="kitemhint" id="kItemHint"></div>
         </div>
       </div>
@@ -357,7 +383,7 @@ const settingsLine = (g) => { const st = S.settings && S.settings[g.id]; return 
 
 /* ---------- Kario Mart controller ---------- */
 const K = {
-  steerMode: store.get('cp_steer') === 'tilt' ? 'tilt' : store.get('cp_steer') ? 'stick' : 'tilt', // tilt | stick
+  steerMode: store.get('cp_steer') === 'tilt' ? 'tilt' : 'stick', // tilt | stick
   stick: 0, stickId: null, stickX: 0,
   autoGas: store.get('cp_autogas') !== 'off',
   raceId: null, active: false, steer: 0, ref: null, raw: null,
@@ -623,12 +649,14 @@ function clearKartFocus(background) {
   K.left=K.right=false; K.aim='front'; K.ref=null; K.lastMotionAt=0;
   document.querySelectorAll('#kart .on, #kart .held, #kart .rev-on, #kart .aim-front, #kart .aim-back').forEach(function(button){button.classList.remove('on','held','rev-on','aim-front','aim-back');});
   $('kKnob').style.transform=''; $('kTiltDot').style.transform='';
+  $('kStickBase').style.left='50%';$('kStickBase').style.top='46%';
   kartSend(true);
 }
 window.addEventListener('blur',function(){clearKartFocus(true);});
 window.addEventListener('focus',function(){clearKartFocus(document.hidden);});
 window.addEventListener('pagehide',function(){clearKartFocus(true);});
 window.addEventListener('pageshow',function(){clearKartFocus(document.hidden);});
+window.addEventListener('orientationchange',function(){clearKartFocus(document.hidden);});
 document.addEventListener('visibilitychange',function(){clearKartFocus(document.hidden);});
 function holdButton(id, field) {
   const el = $(id);
@@ -636,12 +664,12 @@ function holdButton(id, field) {
     () => { K[field]=false; el.classList.remove('on'); kartSend(true); });
 }
 holdButton('kDrift', 'drift');
-// Drive pad (tilt mode): hold to drive; slide into the bottom strip to reverse.
+holdButton('kBrake', 'brake');
+// Tilt mode keeps its optional hold-to-drive pad; Brake owns its own state.
 (function () {
-  const el = $('kGas');
-  const at = (e) => { const r=el.getBoundingClientRect(), rev=e.clientY > r.bottom-r.height*.26; K.brake=rev; K.gas=!rev; el.classList.toggle('rev-on',rev); kartSend(true); };
-  bindKartPointer(el, (e) => { el.classList.add('on'); at(e); }, at,
-    () => { K.gas=K.brake=false; el.classList.remove('on','rev-on'); kartSend(true); });
+  const el=$('kGas');
+  bindKartPointer(el,()=>{K.gas=true;el.classList.add('on');buzz(8);kartSend(true);},null,
+    ()=>{K.gas=false;el.classList.remove('on');kartSend(true);});
 })();
 (function () {
   const el=$('kItem');
@@ -651,19 +679,18 @@ holdButton('kDrift', 'drift');
 })();
 $('kMode').onclick = (e) => { const b=e.target.closest('button'); if(b && b.dataset.km!==K.steerMode) setSteerMode(b.dataset.km); };
 (function () {
-  const pad=$('kStick'),knob=$('kKnob'),RANGE=70;
+  const pad=$('kStick'),knob=$('kKnob'),base=$('kStickBase'),RANGE=70;
   const move=(e) => {
     const dx=Math.max(-RANGE,Math.min(RANGE,e.clientX-K.stickX));
-    const dy=Math.max(0,Math.min(RANGE*.8,e.clientY-K.stickY));
+    const dy=Math.max(-25,Math.min(25,e.clientY-K.stickY));
     K.stick=-dx/RANGE;
-    const rev=dy>RANGE*.45;
-    if(rev!==K.brake){K.brake=rev; buzz(rev?20:6);}
+    // Vertical thumb travel never brakes; only the dedicated strip can brake.
     knob.style.transform=`translate(${dx}px, ${dy}px) rotate(${dx/RANGE*12}deg)`;
-    $('kArrL').classList.toggle('on',K.stick>.2); $('kArrR').classList.toggle('on',K.stick<-.2); $('kArrD').classList.toggle('on',rev);
+    $('kArrL').classList.toggle('on',K.stick>.2); $('kArrR').classList.toggle('on',K.stick<-.2);
     kartSend();
   };
-  bindKartPointer(pad, (e) => { K.stickId=e.pointerId; K.stickX=e.clientX; K.stickY=e.clientY; K.stick=0; K.brake=false; pad.classList.add('held'); buzz(6); kartSend(true); }, move,
-    () => { K.stickId=null; K.stick=0; K.brake=false; pad.classList.remove('held'); knob.style.transform=''; for(const id of ['kArrL','kArrR','kArrD']) $(id).classList.remove('on'); kartSend(true); });
+  bindKartPointer(pad, (e) => { K.stickId=e.pointerId; K.stickX=e.clientX; K.stickY=e.clientY; K.stick=0; const box=pad.getBoundingClientRect();base.style.left=(e.clientX-box.left)+'px';base.style.top=(e.clientY-box.top)+'px';pad.classList.add('held'); buzz(6); kartSend(true); }, move,
+    () => { K.stickId=null; K.stick=0; base.style.left='50%';base.style.top='46%';pad.classList.remove('held'); knob.style.transform=''; for(const id of ['kArrL','kArrR','kArrD']) $(id).classList.remove('on'); kartSend(true); });
 })();
 $('kRecenter').onclick = () => { K.ref = K.raw; buzz(15); };
 $('kTiltBtn').onclick = () => enableTilt();

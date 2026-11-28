@@ -112,6 +112,12 @@ Without `DATABASE_URL` (local `npm start`) everything stays in memory. Test with
 
 ### Holistic review and follow-up improvements
 
+Phone controls now default to a floating joystick on the left, with full-width B/Item and A/Drift
+touch zones on the right and a separate Brake/Reverse strip. The circular letters are visual
+markers; the entire rectangular zones accept touches. Moving the steering thumb down never
+brakes. Each gesture keeps its own pointer until release/cancel, and vibration feedback is
+used where the browser supports it. Same-device play uses the same layout and floating origin.
+
 This pass reviewed setup/joining, controller input, driving recovery, power-ups, race clocks/results,
 audio controls and graphics lifecycle. Findings were prioritized by player impact and reproducibility:
 
