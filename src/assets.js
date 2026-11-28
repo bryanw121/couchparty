@@ -3,7 +3,7 @@
 export function assetType(path) {
   return ['web-dist/kart.js','web-dist/kart-art-review.js','web-dist/kart-solo.js'].includes(path)
     ? 'text/javascript; charset=utf-8'
-    : ['audio/kart-instrumental-preview.wav','audio/kart-countdown-preview.wav'].includes(path) ? 'audio/wav'
+    : ['audio/kart-instrumental-preview.wav','audio/kart-countdown-preview.wav','audio/kart-driver-voices-preview.wav'].includes(path) ? 'audio/wav'
     : /^audio\/(?:kart-(?:meadow|sunset|frosty|neon|menu|victory)|lobby)\.mp3$/.test(path)
       ? 'audio/mpeg' : ['public/art-review/four-player-lighting-study.png','public/art-review/presentation-study.png'].includes(path) ? 'image/png' : null;
 }

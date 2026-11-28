@@ -19,6 +19,7 @@ import { soundEngine } from './audio';
 import { ItemSystem, ItemEvent, ItemKind } from './items';
 import { courseById } from './tracks';
 import { sfx } from './sfx';
+import {DriverVoiceDirector,type DriverCall} from './driverVoice';
 import { TrackMusic, preloadCourseTrack } from './music';
 import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
 import { configureArtRenderer, addArtLighting } from './artDirection';
@@ -102,7 +103,9 @@ export class CouchEngine {
   private elapsed = 0;
   private disposed = false;
   private paused=false;
-  public setPaused(value:boolean){this.paused=value;this.music?.setPaused?.(value);if(value)soundEngine.stopEngine();}
+  private voices=new DriverVoiceDirector();
+  private voice(r:Racer,call:DriverCall){if(!this.disposed&&!this.paused&&(!this.opts.autopilot||this.opts.music))this.voices?.play(r.state.config.id,r.state.config.topper||'cap',call);}
+  public setPaused(value:boolean){this.paused=value;this.music?.setPaused?.(value);if(value){soundEngine.stopEngine();this.voices?.stop();}}
   private whenRunning(action:()=>void){if(this.disposed)return;if(this.paused){setTimeout(()=>this.whenRunning(action),250);return;}action();}
   private artLighting?: {dispose:()=>void};
   private finalLapMusic = false;
@@ -144,6 +147,8 @@ export class CouchEngine {
       const messages = { jump:'TAP DRIFT FOR A TRICK', glide:'GLIDER! STEER TO FLY', trick:'TRICK! LAND FOR BOOST', landing:'TRICK BOOST!', hazard:'WATCH THE OBSTACLES!' };
       this.say(r,messages[event],event==='hazard'?'#ff9c61':'#69f1ec',event==='glide'?2200:1300);
       if(event==='landing')soundEngine.playBoostSound();
+      if(event==='trick')this.voice(r,'trick');
+      if(event==='hazard')this.voice(r,'hit');
       if(event==='hazard')sfx.bump();
     };
     this.scene.add(this.particles.group);
@@ -281,6 +286,7 @@ export class CouchEngine {
   public dispose() {
     if(this.disposed)return;
     this.disposed = true;
+    this.voices?.stop();
     cancelAnimationFrame(this.raf);
     soundEngine.stopEngine();
     this.music?.stop();
@@ -394,6 +400,7 @@ export class CouchEngine {
             if (this.firstHumanFinishAt < 0) this.firstHumanFinishAt = this.elapsed;
             this.opts.onEvent?.({ type: 'finish', racer: r.state.config.id, rank: r.state.finishRank });
             this.say(r, r.state.finishRank === 1 ? '1ST PLACE!' : 'FINISH!', r.state.finishRank === 1 ? '#ffc83d' : '#ffffff', 2200);
+            this.voice(r,'finish');
             soundEngine.playFinishFanfare();
             if(this.trial?.finish(r.state))this.say(r,this.trial.saved?'NEW RECORD SAVED!':'NEW BEST THIS SESSION!', '#69f1ec',3000);
           }
@@ -526,6 +533,7 @@ export class CouchEngine {
       soundEngine.playCountdownBeep(true);
       this.track.setStartingLights(4);
       this.phase = 'racing';
+      if(this.humans[0])this.voice(this.humans[0],'start');
       if(this.opts.cpus === false && !this.opts.autopilot && !this.opts.practice && this.humans.length) {
         let storage:Storage|null=null;try{storage=window.localStorage;}catch{}
         this.trial=new TimeTrial(storage,trialKey(this.opts.course||'meadow',this.opts.speed||'fast',this.laps),this.scene,this.humans[0].state.config);
@@ -717,11 +725,11 @@ export class CouchEngine {
     this.opts.onEvent?.(e);
     const me = this.humans.find((r) => r.state.config.id === e.racer);
     const by = e.by ? this.humans.find((r) => r.state.config.id === e.by) : undefined;
-    const topper = (r?: Racer) => r && r.state.config.topper;
     const human = (r?: Racer) => !!r && !r.state.isFinished;
+    if(e.type==='use'&&human(me))this.voice(me!,['boost','golden','ride'].includes(e.item||'')?'boost':'item');
     if (e.type === 'hit') {
-      if (me) { this.say(me, e.item === 'blue' ? 'ZAPPED!' : 'HIT!', '#ff5d5d'); if (human(me)) sfx.ouch(topper(me)); }
-      if (by && by !== me) { this.say(by, 'NICE HIT!', '#5ee6c8'); setTimeout(() => sfx.cheer(topper(by)), me ? 450 : 0); }
+      if (me) { this.say(me, e.item === 'blue' ? 'ZAPPED!' : 'HIT!', '#ff5d5d'); if (human(me)) {sfx.ouch();this.voice(me,'hit');} }
+      if (by && by !== me) { this.say(by, 'NICE HIT!', '#5ee6c8'); this.voice(by,'overtake'); }
     } else if (e.type === 'use' && human(me) && ['banana', 'fake', 'green', 'red', 'blue', 'bomb'].includes(e.item || '')) {
       sfx.throwItem(e.item, e.aim === 'back' || ((e.item === 'banana' || e.item === 'fake') && e.aim !== 'front'));
     } else if (e.type === 'pickup' && human(me)) sfx.pickup(); else if (e.type === 'block' && me) this.say(me, 'BLOCKED!', '#8fb4ff', 900);
@@ -783,7 +791,7 @@ export class CouchEngine {
       if (s.isFinished) continue;
       // overtakes (debounced so jostling doesn't spam)
       h.rankCalm = (h.rankCalm || 0) - 1;
-      if (h.lastRank !== undefined && s.rank < h.lastRank && h.rankCalm <= 0) { sfx.overtake(); this.say(r, s.rank === 1 ? 'TAKE THE LEAD!' : 'OVERTAKE!', '#5ee6c8'); this.emit({ type: 'overtake', racer: id, rank: s.rank }); h.rankCalm = 45; }
+      if (h.lastRank !== undefined && s.rank < h.lastRank && h.rankCalm <= 0) { sfx.overtake(); this.voice(r,'overtake'); this.say(r, s.rank === 1 ? 'TAKE THE LEAD!' : 'OVERTAKE!', '#5ee6c8'); this.emit({ type: 'overtake', racer: id, rank: s.rank }); h.rankCalm = 45; }
       h.lastRank = s.rank;
       // bumps
       if (s.bumpedAt && s.bumpedAt !== h.lastBump) { h.lastBump = s.bumpedAt; this.emit({ type: 'bump', racer: id }); }
@@ -793,6 +801,7 @@ export class CouchEngine {
       if (h.wasDrifting && !s.isDrifting && (h.driftLvl || 0) > 0) {
         const lv = h.driftLvl || 1;
         this.say(r, lv === 3 ? 'ULTRA BOOST!' : lv === 2 ? 'SUPER BOOST!' : 'BOOST!', lv === 3 ? '#c084fc' : lv === 2 ? '#fb923c' : '#38bdf8', 800);
+        this.voice(r,'boost');
         this.emit({ type: 'mtboost', racer: id, level: lv });
         h.driftLvl = 0;
       }

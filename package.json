@@ -22,7 +22,9 @@
     "test:kart-audio-upgrades": "node test/kart-audio-upgrades.mjs",
     "test:kart-solo": "node test/kart-solo.mjs",
     "test:kart-review": "node test/kart-review.mjs",
-    "test:kart-controller": "node test/kart-controller.mjs"
+    "test:kart-controller": "node test/kart-controller.mjs",
+    "test:kart-driver-voices": "node test/kart-driver-voices.mjs",
+    "build:driver-voice-preview": "node scripts/render-driver-voice-preview.mjs"
   },
   "keywords": [],
   "author": "",

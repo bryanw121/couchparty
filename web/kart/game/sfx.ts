@@ -1,12 +1,6 @@
 import { soundEngine } from './audio';
 
-// Race sound effects, synthesized live (no files). Voices are little formant-synth
-// "yahoo!" / "whoa!" calls, pitched per driver so you can tell who is cheering.
-
-const VOICE: Record<string, number> = { cat: 330, bunny: 400, crown: 210, horns: 190, bow: 370, antenna: 290, cap: 300, bear: 150 };
-const VOWEL: Record<string, [number, number, number]> = {
-  a: [800, 1150, 2800], o: [450, 800, 2830], u: [325, 700, 2530], e: [400, 2000, 2550], i: [300, 2300, 3000], h: [600, 1400, 2600],
-};
+// Shared vehicle/item effects; driver calls live in driverVoice.ts.
 let noiseBuf: AudioBuffer | null = null;
 let lastBeep = 0;
 
@@ -42,45 +36,12 @@ function hiss(at: number, len: number, vol: number, type: BiquadFilterType, f0: 
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
   s.connect(f).connect(g).connect(o.out); s.start(t, Math.random() * 0.5); s.stop(t + len + 0.05);
 }
-// One voiced syllable: pitch glide f0→f1 through vowel formants v0→v1
-function syllable(at: number, len: number, f0: number, f1: number, v0: string, v1: string, vol: number) {
-  const o = out(); if (!o) return;
-  const c = o.ctx, t = c.currentTime + at;
-  const src = c.createOscillator(), vib = c.createOscillator(), vibG = c.createGain(), g = c.createGain();
-  src.type = 'sawtooth';
-  src.frequency.setValueAtTime(f0, t); src.frequency.exponentialRampToValueAtTime(f1, t + len);
-  vib.frequency.value = 6; vibG.gain.value = f0 * 0.025; vib.connect(vibG).connect(src.frequency);
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.03);
-  g.gain.setValueAtTime(vol, t + len * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-  g.connect(o.out);
-  const A = VOWEL[v0], B = VOWEL[v1];
-  A.forEach((fa, i) => {
-    const bp = c.createBiquadFilter(), bg = c.createGain();
-    bp.type = 'bandpass'; bp.Q.value = 9;
-    bp.frequency.setValueAtTime(fa, t); bp.frequency.linearRampToValueAtTime(B[i], t + len * 0.6);
-    bg.gain.value = [1, 0.6, 0.25][i] * 3;
-    src.connect(bp).connect(bg).connect(g);
-  });
-  src.start(t); vib.start(t); src.stop(t + len + 0.05); vib.stop(t + len + 0.05);
-}
-const pitch = (topper?: string) => (VOICE[topper || 'cap'] || 280) * (0.97 + Math.random() * 0.06);
-
 export const sfx = {
-  // Your item landed on someone: "ya-hoo!"
-  cheer(topper?: string) {
-    const p = pitch(topper);
-    syllable(0, 0.16, p * 1.1, p * 1.35, 'i', 'a', 0.22);
-    syllable(0.17, 0.42, p * 1.6, p * 1.25, 'h', 'u', 0.24);
-    [0, 4, 7, 12].forEach((s, i) => tone('triangle', 880 * Math.pow(2, s / 12), 880 * Math.pow(2, s / 12), 0.08 + i * 0.06, 0.18, 0.05));
-  },
-  // You got hit: crash, then "whoa-oh!" and a spin-out slide whistle down
-  ouch(topper?: string) {
-    const p = pitch(topper);
-    hiss(0, 0.35, 0.35, 'lowpass', 1800, 200);
-    tone('sine', 160, 40, 0, 0.3, 0.45);
-    syllable(0.1, 0.22, p * 1.4, p * 1.2, 'o', 'a', 0.2);
-    syllable(0.33, 0.4, p * 1.15, p * 0.7, 'o', 'u', 0.2);
-    tone('sine', 1400, 300, 0.15, 0.7, 0.07);
+  // Impact sound only; the character reaction uses the voice director.
+  ouch() {
+    hiss(0,0.35,0.35,'lowpass',1800,200);
+    tone('sine',160,40,0,0.3,0.45);
+    tone('sine',1400,300,0.15,0.7,0.07);
   },
   // Throwing / dropping / firing an item
   throwItem(kind?: string, back?: boolean) {
