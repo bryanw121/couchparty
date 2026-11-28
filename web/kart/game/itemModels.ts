@@ -43,7 +43,8 @@ export function createItemModel(kind: ItemKind | 'box'): THREE.Group {
       const contour=shape.getPoints(8);contour.pop();
       const vertices:number[]=[],indices:number[]=[],count=contour.length,rings=14;
       for(const side of [1,-1])for(let ring=0;ring<=rings;ring++)for(const p of contour) {
-        const t=ring/rings;vertices.push(p.x*t,.73+(p.y-.73)*t,side*(.1+.19*Math.sqrt(1-t*t)));
+        const t=ring/rings,x=p.x*t,y=(p.y-.73)*t;
+        vertices.push(x,.73+y,side*(.12+.17*Math.max(0,1-(x*x+y*y)/(.72*.72))));
       }
       const faceSize=(rings+1)*count;
       for(let side=0;side<2;side++)for(let ring=0;ring<rings;ring++)for(let j=0;j<count;j++) {
