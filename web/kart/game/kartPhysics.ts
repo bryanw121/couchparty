@@ -41,11 +41,13 @@ export class KartPhysicsEngine {
     // Respawn / Reset requested
     if (input.respawn) {
       this.track.features?.reset(state);
+      this.track.adventure?.reset(state);
       this.respawnOnTrack(state);
       return;
     }
 
     const { config } = state;
+    const shortcutEffect=this.track.adventure?.step(state);
     const isGrounded = (state.airHeight || 0) < .15;
 
     // 1. Check if on road surface or grass
@@ -74,7 +76,11 @@ export class KartPhysicsEngine {
     if (state.inkTimer && state.inkTimer > 0) state.inkTimer -= delta;
     let accelRate = config.acceleration;
     // Shortcut dirt: slow, unless you're boosting through it
-    if (onDirt && state.boostTimer <= 0 && !(state.starTimer && state.starTimer > 0)) { effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * 0.66); }
+    if (onDirt && isGrounded && state.boostTimer <= 0 && !(state.starTimer && state.starTimer > 0) && !(state.rideTimer && state.rideTimer>0)) {
+      effectiveTopSpeed = Math.min(effectiveTopSpeed, config.topSpeed * (shortcutEffect?.speedRatio??.66));
+      // Rough routes scrub speed promptly; coasting in at road speed is not a free shortcut.
+      if(state.speed>effectiveTopSpeed)state.speed=THREE.MathUtils.lerp(state.speed,effectiveTopSpeed,Math.min(1,delta*4));
+    }
 
     if (isOffTrack && isGrounded) {
       // grass slows you down, but never to a crawl (boosts power through it)
@@ -118,7 +124,7 @@ export class KartPhysicsEngine {
     // 5. Steering & Drift Mechanics
     const speedRatio = Math.abs(state.speed) / config.topSpeed;
     // Karts can't pivot in place: turning fades in with speed, then holds steady
-    const baseSteerSpeed = config.handling * 0.68 * Math.min(1, speedRatio / 0.3);
+    const baseSteerSpeed = config.handling * 0.68 * Math.min(1, speedRatio / 0.3)*(shortcutEffect?.grip??1);
 
     let rawSteer = typeof input.steer === 'number' ? input.steer : 0;
     if (input.steerLeft) rawSteer += 1;

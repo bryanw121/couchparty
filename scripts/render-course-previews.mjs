@@ -8,6 +8,7 @@ globalThis.document={createElement:()=>createCanvas(256,256)};
 await build({stdin:{contents:"export { TrackSystem } from './web/kart/game/track'; export { COURSES } from './web/kart/game/tracks'; export { applyCartoonStyle } from './web/kart/game/style';",resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'esm',packages:'external',outfile:'dist/course-preview-module.mjs'});
 const {TrackSystem,COURSES,applyCartoonStyle}=await import('../dist/course-preview-module.mjs');
 const W=960,H=540,output='public/course-previews';fs.mkdirSync(output,{recursive:true});
+const onlyCuts=process.argv.includes('--shortcuts');
 const atlas=createCanvas(W*2,H*2),ag=atlas.getContext('2d'),embedded={};
 const streets=createCanvas(W*2,H*2),sg=streets.getContext('2d');
 const light=new THREE.Vector3(-.45,.8,.65).normalize();
@@ -76,6 +77,10 @@ for(const [i,course]of Object.values(COURSES).entries()){
   // Repeatable foliage placement in review renders; fixed landmarks are shared with gameplay.
   const random=Math.random;let seed=100+i;Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const scene=new THREE.Scene(),track=new TrackSystem(scene,course.id);applyCartoonStyle(scene,track);Math.random=random;
+  const cut=track.adventure,targetCut=cut.point(.45),cutDirection=cut.point(1).sub(cut.point(0)).normalize();
+  const cutCamera=new THREE.OrthographicCamera(-70,70,39.375,-39.375,.1,700);cutCamera.position.copy(targetCut).add(new THREE.Vector3(-cutDirection.z*75-cutDirection.x*85,90,cutDirection.x*75-cutDirection.z*85));cutCamera.lookAt(targetCut);
+  const cutImage=render(scene,cutCamera,course.theme),cg=cutImage.getContext('2d');cg.fillStyle='#17293ee8';cg.fillRect(0,H-66,W,66);cg.fillStyle='#f6fcff';cg.font='bold 25px sans-serif';cg.fillText(cut.theme.name+' · '+course.name,22,H-36);cg.font='16px sans-serif';cg.fillText(cut.theme.hint+' · Offline render of game meshes',22,H-13);fs.writeFileSync(`${output}/${course.id}-shortcut.png`,cutImage.toBuffer('image/png'));
+  if(onlyCuts){console.log(course.id,'shortcut rendered');continue;}
   const camera=new THREE.OrthographicCamera(-300,300,168.75,-168.75,.1,1500);camera.position.set(310,380,450);camera.lookAt(0,0,0);
   const canvas=render(scene,camera,course.theme);fs.writeFileSync(`${output}/${course.id}-overview.png`,canvas.toBuffer('image/png'));
   const heroCamera=new THREE.OrthographicCamera(-110,110,61.875,-61.875,.1,1200);heroCamera.position.set(110,95,100);heroCamera.lookAt(12,4,-40);
@@ -92,6 +97,7 @@ for(const [i,course]of Object.values(COURSES).entries()){
   const title=course.name;ag.fillStyle='#091325d9';ag.fillRect(i%2*W,Math.floor(i/2)*H+H-48,W,48);ag.fillStyle='#f5f8ff';ag.font='bold 22px sans-serif';ag.fillText(title,i%2*W+22,Math.floor(i/2)*H+H-17);
   console.log(course.id,'rendered;',landmarks.userData.drawCalls,'batched landmark draws');
 }
+if(onlyCuts)process.exit(0);
 const kartImage=await loadImage('public/kart-models/ace.png'),kartThumb=createCanvas(320,200);kartThumb.getContext('2d').drawImage(kartImage,0,-60,320,320);embedded.kart='data:image/jpeg;base64,'+kartThumb.toBuffer('image/jpeg',82).toString('base64');
 fs.writeFileSync(`${output}/all-courses.png`,atlas.toBuffer('image/png'));fs.writeFileSync('public/kart-courses.js','var KARIO_COURSES = '+JSON.stringify(embedded)+';\n');
 fs.writeFileSync(`${output}/village-streets.png`,streets.toBuffer('image/png'));

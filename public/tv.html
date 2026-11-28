@@ -483,12 +483,12 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
       h += '</div></div>';
     } else if (g.step === 'rules') {
       var md = kById(L.modes, g.mode), sp = kById(L.speeds, g.speed);
-      h += '<div class="ktitle">Ready to race?</div><div class="ksub">' + g.laps + ' laps · ' + (g.items ? 'items on' : 'no items') + (g.cpus ? ' · CPUs fill the grid' : '') + '</div><div class="kcards ksum">';
+      h += '<div class="ktitle">Ready to race?</div><div class="ksub">' + g.laps + ' laps · ' + (g.mode === 'tt' ? '3 mushrooms · no random items' : g.items ? 'items on' : 'no items') + (g.cpus ? ' · CPUs fill the grid' : '') + '</div><div class="kcards ksum">';
       h += '<div class="kcard"><div class="art">' + KA.mode(md.id) + '</div><div class="n">' + esc(md.name) + '</div></div>';
       h += '<div class="kcard"><div class="art">' + KA.speed(sp.id) + '</div><div class="n">' + esc(sp.name) + '</div></div>';
       var cs = g.mode === 'cup' ? g.cup : [g.course];
       for (i = 0; i < cs.length; i++) { var c = kById(L.courses, cs[i]); h += '<div class="kcard course" style="width:' + (cs.length > 1 ? 12 : 19) + 'rem"><div class="art" style="height:' + (cs.length > 1 ? 7 : 12) + 'rem">' + KA.course(c) + '</div><div class="n" style="font-size:' + (cs.length > 1 ? 1.2 : 1.9) + 'rem">' + esc(c.name) + '</div></div>'; }
-      h += '</div><div class="kfoot">' + capChip() + 'taps <b style="margin:0 0.4rem;color:#ffc83d">Start race!</b> on their phone</div>';
+      h += '</div><div class="ksub">Save a mushroom for the shortcut! Follow mushroom signs and dashed minimap routes.</div><div class="kfoot">' + capChip() + 'taps <b style="margin:0 0.4rem;color:#ffc83d">Start race!</b> on their phone</div>';
     }
     $('kmenu').innerHTML = h;
     kartVoteSpin(g);

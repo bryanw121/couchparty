@@ -85,8 +85,9 @@ export class ItemSystem {
   private group = new THREE.Group();
   private aiTimers = new Map<string, number>();
 
-  constructor(private scene: THREE.Scene, private track: TrackSystem) {
+  constructor(private scene: THREE.Scene, private track: TrackSystem, pickups=true) {
     scene.add(this.group);
+    if(!pickups)return;
     const pts = track.trackPoints;
     for (const f of [0.16, 0.42, 0.68, 0.88]) {
       const p = pts[Math.floor(f * pts.length) % pts.length];
@@ -127,6 +128,9 @@ export class ItemSystem {
     this.held.clear();
     for (const b of this.boxes) { b.respawn = 0; b.mesh.visible = true; }
     for (const c of this.coinsOnTrack) { c.respawn = 0; c.mesh.visible = true; }
+  }
+  public grantMushrooms(id:string,count=3){
+    this.held.set(id,{kind:'boost',shown:'boost',rollLeft:0,count,trailing:false,trail:[]});
   }
 
   // useRequests: racer ids that pressed the item button this frame.

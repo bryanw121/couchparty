@@ -157,6 +157,17 @@ checks trick/glider/hazard behavior and validates ghost playback and saved-recor
 
 ## Deploying page changes
 
+Each course now has an interactive mushroom route (`shortcutAdventure.ts`): Garden Dash has a boost-opened
+garden gate; Tideway alternates dry and flooded sand; Crystal Cut has slippery ice and snowdrifts that boosts
+flatten briefly; Metro Express opens on a 9-second signal cycle and boosts override a red gate for 6 seconds.
+The rough sections cost time without a boost, and other racers can follow through a gate someone opens.
+Mushroom signs mark the approach; dashed minimap lines show the routes and their current state.
+Time Trial starts each racer with **3 mushrooms for the entire run**, with no random boxes or coin pickups.
+New records use a v2 storage key so the changed course rules do not compete with old ghost times; old records
+remain stored under their old keys. `npm run test:kart-shortcuts` drives every cut with real physics and an actual
+Mushroom, checks progress/road clearance, timed gates/tides/snow, and exact three-charge consumption.
+Open `/kart-art?collection=course&model=meadow&feature=shortcut` to inspect the new route in the game renderer.
+
 The full art pass uses Blender-remeshed character surfaces in `sculpt-assets.json`, swept kart bodywork,
 separate shell plates, fabric/rubber roughness maps, rounded village buildings, tiled roof ridges,
 modeled spectators and paved track verges. `artDirection.ts` supplies the shared physical lighting,

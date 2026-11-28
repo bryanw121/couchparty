@@ -492,6 +492,7 @@ function renderKartMenuP(g) {
     const md = kFind(L.modes, g.mode), sp = kFind(L.speeds, g.speed);
     const cs = g.mode === 'cup' ? g.cup : [g.course];
     h += `<div class="kmme"><div class="art">${KA.mode(md.id)}</div><div><div class="n">${esc(md.name)} · ${esc(sp.name)}</div><div class="muted">${cs.map((c) => esc(kFind(L.courses, c).name)).join(' → ')}</div></div></div>`;
+    h += `<p class="muted" style="margin:4px 0 12px;line-height:1.5">Look for mushroom signs and dashed shortcut lines on the minimap. Garden gates open with a boost; the beach changes with the tide; deep snow slows you down; Metro gates open on green or with a mushroom.${g.mode === 'tt' ? ' Time Trial gives you 3 mushrooms for the whole run—tap Item to use one.' : ' Save a mushroom for a shortcut!'}</p>`;
     if (cap) {
       h += `<label>Laps</label><div class="opts">${L.laps.map((n) => `<button data-klaps="${n}" aria-pressed="${g.laps === n}">${n}</button>`).join('')}</div>`;
       if (g.mode !== 'tt') h += `<label>Items</label><div class="opts"><button data-kitems="1" aria-pressed="${g.items}">On</button><button data-kitems="0" aria-pressed="${!g.items}">Off</button></div>`;

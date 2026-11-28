@@ -120,6 +120,13 @@ export class CouchEngine {
     this.artLighting=addArtLighting(this.scene,this.renderer,th);
 
     this.track = new TrackSystem(this.scene, opts.course);
+    this.track.adventure.onEvent=(state,event)=>{
+      const racer=this.humans.find(r=>r.state===state);if(!racer)return;
+      const route=this.track.adventure;
+      const messages={enter:route.theme.name.toUpperCase(),open:'GATE OPEN!',blocked:this.track.course.id==='neon'?'GREEN OR MUSHROOM!':'MUSHROOM TO OPEN!',exit:'SHORTCUT!',snow:'SNOW SMASH!'};
+      this.say(racer,messages[event],event==='blocked'?'#ffb16b':'#7af0cc',1500);
+      if(event==='open')sfx.bump();
+    };
     this.track.features.onEvent = (state, event) => {
       const r = this.humans.find(r => r.state === state); if (!r) return;
       const messages = { jump:'TAP DRIFT FOR A TRICK', glide:'GLIDER! STEER TO FLY', trick:'TRICK! LAND FOR BOOST', landing:'TRICK BOOST!', hazard:'WATCH THE OBSTACLES!' };
@@ -130,8 +137,8 @@ export class CouchEngine {
     this.scene.add(this.particles.group);
     this.physics = new KartPhysicsEngine(this.track, this.particles);
     this.physics.totalLaps = this.laps;
-    if (opts.items !== false) {
-      this.items = new ItemSystem(this.scene, this.track);
+    if (opts.items !== false || (opts.cpus===false&&!opts.autopilot)) {
+      this.items = new ItemSystem(this.scene, this.track,opts.items!==false);
       this.items.onEvent = (e) => this.onItemEvent(e);
     }
     this.style = applyCartoonStyle(this.scene, this.track);
@@ -150,6 +157,7 @@ export class CouchEngine {
     this.overlay.appendChild(this.banner);
 
     this.build();
+    if(opts.cpus===false&&!opts.autopilot)for(const racer of this.humans)this.items?.grantMushrooms(racer.state.config.id,3);
     window.addEventListener('resize', this.onResize);
   }
 
@@ -773,10 +781,6 @@ export class CouchEngine {
       }
       if (s.isDrifting && s.driftLevel > (h.driftLvl === undefined ? 0 : -1)) { /* level tracked above */ }
       h.wasDrifting = s.isDrifting;
-      // shortcut entry
-      const onDirt = this.track.onShortcut(s.position.x, s.position.z) !== null && this.track.getClosestTrackPoint(s.position.x, s.position.z).distanceToCenter > this.track.roadWidth / 2 + 0.5;
-      if (onDirt && !h.onDirt) this.say(r, s.boostTimer > 0 ? 'SHORTCUT!' : 'DIRT! BOOST THROUGH', '#ffc83d', 900);
-      h.onDirt = onDirt;
     }
   }
 
@@ -814,6 +818,8 @@ export class CouchEngine {
       const g = me.human!.map.getContext('2d')!;
       g.clearRect(0, 0, 256, 256);
       g.drawImage(this.mapBase!, 0, 0);
+      const shortcut=this.track.shortcut;
+      if(shortcut){const a=this.toMap(shortcut.ax,shortcut.az),b=this.toMap(shortcut.bx,shortcut.bz);g.save();g.setLineDash([5,4]);g.strokeStyle=this.track.adventure.mapColor;g.lineWidth=4;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.restore();}
       for (const r of order) {
         if (r === me) continue;
         const [x, y] = this.toMap(r.state.position.x, r.state.position.z);

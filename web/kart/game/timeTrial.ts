@@ -6,7 +6,7 @@ import type { RacerConfig, RacerState } from '../types';
 // Records stay on this TV/browser. Separate rulesets never compete with each other.
 export type GhostSample = [number,number,number,number,number,number]; // time,x,y,z,yaw,gliding
 export interface TrialRecord { version:1; time:number; bestLap:number|null; name:string; topper:string; color:string; samples:GhostSample[] }
-export function trialKey(course:string,speed:string,laps:number){return `kario:trial:v1:${course}:${speed}:${laps}`;}
+export function trialKey(course:string,speed:string,laps:number){return `kario:trial:v2:${course}:${speed}:${laps}`;}
 export function readTrial(storage:Pick<Storage,'getItem'>|null,key:string):TrialRecord|null {
   try{
     const r=JSON.parse(storage?.getItem(key)||'null');
