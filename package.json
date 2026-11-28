@@ -21,7 +21,8 @@
     "test:kart-presentation": "node test/kart-presentation.mjs",
     "test:kart-audio-upgrades": "node test/kart-audio-upgrades.mjs",
     "test:kart-solo": "node test/kart-solo.mjs",
-    "test:kart-review": "node test/kart-review.mjs"
+    "test:kart-review": "node test/kart-review.mjs",
+    "test:kart-controller": "node test/kart-controller.mjs"
   },
   "keywords": [],
   "author": "",

@@ -8,6 +8,7 @@ import {LocalControls} from './game/localControls';
 const el=(id:string)=>document.getElementById(id)!;
 const select=(id:string)=>el(id) as HTMLSelectElement;
 const controls=new LocalControls();
+const resetPointerButtons:Array<()=>void>=[];
 let race:CouchEngine|undefined,paused=false,stickPointer:number|undefined,victory:HTMLAudioElement|undefined,victoryWanted=false;
 for(const driver of DRIVERS){const option=document.createElement('option');option.value=driver.id;option.textContent=driver.name;select('driver').appendChild(option);}select('driver').value='ace';
 for(const course of Object.values(COURSES)){const option=document.createElement('option');option.value=course.id;option.textContent=course.name;select('course').appendChild(option);}
@@ -27,7 +28,7 @@ function showResults(results:CouchResult[]){
 }
 el('status').textContent='Ready. Sound starts when you tap LET’S RACE.';
 function send(){if(race&&!paused)race.setInput('local-player',controls.snapshot());}
-function resetInputs(){controls.reset();stickPointer=undefined;el('thumb').style.transform='translate(-50%,-50%)';el('stick').setAttribute('aria-valuenow','0');document.querySelectorAll<HTMLElement>('[data-action]').forEach(button=>button.dataset.held='false');send();}
+function resetInputs(){for(const reset of resetPointerButtons)reset();controls.reset();stickPointer=undefined;el('thumb').style.transform='translate(-50%,-50%)';el('stick').setAttribute('aria-valuenow','0');document.querySelectorAll<HTMLElement>('[data-action]').forEach(button=>button.dataset.held='false');send();}
 function pause(value:boolean){if(!race)return;paused=value;resetInputs();race.setInput('local-player',{steer:0,gas:false,brake:false,drift:false,item:false});race.setPaused(value);el('paused').hidden=!value;el('pause').textContent=value?'Resume':'Pause';el('pause').setAttribute('aria-pressed',String(value));if(value)victory?.pause();else{if(victoryWanted)void victory?.play().catch(()=>{});send();}}
 function setup(keepVictory=false){race?.dispose();race=undefined;if(!keepVictory){victoryWanted=false;victory?.pause();victory=undefined;}paused=false;resetInputs();el('setup').hidden=false;el('results').hidden=true;el('pad').hidden=true;el('recover').hidden=true;el('pause').hidden=true;el('restart').hidden=true;el('paused').hidden=true;}
 function startRace(){
@@ -52,13 +53,17 @@ function recover(){if(!race||paused)return;resetInputs();el('help').textContent=
 el('recover').onclick=recover;
 const stick=el('stick');
 function steer(event:PointerEvent){const box=stick.getBoundingClientRect(),value=Math.max(-1,Math.min(1,(event.clientX-box.left-box.width/2)/(box.width*.38)));controls.steer(-value*settings.sensitivity);el('thumb').style.transform='translate(calc(-50% + '+(value*box.width*.32)+'px),-50%)';stick.setAttribute('aria-valuenow',String(Math.round(value*100)));send();}
-stick.addEventListener('pointerdown',event=>{if(!race||paused||stickPointer!==undefined)return;event.preventDefault();stickPointer=event.pointerId;stick.setPointerCapture(event.pointerId);steer(event);});
+stick.addEventListener('pointerdown',event=>{if(!race||paused||stickPointer!==undefined)return;event.preventDefault();stickPointer=event.pointerId;try{stick.setPointerCapture(event.pointerId);}catch{}steer(event);});
 stick.addEventListener('pointermove',event=>{if(event.pointerId===stickPointer)steer(event);});
 const releaseStick=(event:PointerEvent)=>{if(event.pointerId!==stickPointer)return;stickPointer=undefined;controls.steer(0);el('thumb').style.transform='translate(-50%,-50%)';stick.setAttribute('aria-valuenow','0');send();};
+for(const type of ['pointerup','pointercancel'])addEventListener(type,releaseStick as EventListener,true);
 for(const type of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(type,releaseStick as EventListener);
 document.querySelectorAll<HTMLElement>('[data-action]').forEach(button=>{
-  button.addEventListener('pointerdown',event=>{if(!race||paused)return;event.preventDefault();button.setPointerCapture(event.pointerId);controls.hold('pointer-'+event.pointerId,button.dataset.action!);button.dataset.held='true';send();});
-  const release=(event:PointerEvent)=>{controls.release('pointer-'+event.pointerId);button.dataset.held='false';send();};
+  const pointers=new Set<number>();
+  resetPointerButtons.push(()=>pointers.clear());
+  button.addEventListener('pointerdown',event=>{if(!race||paused)return;event.preventDefault();try{button.setPointerCapture(event.pointerId);}catch{}pointers.add(event.pointerId);controls.hold('pointer-'+event.pointerId,button.dataset.action!);button.dataset.held='true';send();});
+  const release=(event:PointerEvent)=>{if(!pointers.delete(event.pointerId))return;controls.release('pointer-'+event.pointerId);button.dataset.held=String(pointers.size>0);send();};
+  for(const type of ['pointerup','pointercancel'])addEventListener(type,release as EventListener,true);
   for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,release as EventListener);
 });
 const keys:Record<string,string>={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'drift',KeyE:'item',Enter:'item',KeyS:'brake',ArrowDown:'brake',KeyW:'gas',ArrowUp:'gas',ShiftLeft:'back',ShiftRight:'back'};

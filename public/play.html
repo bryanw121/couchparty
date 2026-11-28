@@ -310,7 +310,7 @@ renderColors();
 
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
-  ws.onopen = () => { retry = 500; if (joined) doJoin(); };
+  ws.onopen = () => { clearKartFocus(document.hidden); retry = 500; if (joined) doJoin(); };
   ws.onmessage = (e) => {
     let m; try { m = JSON.parse(e.data); } catch { return; }
     if (m.t === 'ping') return send({ t: 'pong' });
@@ -324,7 +324,7 @@ function connect() {
       if (m.pid === pid && PHONE_FX[m.n]) PHONE_FX[m.n]();
     }
   };
-  ws.onclose = () => { if (joined) show('connecting'); setTimeout(connect, retry); retry = Math.min(retry * 2, 8000); };
+  ws.onclose = () => { clearKartFocus(document.hidden); if (joined) show('connecting'); setTimeout(connect, retry); retry = Math.min(retry * 2, 8000); };
 }
 function doJoin() { send({ t: 'join', room: $('room').value.trim().toUpperCase(), name: $('name').value.trim(), color, pid }); }
 
@@ -379,8 +379,10 @@ function tiltAngle(e) {
   return Math.atan2(sx, sy) * 180 / Math.PI;
 }
 function onMotion(e) {
+  if(K.background) return;
   const ang = tiltAngle(e);
-  if (ang == null) return;
+  if (ang == null) { K.steer=0; if(K.steerMode==='tilt') { $('kTiltDot').style.transform=''; kartSend(); } return; }
+  K.lastMotionAt = Date.now();
   K.raw = ang;
   if (K.ref == null) K.ref = ang;
   let d = ang - K.ref;
@@ -420,6 +422,7 @@ document.addEventListener('click', (e) => {
   renderKartPrefs();
 });
 function setSteerMode(mode) {
+  clearKartFocus(document.hidden);
   K.steerMode = mode; store.set('cp_steer', mode);
   if (mode === 'tilt') enableTilt(); else { renderKartPrefs(); kartLayout(); }
   buzz(10); kartSend(true);
@@ -526,6 +529,7 @@ function renderKart() {
   $('kWatch').style.display = racing ? 'none' : 'flex';
   if (!racing) { $('kWatchSub').textContent = `Racing: ${g.racers.map((r) => r.name).join(', ')}`; return; }
   if (K.raceId !== g.raceId) {
+    clearKartFocus(document.hidden);
     K.raceId = g.raceId;
     K.active = true;
     K.ref = null; // straight = however you hold it when the race starts
@@ -539,7 +543,7 @@ function renderKart() {
   kartLayout();
   if (YOU.g.hud) kartHud(YOU.g.hud);
 }
-function kartStop() { if (K.active) { K.active = false; clearInterval(K.timer); K.raceId = null; } }
+function kartStop() { if (K.active) { clearKartFocus(document.hidden); K.active = false; clearInterval(K.timer); K.raceId = null; } }
 const TRAIL = ['banana', 'green', 'red', 'fake', 'bomb'];
 function kartItem(kind, n) {
   const el = $('kItem');
@@ -580,7 +584,7 @@ function kartEvent(m) {
 }
 function kartSend(force) {
   if (!K.active) return;
-  const steer = K.steerMode === 'tilt' ? K.steer : K.stick;
+  const steer = K.steerMode === 'tilt' ? (Date.now()-(K.lastMotionAt||0)<1000?K.steer:0) : K.stick;
   const m = { t: 'kin', s: Math.round(steer * 100) / 100, g: K.steerMode === 'tilt' ? K.gas && !K.brake : !K.brake, b: K.brake, d: K.drift, i: K.item, a: K.aim };
   if(K.background){m.s=0;m.g=m.b=m.d=m.i=false;}
   const key = JSON.stringify(m);
@@ -589,79 +593,77 @@ function kartSend(force) {
   K.lastSent = key; K.lastAt = now;
   send(m);
 }
+// Each control owns one pointer until release. A second finger cannot steal it.
+// Window release handles browsers that decline capture; capture loss also releases.
+const kartPointerResets = [];
+function bindKartPointer(el, down, move, up) {
+  let pid = null;
+  const release = (e) => {
+    if (pid == null || (e && e.pointerId !== pid)) return;
+    const old = pid; pid = null;
+    up();
+    try { if (el.hasPointerCapture(old)) el.releasePointerCapture(old); } catch {}
+  };
+  kartPointerResets.push(() => release());
+  el.addEventListener('pointerdown', (e) => {
+    if (pid != null || !K.active || K.background || (e.button != null && e.button !== 0)) return;
+    e.preventDefault(); pid = e.pointerId;
+    try { el.setPointerCapture(pid); } catch {}
+    down(e);
+  });
+  el.addEventListener('pointermove', (e) => { if(e.pointerId === pid) { e.preventDefault(); if(move) move(e); } });
+  for (const type of ['pointerup','pointercancel']) window.addEventListener(type, release, true);
+  el.addEventListener('lostpointercapture', release);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
 function clearKartFocus(background) {
-  K.background=background;K.steer=K.stick=0;K.gas=K.brake=K.drift=K.item=false;
-  document.querySelectorAll('#kart .kpad.on').forEach(function(button){button.classList.remove('on','rev-on');});
+  K.background=background;
+  for(const reset of kartPointerResets) reset();
+  K.stickId=null; K.steer=K.stick=0; K.gas=K.brake=K.drift=K.item=false;
+  K.left=K.right=false; K.aim='front'; K.ref=null; K.lastMotionAt=0;
+  document.querySelectorAll('#kart .on, #kart .held, #kart .rev-on, #kart .aim-front, #kart .aim-back').forEach(function(button){button.classList.remove('on','held','rev-on','aim-front','aim-back');});
+  $('kKnob').style.transform=''; $('kTiltDot').style.transform='';
   kartSend(true);
 }
 window.addEventListener('blur',function(){clearKartFocus(true);});
 window.addEventListener('focus',function(){clearKartFocus(document.hidden);});
+window.addEventListener('pagehide',function(){clearKartFocus(true);});
+window.addEventListener('pageshow',function(){clearKartFocus(document.hidden);});
 document.addEventListener('visibilitychange',function(){clearKartFocus(document.hidden);});
 function holdButton(id, field) {
   const el = $(id);
-  const on = (e) => { e.preventDefault(); K[field] = true; el.classList.add('on'); if (field !== 'left' && field !== 'right') buzz(8); kartSend(true); };
-  const off = (e) => { e.preventDefault(); K[field] = false; el.classList.remove('on'); kartSend(true); };
-  el.addEventListener('pointerdown', on);
-  el.addEventListener('pointerup', off);
-  el.addEventListener('pointercancel', off);
-  el.addEventListener('pointerleave', off);
+  bindKartPointer(el, () => { K[field]=true; el.classList.add('on'); buzz(8); kartSend(true); }, null,
+    () => { K[field]=false; el.classList.remove('on'); kartSend(true); });
 }
 holdButton('kDrift', 'drift');
-// Drive pad (tilt mode): hold to drive; slide into the bottom strip to reverse
+// Drive pad (tilt mode): hold to drive; slide into the bottom strip to reverse.
 (function () {
-  const el = $('kGas'); let pid = null;
-  const at = (e) => { const r = el.getBoundingClientRect(); const rev = e.clientY > r.bottom - r.height * 0.26; if (rev !== K.brake || !K.gas) { if (rev !== K.brake) buzz(rev ? 20 : 6); K.brake = rev; K.gas = !rev; el.classList.toggle('rev-on', rev); kartSend(true); } };
-  el.addEventListener('pointerdown', (e) => { e.preventDefault(); pid = e.pointerId; try { el.setPointerCapture(pid); } catch (x) {} el.classList.add('on'); at(e); });
-  el.addEventListener('pointermove', (e) => { if (e.pointerId === pid) at(e); });
-  const off = (e) => { if (e.pointerId !== pid) return; pid = null; K.gas = false; K.brake = false; el.classList.remove('on', 'rev-on'); kartSend(true); };
-  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off);
+  const el = $('kGas');
+  const at = (e) => { const r=el.getBoundingClientRect(), rev=e.clientY > r.bottom-r.height*.26; K.brake=rev; K.gas=!rev; el.classList.toggle('rev-on',rev); kartSend(true); };
+  bindKartPointer(el, (e) => { el.classList.add('on'); at(e); }, at,
+    () => { K.gas=K.brake=false; el.classList.remove('on','rev-on'); kartSend(true); });
 })();
-// Item pad: press the top half to throw ahead, the bottom half to throw behind.
-// Holding a shield item, slide up or down before letting go to pick the direction.
 (function () {
-  const el = $('kItem');
-  let pid = null;
-  const aimAt = (e) => {
-    const r = el.getBoundingClientRect();
-    const aim = e.clientY > r.top + r.height / 2 ? 'back' : 'front';
-    if (aim !== K.aim) { K.aim = aim; if (K.item) { buzz(5); kartSend(true); } }
-    el.classList.toggle('aim-front', aim === 'front'); el.classList.toggle('aim-back', aim === 'back');
-  };
-  const clear = () => { el.classList.remove('aim-front', 'aim-back'); };
-  el.addEventListener('pointerdown', (e) => { e.preventDefault(); pid = e.pointerId; try { el.setPointerCapture(pid); } catch (x) {} aimAt(e); K.item = true; el.classList.add('on'); buzz(8); kartSend(true); });
-  el.addEventListener('pointermove', (e) => { if (e.pointerId === pid) aimAt(e); });
-  const off = (e) => { if (e.pointerId !== pid) return; e.preventDefault(); pid = null; K.item = false; el.classList.remove('on'); clear(); kartSend(true); };
-  el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off);
+  const el=$('kItem');
+  const aimAt=(e) => { const r=el.getBoundingClientRect(); K.aim=e.clientY > r.top+r.height/2?'back':'front'; el.classList.toggle('aim-front',K.aim==='front'); el.classList.toggle('aim-back',K.aim==='back'); kartSend(true); };
+  bindKartPointer(el, (e) => { aimAt(e); K.item=true; el.classList.add('on'); buzz(8); kartSend(true); }, aimAt,
+    () => { K.item=false; el.classList.remove('on','aim-front','aim-back'); kartSend(true); });
 })();
-$('kMode').onclick = (e) => { const b = e.target.closest('button'); if (b && b.dataset.km !== K.steerMode) setSteerMode(b.dataset.km); };
-// Floating joystick: center is wherever the thumb lands; slide left/right for analog steering
+$('kMode').onclick = (e) => { const b=e.target.closest('button'); if(b && b.dataset.km!==K.steerMode) setSteerMode(b.dataset.km); };
 (function () {
-  const pad = $('kStick'), knob = $('kKnob');
-  const RANGE = 70; // px of thumb travel for full lock
-  const move = (e) => {
-    if (e.pointerId !== K.stickId) return;
-    e.preventDefault();
-    const dx = Math.max(-RANGE, Math.min(RANGE, e.clientX - K.stickX));
-    const dy = Math.max(0, Math.min(RANGE * 0.8, e.clientY - K.stickY));
-    K.stick = -dx / RANGE; // left is positive
-    const rev = dy > RANGE * 0.45;
-    if (rev !== K.brake) { K.brake = rev; buzz(rev ? 20 : 6); }
-    knob.style.transform = `translate(${dx}px, ${dy}px) rotate(${(dx / RANGE) * 12}deg)`;
-    $('kArrL').classList.toggle('on', K.stick > 0.2); $('kArrR').classList.toggle('on', K.stick < -0.2); $('kArrD').classList.toggle('on', rev);
+  const pad=$('kStick'),knob=$('kKnob'),RANGE=70;
+  const move=(e) => {
+    const dx=Math.max(-RANGE,Math.min(RANGE,e.clientX-K.stickX));
+    const dy=Math.max(0,Math.min(RANGE*.8,e.clientY-K.stickY));
+    K.stick=-dx/RANGE;
+    const rev=dy>RANGE*.45;
+    if(rev!==K.brake){K.brake=rev; buzz(rev?20:6);}
+    knob.style.transform=`translate(${dx}px, ${dy}px) rotate(${dx/RANGE*12}deg)`;
+    $('kArrL').classList.toggle('on',K.stick>.2); $('kArrR').classList.toggle('on',K.stick<-.2); $('kArrD').classList.toggle('on',rev);
     kartSend();
   };
-  const end = (e) => {
-    if (e.pointerId !== K.stickId) return;
-    K.stickId = null; K.stick = 0; K.brake = false; pad.classList.remove('held');
-    knob.style.transform = ''; $('kArrL').classList.remove('on'); $('kArrR').classList.remove('on'); $('kArrD').classList.remove('on'); kartSend(true);
-  };
-  pad.addEventListener('pointerdown', (e) => {
-    e.preventDefault(); pad.setPointerCapture(e.pointerId);
-    K.stickId = e.pointerId; K.stickX = e.clientX; K.stickY = e.clientY; pad.classList.add('held'); buzz(6);
-  });
-  pad.addEventListener('pointermove', move);
-  pad.addEventListener('pointerup', end);
-  pad.addEventListener('pointercancel', end);
+  bindKartPointer(pad, (e) => { K.stickId=e.pointerId; K.stickX=e.clientX; K.stickY=e.clientY; K.stick=0; K.brake=false; pad.classList.add('held'); buzz(6); kartSend(true); }, move,
+    () => { K.stickId=null; K.stick=0; K.brake=false; pad.classList.remove('held'); knob.style.transform=''; for(const id of ['kArrL','kArrR','kArrD']) $(id).classList.remove('on'); kartSend(true); });
 })();
 $('kRecenter').onclick = () => { K.ref = K.raw; buzz(15); };
 $('kTiltBtn').onclick = () => enableTilt();
