@@ -29,6 +29,8 @@ for entry in data['materials']:
   m.node_tree.links.new(base.outputs['Color'],mix.inputs[1]);m.node_tree.links.new(mix.outputs[0],p.inputs['Base Color']);m.node_tree.links.new(base.outputs['Alpha'],p.inputs['Alpha'])
  if entry.get('roughnessMap'):
   node=image_node(m,entry['roughnessMap'],False);m.node_tree.links.new(node.outputs['Color'],p.inputs['Roughness'])
+ if entry.get('normalMap'):
+  detail=image_node(m,entry['normalMap'],False);normal=m.node_tree.nodes.new('ShaderNodeNormalMap');normal.inputs['Strength'].default_value=entry.get('normalScale',[.2])[0];m.node_tree.links.new(detail.outputs['Color'],normal.inputs['Color']);m.node_tree.links.new(normal.outputs['Normal'],p.inputs['Normal'])
  if entry.get('vertexColors'):
   node=m.node_tree.nodes.new('ShaderNodeVertexColor');node.layer_name='RuntimeColor';m.node_tree.links.new(node.outputs['Color'],p.inputs['Base Color'])
  if entry['basic']:

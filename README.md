@@ -142,6 +142,27 @@ terrain contact shading, preview rosters and two/three/four-player rendering lay
 
 Open `/kart-art?view=race&players=2` or `/kart-art?view=race&players=4` for auto-driving split-screen demos
 using the actual race renderer, cameras and HUD; no phones or shared rooms are needed.
+
+The presentation pass adds tileable normal/roughness maps to asphalt, terrain and tires, subtle
+plaster/fabric normals on village/Mario assets, and visual suspension, acceleration pitch, corner lean
+and impact reactions. Skin/face geometry and driving physics are preserved. Small detail maps are
+cached and shared; geometry and draw counts do not grow for surface detail. These are procedural
+material upgrades, not a complete new painted texture set or a fully skeletal character-animation pack.
+
+`raceHud.ts` mounts persistent DOM nodes: updating the race clock no longer rebuilds the item, lap,
+player and place graphics. It adds angled player badges, outlined placement numbers, a drift-charge
+bar, pickup/overtake animation and a reduced-motion alternative. Kart menu/controller headings use
+the same heavier typography. `npm run test:kart-presentation` exercises normal data, map reuse,
+persistent/inert HUD text, event-driven animation and the cosmetic motion at 30/60/120 FPS.
+
+Modern visual references: [Mario Kart World](https://www.nintendo.com/en-gb/Games/Nintendo-Switch-2-games/Mario-Kart-World-2790000.html)
+and [Sonic Racing: CrossWorlds](https://asia.sega.com/SonicRacingCrossWorlds/en/courses.html).
+The SEGA stadium reference illustrates the larger remaining gap: layered architecture, dense trackside
+detail, signage, controlled reflections and a strong course-specific visual identity. Those require
+further environment authoring; microtextures alone cannot reproduce them. No reference game assets
+are included in the runtime. `presentation-study.png` is an offline Blender/illustrative-typography
+study, with sample HUD values, not a screenshot of the DOM HUD. Recreate it with the offline split
+export/render scripts, then `node scripts/pack-split-preview.mjs --modern`.
 The static `public/art-review/four-player-lighting-study.png` is an **offline Blender study**, not a
 browser screenshot: geometry and poses come from the game, but material shading, lighting and HUD
 differ. Reproduce it with `node scripts/export-split-scene.mjs`, Blender in background mode running

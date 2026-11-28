@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import assets from './hero-assets.json';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {surfaceDetails} from './surfaceDetails';
 type Part={name:string;role:string;p:string;n:string;uv:string;i:string;material:string};
 type Image={png:string;pixels:string;size:number};
 type Asset={parts:Part[];color:Image;ao:Image;roughness:Image;positionScale:number;materials:Record<string,{roughness:number;metalness:number}>};
@@ -28,8 +29,9 @@ export function addHeroAsset(parent:THREE.Object3D,id:string,role?:string){
     const key=id+':'+index;let geometry=geometries.get(key);
     if(!geometry){geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(Float32Array.from(new Int16Array(bytes(part.p).buffer),v=>v/asset.positionScale),3));geometry.setAttribute('normal',new THREE.BufferAttribute(Float32Array.from(new Int8Array(bytes(part.n).buffer),v=>v/127),3));geometry.setAttribute('uv',new THREE.BufferAttribute(Float32Array.from(new Uint16Array(bytes(part.uv).buffer),v=>v/65535),2));geometry.setIndex(new THREE.BufferAttribute(new Uint16Array(bytes(part.i).buffer),1));geometries.set(key,geometry);}
     const properties=asset.materials[part.material],coated=part.material.endsWith('paint');
-    const materialKey=id+':'+properties.metalness+':'+coated;let material=materials.get(materialKey);
-    if(!material){material=new THREE.MeshPhysicalMaterial({color:0xffffff,map:maps.color,aoMap:maps.ao,aoMapIntensity:.7,roughnessMap:maps.roughness,roughness:1,metalness:properties.metalness,clearcoat:coated?.65:.03,clearcoatRoughness:.22});material.userData.preserveShading=true;material.userData.heroAtlas=id;materials.set(materialKey,material);}
+    const detail=id==='village'?'stucco':id==='mario'&&['body','armL','armR'].includes(part.role)?'fabric':null;
+    const materialKey=id+':'+properties.metalness+':'+coated+':'+detail;let material=materials.get(materialKey);
+    if(!material){material=new THREE.MeshPhysicalMaterial({color:0xffffff,map:maps.color,aoMap:maps.ao,aoMapIntensity:.7,roughnessMap:maps.roughness,roughness:1,metalness:properties.metalness,clearcoat:coated?.65:.03,clearcoatRoughness:.22});if(detail){material.normalMap=surfaceDetails(detail).normal;material.normalScale.setScalar(detail==='fabric'?.1:.18);}material.userData.preserveShading=true;material.userData.heroAtlas=id;materials.set(materialKey,material);}
     const mesh=new THREE.Mesh(geometry,material);mesh.name=part.name;mesh.castShadow=mesh.receiveShadow=true;mesh.userData.heroRole=part.role;parent.add(mesh);meshes.push(mesh);
   }
   const batches=new Map<THREE.Material,THREE.Mesh[]>();

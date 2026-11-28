@@ -1,3 +1,4 @@
+import {updateRaceHud} from './raceHud';
 import { createGlider } from './courseFeatures';
 import { TimeTrial, trialKey } from './timeTrial';
 import ITEM_IMAGES from '../../../public/kart-items.json';
@@ -298,7 +299,7 @@ export class CouchEngine {
       // Mini map: lower left, above the name tag
       const size = Math.round(Math.min(v.h * 0.36, v.w * 0.2, 210));
       const pad = Math.round(Math.min(v.w, v.h) * 0.03);
-      const nameTag = this.humans.length > 1 ? 44 : 60;
+      const nameTag = this.humans.length > 1 ? 68 : 88;
       Object.assign(r.human!.ink.style, { left: v.x + 'px', top: H - v.y - v.h + 'px', width: v.w + 'px', height: v.h + 'px' });
       Object.assign(r.human!.banner.style, { left: v.x + 'px', width: v.w + 'px', top: H - v.y - v.h + v.h * 0.26 + 'px', fontSize: Math.round(Math.min(v.h * 0.13, 72)) + 'px' });
       Object.assign(r.human!.map.style, { width: size + 'px', height: size + 'px', left: v.x + pad + 'px', top: H - v.y - size - pad - nameTag + 'px' });
@@ -845,37 +846,17 @@ export class CouchEngine {
   }
 
   private drawHud() {
-    const small = this.humans.length > 1;
     for (const r of this.humans) {
-      const s = r.state;
-      const h = this.items ? this.items.held.get(s.config.id) : undefined;
-      const item = h ? ICONS[h.shown] : '';
-      const lap = Math.min(s.currentLap, this.laps);
-      const finalLap = lap === this.laps && !s.isFinished && this.phase === 'racing';
-      const spark = s.isDrifting ? ['#ffffff', '#38bdf8', '#fb923c', '#c084fc'][s.driftLevel] : 'transparent';
-      const big = small ? 64 : 104;
-      const placeFill = s.rank === 1 ? 'linear-gradient(#fff6a8,#ffc21a 55%,#e88a00)' : s.rank === 2 ? 'linear-gradient(#ffffff,#c9d3e6 60%,#8e9bb5)' : s.rank === 3 ? 'linear-gradient(#ffd9b3,#e08a4c 60%,#a85a2a)' : 'linear-gradient(#ffffff,#dfe7ff)';
-      let html =
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-          '<div style="width:' + (small ? 70 : 100) + 'px;height:' + (small ? 70 : 100) + 'px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#3a4a8a,#141a3a);border:5px solid #fff;box-shadow:0 0 0 4px ' + (h && !h.kind ? '#ffc83d' : '#1b1b3a') + ',0 6px 14px rgba(0,0,0,.45);padding:10px;box-sizing:border-box;position:relative">' + item + (h && h.kind && ITEM_LABEL[h.kind] ? '<div style="position:absolute;left:0;top:100%;margin-top:' + (small ? 8 : 12) + 'px;white-space:nowrap;text-shadow:0 2px 4px rgba(0,0,0,.8)"><div style="font:900 ' + (small ? 15 : 20) + 'px Inter,sans-serif;color:#fff">' + ITEM_LABEL[h.kind][0] + '</div><div style="font:700 ' + (small ? 12 : 15) + 'px Inter,sans-serif;color:#ffc83d">' + ITEM_LABEL[h.kind][1] + '</div></div>' : '') + (h && h.kind && h.count > 1 ? '<span style="position:absolute;right:-12px;bottom:-12px;font:italic 900 ' + (small ? 20 : 28) + 'px \'Space Grotesk\',Inter,sans-serif;color:#fff;-webkit-text-stroke:3px #1b1b3a;paint-order:stroke fill">×' + h.count + '</span>' : '') + '</div>' +
-          '<div style="text-align:right;text-shadow:0 2px 6px rgba(0,0,0,.6)">' +
-            '<div style="font:italic 900 ' + (small ? 24 : 36) + 'px \'Space Grotesk\',Inter,sans-serif;color:' + (finalLap ? '#ffc83d' : '#fff') + ';-webkit-text-stroke:' + (small ? 2 : 3) + 'px #1b1b3a;paint-order:stroke fill;letter-spacing:1px">' + (s.isFinished ? 'FINISH!' : finalLap ? 'FINAL LAP!' : 'LAP ' + lap + '/' + this.laps) + '</div>' +
-            '<div style="font:600 ' + (small ? 14 : 18) + 'px Inter,sans-serif;opacity:.9">' + fmtTime(s.totalRaceTime) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-end">' +
-          '<div style="display:flex;align-items:center;gap:10px;background:rgba(14,16,32,.6);border-radius:999px;padding:6px 14px 6px 6px">' +
-            '<span style="width:' + (small ? 22 : 30) + 'px;height:' + (small ? 22 : 30) + 'px;border-radius:50%;background:' + s.config.color + ';box-shadow:0 0 0 3px ' + spark + '"></span>' +
-            '<span style="font:700 ' + (small ? 16 : 22) + 'px Inter,sans-serif">' + escapeHtml(s.config.name) + '</span>' +
-            '<span style="display:inline-flex;align-items:center;gap:4px;font:800 ' + (small ? 15 : 20) + 'px Inter,sans-serif;color:#ffc83d"><span style="width:' + (small ? 14 : 18) + 'px;height:' + (small ? 14 : 18) + 'px;border-radius:50%;background:#ffc83d;border:2px solid #1b1b3a;box-sizing:border-box"></span>' + (s.coins || 0) + '</span>' +
-          '</div>' +
-          '<div style="position:relative;font:italic 900 ' + big + 'px/0.9 \'Space Grotesk\',Inter,sans-serif;transform:skewX(-6deg)">' +
-            '<span style="position:absolute;inset:0;-webkit-text-stroke:' + (small ? 8 : 12) + 'px #1b1b3a;color:#1b1b3a">' + ordinal(s.rank) + '</span>' +
-            '<span style="position:relative;background:' + placeFill + ';-webkit-background-clip:text;background-clip:text;color:transparent">' + ordinal(s.rank) + '</span>' +
-          '</div>' +
-        '</div>';
-      if(this.trial) html += '<div style="position:absolute;bottom:14px;left:18px;font:800 '+(small?14:18)+'px Inter,sans-serif;color:#7bf6f3;text-shadow:0 2px 3px #081528">TIME TRIAL · BEST '+(this.trial.best?fmtTime(this.trial.best.time):'—')+' · LAP '+(this.trial.best?.bestLap?fmtTime(this.trial.best.bestLap):'—')+(this.trial.previous?' · RACE THE GHOST':' · SET YOUR FIRST RECORD')+'</div>';
-      if (r.human!.hud.innerHTML !== html) r.human!.hud.innerHTML = html;
+      const s=r.state,h=this.items?.held.get(s.config.id),lap=Math.min(s.currentLap,this.laps);
+      updateRaceHud(r.human!.hud,{
+        player:r.human!.idx+1,name:s.config.name,color:s.config.color,rank:s.rank,lap,laps:this.laps,
+        finalLap:lap===this.laps&&!s.isFinished&&this.phase==='racing',finished:s.isFinished,
+        time:fmtTime(Math.floor(s.totalRaceTime*10)/10),coins:s.coins||0,drifting:s.isDrifting,
+        driftTime:s.driftTime,boosting:s.boostTimer>0,icon:h?ICONS[h.shown]:'',
+        itemLabel:h?.kind&&ITEM_LABEL[h.kind]?ITEM_LABEL[h.kind][0]:h&&!h.kind?'ROLLING…':'ITEM',
+        count:h?.count||0,rolling:!!h&&!h.kind,
+        trial:this.trial?'TIME TRIAL · BEST '+(this.trial.best?fmtTime(this.trial.best.time):'—')+' · LAP '+(this.trial.best?.bestLap?fmtTime(this.trial.best.bestLap):'—')+' · '+(this.trial.previous?'RACE THE GHOST':'SET YOUR FIRST RECORD'):undefined,
+      },this.humans.length>1);
     }
   }
 }

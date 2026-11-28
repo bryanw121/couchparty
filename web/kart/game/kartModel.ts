@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createDriver } from './driverModel';
 import { createKartBody } from './kartBody';
 import { RacerConfig } from '../types';
+import {applySurfaceDetails} from './surfaceDetails';
 
 export interface KartMeshHandles {
   rootGroup: THREE.Group;
@@ -35,6 +36,7 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   steeringHub.position.copy(steeringWheel.position);bodyGroup.add(steeringHub);
   const tireMat=new THREE.MeshStandardMaterial({color:0x161c26,roughness:.85});
   const treadMat=new THREE.MeshStandardMaterial({color:0x303744,roughness:.9});
+  applySurfaceDetails(tireMat,'rubber',.22,3);
   tireMat.userData.preserveShading=treadMat.userData.preserveShading=true;
   function wheel(radius:number,width:number):THREE.Group {
     const group=new THREE.Group(),rotor=new THREE.Group();group.add(rotor);

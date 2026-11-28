@@ -33,7 +33,7 @@ function texture(map){
 }
 function material(m){
   if(materials.has(m))return materials.get(m).id;
-  const entry={id:materials.size,color:m.color?.toArray()||[1,1,1],emissive:m.emissive?.toArray()||[0,0,0],emit:m.emissiveIntensity||0,roughness:m.roughness??.8,metalness:m.metalness||0,clearcoat:m.clearcoat||0,opacity:m.opacity,vertexColors:m.vertexColors,basic:!!m.isMeshBasicMaterial,atlas:m.userData.heroAtlas,map:m.userData.heroAtlas?null:texture(m.map),roughnessMap:m.userData.heroAtlas?null:texture(m.roughnessMap)};materials.set(m,entry);return entry.id;
+  const entry={id:materials.size,color:m.color?.toArray()||[1,1,1],emissive:m.emissive?.toArray()||[0,0,0],emit:m.emissiveIntensity||0,roughness:m.roughness??.8,metalness:m.metalness||0,clearcoat:m.clearcoat||0,opacity:m.opacity,vertexColors:m.vertexColors,basic:!!m.isMeshBasicMaterial,atlas:m.userData.heroAtlas,map:m.userData.heroAtlas?null:texture(m.map),normalMap:texture(m.normalMap),normalScale:m.normalScale?.toArray(),roughnessMap:m.userData.heroAtlas?null:texture(m.roughnessMap)};materials.set(m,entry);return entry.id;
 }
 scene.updateMatrixWorld(true);
 scene.traverse(o=>{

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {applySurfaceDetails} from './surfaceDetails';
 import { Course, courseById } from './tracks';
 import { TrackPoint } from '../types';
 import { createItemModel } from './itemModels';
@@ -172,6 +173,7 @@ export class TrackSystem {
       metalness: 0.02,
     });
     this.trackMesh = new THREE.Mesh(roadGeo, roadMat);
+    applySurfaceDetails(roadMat,'asphalt',.22);
     this.trackMesh.receiveShadow = true;
     this.sceneryGroup.add(this.trackMesh);
 
@@ -242,6 +244,7 @@ export class TrackSystem {
       flatShading: false,
     });
     const groundMesh = new THREE.Mesh(groundGeo, grassMat);
+    applySurfaceDetails(grassMat,this.course.id==='sunset'?'stucco':'grass',.3,28);
     groundMesh.receiveShadow = true;
     this.sceneryGroup.add(groundMesh);
   }

@@ -4,7 +4,7 @@ export function assetType(path) {
   return path === 'web-dist/kart.js' || path === 'web-dist/kart-art-review.js'
     ? 'text/javascript; charset=utf-8'
     : /^audio\/(?:kart-(?:meadow|sunset|frosty|neon|menu|victory)|lobby)\.mp3$/.test(path)
-      ? 'audio/mpeg' : path === 'public/art-review/four-player-lighting-study.png' ? 'image/png' : null;
+      ? 'audio/mpeg' : ['public/art-review/four-player-lighting-study.png','public/art-review/presentation-study.png'].includes(path) ? 'image/png' : null;
 }
 export async function gameAsset(url) {
   const path = url.pathname.slice('/game-assets/'.length);

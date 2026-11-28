@@ -3,6 +3,7 @@ import { TrackSystem } from './track';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {surfaceTexture} from './artDirection';
+import {surfaceDetails} from './surfaceDetails';
 import {hasHeroAsset,addHeroAsset} from './heroAssets';
 
 export function courseTree(id:string,scale:number){
@@ -30,6 +31,7 @@ export function addCourseScenery(track: TrackSystem) {
   const root=new THREE.Group();root.name='course-landmarks-'+track.course.id;track.sceneryGroup.add(root);
   const mat=(color:number,glow=false)=>{const m=new THREE.MeshStandardMaterial({color,roughness:.65,emissive:glow?color:0,emissiveIntensity:glow?.55:0});m.roughnessMap=surfaceTexture('stone');m.userData.preserveShading=true;return m;};
   const cream=mat(0xffefd6),gold=mat(0xffcd56),wood=mat(0x9b5c37),red=mat(0xf26a77),snow=mat(0xf3fbff),navy=mat(0x192c53);
+  cream.normalMap=surfaceDetails('stucco').normal;cream.normalScale.setScalar(.18);
   function add(p:THREE.Group,geo:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number){const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;}
   const box=(p:THREE.Group,m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number)=>add(p,new RoundedBoxGeometry(w,h,d,2,Math.min(.12,w*.15,h*.15,d*.15)),m,x,y,z);
   const ball=(p:THREE.Group,m:THREE.Material,x:number,y:number,z:number,r:number)=>add(p,new THREE.SphereGeometry(r,24,16),m,x,y,z);
@@ -233,7 +235,7 @@ export function addCourseScenery(track: TrackSystem) {
     const mesh=o as THREE.Mesh;if(!mesh.isMesh)return;
     const m=mesh.material as THREE.MeshStandardMaterial;
     const physical=m as THREE.MeshPhysicalMaterial;
-    const key=[m.type,m.color.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.roughness,m.metalness,physical.clearcoat,physical.clearcoatRoughness,m.side,m.map?.uuid,m.roughnessMap?.uuid,m.aoMap?.uuid].join(':');
+    const key=[m.type,m.color.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.roughness,m.metalness,physical.clearcoat,physical.clearcoatRoughness,m.side,m.map?.uuid,m.roughnessMap?.uuid,m.aoMap?.uuid,m.normalMap?.uuid,m.normalScale.x,m.normalScale.y].join(':');
     if(!batches.has(key))batches.set(key,{material:m,geometry:[]});
     const geo=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();
     geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,mesh.matrixWorld));batches.get(key)!.geometry.push(geo);original.push(mesh);

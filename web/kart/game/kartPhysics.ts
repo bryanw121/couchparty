@@ -7,6 +7,7 @@ import { sfx } from './sfx';
 import { KartMeshHandles } from './kartModel';
 import {animateHeroDriver} from './heroAssets';
 import {response} from './motion';
+import {animateKartMotion} from './kartMotion';
 
 export class KartPhysicsEngine {
   public totalLaps = 3;
@@ -490,5 +491,6 @@ export class KartPhysicsEngine {
     // Driver head looks into turn
     driverHead.rotation.y = THREE.MathUtils.lerp(driverHead.rotation.y, targetSteer * 0.8, delta * 10);
     animateHeroDriver(driverHead,delta,targetSteer,Math.abs(state.speed),state.isDrifting,state.isFinished);
+    animateKartMotion(state,meshHandles,delta);
   }
 }
