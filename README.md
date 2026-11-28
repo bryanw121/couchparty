@@ -114,7 +114,7 @@ Split-screen 3D kart racing for up to 4 phones; extra players watch. Phones stee
 with drift, item and brake buttons; gas is automatic by default. Items: banana, green/red/blue shells, boost, star, lightning.
 
 - The race runs on the TV in three.js (`web/kart`, built to `web-dist/kart.js` with `node build-kart.mjs`).
-- TVs load it from this public repo through jsDelivr, pinned to a commit (`web-dist/KART_REF`).
+- TVs load it through `/game-assets/`, pinned to a commit (`web-dist/KART_REF`). The server streams the public GitHub file with the correct MIME type; this avoids jsDelivr's repository size limit. Music uses the same delivery route. Local development serves these files directly from disk.
 - Needs a TV browser with 3D graphics (Fire TV, smart TV browser, laptop). The Roku app shows a note and backs out.
 - Credits: engine adapted from the MIT-licensed Arcade-Kart-Racer-3D; see `web/kart/NOTICE.md`.
 

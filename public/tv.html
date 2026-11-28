@@ -278,7 +278,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   /* Recorded sounds (open-licensed), streamed from the couchparty-audio repo via jsDelivr.
      Synth sounds above stay as the fallback if a file can't load. */
   var AUDIO_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty-audio@main/';
-  var MUSIC_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@__MUSIC_REF__/audio/';
+  var MUSIC_BASE = '/game-assets/audio/';
   var SAMPLES = { shuffle: ['cardShuffle'], deal: ['cardSlide1', 'cardSlide2', 'cardSlide3'], place: ['cardPlace1', 'cardPlace2'], fold: ['cardShove1'], fan: ['cardFan1'] };
   var buffers = {}, samplesLoading = false, musicEl = null;
   function loadSamples() {
@@ -380,7 +380,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   }
 
   /* ---------- Kario Mart (3D, loaded on demand from the public repo) ---------- */
-  var KART_JS = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@__KART_REF__/web-dist/kart.js';
+  var KART_JS = '/game-assets/web-dist/kart.js?ref=__KART_REF__';
   var KART = { engine: null, raceId: null, loading: false, hud: null };
   function gameMsg(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
   function kartMsg(html) { $('kartMsg').innerHTML = html; $('kartMsg').style.display = html ? 'flex' : 'none'; }

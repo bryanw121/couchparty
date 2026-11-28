@@ -227,7 +227,7 @@ export class CourseMusic {
 
 // Recorded CC0 tracks (OpenGameArt), streamed from this repo's audio/ folder.
 // Falls back to the synthesized CourseMusic if the file can't load.
-const TRACK_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@main/audio/';
+const TRACK_BASE = '/game-assets/audio/';
 const bufCache: Record<string, Promise<AudioBuffer>> = {};
 function loadTrack(ctx: AudioContext, name: string): Promise<AudioBuffer> {
   if (!bufCache[name]) {

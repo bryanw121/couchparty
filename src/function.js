@@ -5,6 +5,7 @@ import { neonHttp } from './dbhttp.js';
 import { createRelay } from './relay.js';
 import { route } from './routes.js';
 import { tvApi as memTvApi } from './httptv.js';
+import { gameAsset } from './assets.js';
 
 // With Postgres on the branch, rooms work across server copies; otherwise everything stays in memory.
 const db = process.env.DATABASE_URL ? neonHttp(process.env.DATABASE_URL) : null;
@@ -25,6 +26,7 @@ function publicUrl(request) {
 const handler = {
   async fetch(request) {
     const url = publicUrl(request);
+    if(url.pathname.startsWith('/game-assets/'))return gameAsset(url);
     if(url.pathname.replace(/\/+$/,'')==='/kart-art')return new Response(await getArtReview(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
     if (url.pathname === '/ws') {
       if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket') {

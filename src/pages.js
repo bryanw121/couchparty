@@ -1,6 +1,6 @@
 // The TV and phone pages load from the public repo at a pinned commit (env PAGES_REF), via jsDelivr.
 // Updating a page is then a git push plus a settings change, instead of redeploying server code.
-const CDN = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@';
+const CDN = 'https://raw.githubusercontent.com/bryanw121/couchparty/';
 const WAIT = (msg) => '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="4"></head>' +
   '<body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0E1020;color:#F4F5FA;font:600 22px sans-serif">' + msg + '</body></html>';
 const FALLBACK = { tv: WAIT('CouchParty is starting…'), play: WAIT('CouchParty is starting…') };

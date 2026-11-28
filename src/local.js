@@ -6,6 +6,7 @@ import { WebSocketServer } from 'ws';
 import { handleSocket } from './game.js';
 import { route } from './routes.js';
 import { tvApi } from './httptv.js';
+import { assetType } from './assets.js';
 
 const PORT = Number(process.env.PORT) || 8000;
 const dir = process.env.DIST ? '../dist/' : '../public/'; // DIST=1 serves the minified build
@@ -16,6 +17,12 @@ const pages = () => ({ tv: inc(read('tv.html')), play: inc(read('play.html')) })
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if(url.pathname.startsWith('/game-assets/')){
+    const path=url.pathname.slice('/game-assets/'.length),type=assetType(path);
+    const file=type&&new URL('../'+path,import.meta.url);
+    if(!file||!fs.existsSync(file)){res.writeHead(404);res.end('Not found');return;}
+    res.writeHead(200,{'content-type':type});fs.createReadStream(file).pipe(res);return;
+  }
   if(url.pathname==='/kart-art'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});res.end(inc(read('kart-art-review.html')));return;}
   const r = url.pathname.startsWith('/api/tv/') ? await tvApi(url, req.method) : await route(url, pages());
   res.writeHead(r.status, r.headers);
