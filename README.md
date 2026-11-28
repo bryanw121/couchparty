@@ -135,6 +135,13 @@ Run `npm run build:kart-art` for offline item and course renders, and `npm run t
 for item throws, pickup boxes, shared icons and village/shortcut clearance checks.
 Preview images in `public/item-previews/` and `public/course-previews/` are offline renders of game meshes.
 
+Race countdowns use original, pre-rendered chimes in `countdownAudio.ts` (three rising cues and a GO chord).
+`npm run build:countdown-preview` exports the same audio to `audio/kart-countdown-preview.wav`.
+At race finish, the TV starts `audio/kart-victory.mp3` and keeps it looping across replay, podium,
+Cup standings and final results, even after the 3D engine is disposed. Starting a new race or returning
+to the lobby changes the music. The recording is credited on the TV and in `audio/MUSIC-CREDITS.md`.
+`npm run test:kart-audio` checks the countdown samples and the celebration playback lifecycle.
+
 ## Deploying page changes
 
 The server fetches the TV and phone pages from this repo at the commit in its `PAGES_REF` setting.
