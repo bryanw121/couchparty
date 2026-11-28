@@ -1,8 +1,9 @@
 // Serve pinned public game files with browser-safe MIME types. The growing art
 // repository exceeds jsDelivr's package limit, so fetch GitHub's raw files.
 export function assetType(path) {
-  return path === 'web-dist/kart.js' || path === 'web-dist/kart-art-review.js'
+  return ['web-dist/kart.js','web-dist/kart-art-review.js','web-dist/kart-solo.js'].includes(path)
     ? 'text/javascript; charset=utf-8'
+    : path==='audio/kart-instrumental-preview.wav' ? 'audio/wav'
     : /^audio\/(?:kart-(?:meadow|sunset|frosty|neon|menu|victory)|lobby)\.mp3$/.test(path)
       ? 'audio/mpeg' : ['public/art-review/four-player-lighting-study.png','public/art-review/presentation-study.png'].includes(path) ? 'image/png' : null;
 }

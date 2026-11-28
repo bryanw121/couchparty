@@ -1,4 +1,5 @@
 import {updateRaceHud} from './raceHud';
+import {animateDriverReaction} from './driverAnimation';
 import { createGlider } from './courseFeatures';
 import { TimeTrial, trialKey } from './timeTrial';
 import ITEM_IMAGES from '../../../public/kart-items.json';
@@ -36,6 +37,7 @@ export interface CouchOptions {
   cpus?: boolean; // false for Time Trial
   quality?: 'low' | 'high';
   music?: boolean; // force music in autopilot/demo
+  practice?: boolean; // local testing never writes Time Trial records
   autopilot?: boolean; // demo / attract mode: the computer drives the player karts too
   onFinish?: (results: CouchResult[]) => void;
   onCelebration?: () => void; // TV owns victory music so it survives engine disposal
@@ -96,6 +98,9 @@ export class CouchEngine {
   private firstHumanFinishAt = -1;
   private elapsed = 0;
   private disposed = false;
+  private paused=false;
+  public setPaused(value:boolean){this.paused=value;this.music?.setPaused?.(value);if(value)soundEngine.stopEngine();}
+  private whenRunning(action:()=>void){if(this.disposed)return;if(this.paused){setTimeout(()=>this.whenRunning(action),250);return;}action();}
   private artLighting?: {dispose:()=>void};
   private finalLapMusic = false;
   private music: any = null;
@@ -132,6 +137,7 @@ export class CouchEngine {
     };
     this.track.features.onEvent = (state, event) => {
       const r = this.humans.find(r => r.state === state); if (!r) return;
+      if(event==='touchdown'){if(state.config.audioLead!==false)soundEngine.playLanding();return;}
       const messages = { jump:'TAP DRIFT FOR A TRICK', glide:'GLIDER! STEER TO FLY', trick:'TRICK! LAND FOR BOOST', landing:'TRICK BOOST!', hazard:'WATCH THE OBSTACLES!' };
       this.say(r,messages[event],event==='hazard'?'#ff9c61':'#69f1ec',event==='glide'?2200:1300);
       if(event==='landing')soundEngine.playBoostSound();
@@ -160,7 +166,7 @@ export class CouchEngine {
     this.overlay.appendChild(this.banner);
 
     this.build();
-    if(opts.cpus===false&&!opts.autopilot)for(const racer of this.humans)this.items?.grantMushrooms(racer.state.config.id,3);
+    if(opts.cpus===false&&!opts.autopilot&&!opts.practice)for(const racer of this.humans)this.items?.grantMushrooms(racer.state.config.id,3);
     window.addEventListener('resize', this.onResize);
   }
 
@@ -313,6 +319,7 @@ export class CouchEngine {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
     const delta = Math.min(this.clock.getDelta(), 0.05);
+    if(this.paused){this.render();return;}
     this.elapsed += delta;
     if (this.phase === 'intro') { this.update(delta); this.introFrame(delta); }
     else if (this.phase === 'replay') this.replayFrame(delta);
@@ -515,7 +522,7 @@ export class CouchEngine {
       soundEngine.playCountdownBeep(true);
       this.track.setStartingLights(4);
       this.phase = 'racing';
-      if(this.opts.cpus === false && !this.opts.autopilot && this.humans.length) {
+      if(this.opts.cpus === false && !this.opts.autopilot && !this.opts.practice && this.humans.length) {
         let storage:Storage|null=null;try{storage=window.localStorage;}catch{}
         this.trial=new TimeTrial(storage,trialKey(this.opts.course||'meadow',this.opts.speed||'fast',this.laps),this.scene,this.humans[0].state.config);
         for(const r of this.humans)this.trial.capture(r.state,true);
@@ -546,7 +553,7 @@ export class CouchEngine {
     // Short replay of the winner crossing the line, then the podium, then results
     // (the podium starts the moment the replay ends, so there's no dead time in between)
     this.finishResults = results;
-    setTimeout(() => this.startReplay(), 900);
+    setTimeout(() => this.whenRunning(()=>this.startReplay()), 900);
   }
 
   // ---------- replay + podium ----------
@@ -614,7 +621,7 @@ export class CouchEngine {
   }
   private startPodium() {
     if (this.disposed || this.phase === 'podium') return;
-    setTimeout(() => { if (this.disposed) return; this.phase = 'done'; this.opts.onFinish?.(this.finishResults); }, 7000);
+    setTimeout(() => this.whenRunning(()=>{this.phase = 'done'; this.opts.onFinish?.(this.finishResults);}), 7000);
     this.phase = 'podium';
     if (!this.opts.onCelebration) soundEngine.playFinishFanfare();
     const top = this.finalOrder.slice(0, 3);
@@ -683,6 +690,7 @@ export class CouchEngine {
       if (k.i === 0) g.rotation.y += delta * (Math.sin(t * 0.7) > 0.6 ? 6 : 0);
       k.r.handles.driverHead.rotation.z = Math.sin(t * 8 + k.i) * 0.25;
       animateHeroDriver(k.r.handles.driverHead,delta,0,0,false,true);
+      animateDriverReaction(k.r.handles.driverHead,delta,{celebrate:true});
       const v = g.position.clone(); v.y += 3.2; v.project(this.cine);
       const W = this.container.clientWidth, H = this.container.clientHeight;
       const lab = this.labels[k.i];

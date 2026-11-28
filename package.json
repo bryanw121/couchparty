@@ -18,7 +18,9 @@
     "test:kart-spin": "node test/kart-spin-recovery.mjs",
     "test:kart-driving": "node test/kart-driving.mjs",
     "test:kart-multiplayer-art": "node test/kart-multiplayer-art.mjs",
-    "test:kart-presentation": "node test/kart-presentation.mjs"
+    "test:kart-presentation": "node test/kart-presentation.mjs",
+    "test:kart-audio-upgrades": "node test/kart-audio-upgrades.mjs",
+    "test:kart-solo": "node test/kart-solo.mjs"
   },
   "keywords": [],
   "author": "",

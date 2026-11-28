@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import fs from 'node:fs';
+import vm from 'node:vm';
+await build({stdin:{contents:`export {LocalControls} from './web/kart/game/localControls';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'esm',outfile:'dist/local-controls-test.mjs'});
+const {LocalControls}=await import('../dist/local-controls-test.mjs');
+const controls=new LocalControls();controls.hold('touch1','left');controls.hold('touch2','drift');controls.hold('touch3','item');assert.equal(controls.snapshot().steer,1);assert.ok(controls.snapshot().drift&&controls.snapshot().item&&controls.snapshot().gas);
+controls.release('touch2');assert.equal(controls.snapshot().drift,false);assert.equal(controls.snapshot().steer,1);controls.hold('touch4','brake');assert.equal(controls.snapshot().gas,false);assert.equal(controls.snapshot().brake,true);controls.reset();assert.equal(controls.snapshot().steer,0);controls.autoGas=false;assert.equal(controls.snapshot().gas,false);controls.hold('key1','gas');assert.equal(controls.snapshot().gas,true);controls.steer(-9);assert.equal(controls.snapshot().steer,-1);
+// Execute the real page module with a stub race engine and event-capable DOM.
+// This checks wiring/lifecycle; it is not a real browser rendering test.
+const result=await build({entryPoints:['web/kart/solo.ts'],bundle:true,write:false,format:'iife',platform:'browser',plugins:[{name:'fake-engine',setup(b){
+ b.onResolve({filter:/\/game\/couchEngine$/},()=>({path:'engine',namespace:'fake'}));b.onResolve({filter:/\/game\/audio$/},()=>({path:'audio',namespace:'fake'}));
+ b.onLoad({filter:/.*/,namespace:'fake'},({path})=>({contents:path==='engine'?`export class CouchEngine {constructor(container,opts){this.opts=opts;this.inputs=[];globalThis.races.push(this);}start(){this.started=true;}setInput(id,pad){this.inputs.push({...pad});}setPaused(v){this.paused=v;}dispose(){this.disposed=true;}}`:`export const soundEngine={init(){},getMuted(){return false;},toggleMute(){return true;}}`,loader:'js'}));
+}}]});
+class Element{constructor(id){this.id=id;this.style={};this.dataset={};this.listeners={};this.hidden=false;this.value='';this.checked=true;this.textContent='';}appendChild(option){if(!this.value)this.value=option.value;}addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}setAttribute(name,value){this[name]=value;}setPointerCapture(){}getBoundingClientRect(){return{left:0,width:200};}fire(name,event={}){event.preventDefault??=()=>{};for(const fn of this.listeners[name]||[])fn(event);}}
+const elements=Object.fromEntries(['stage','setup','race','paused','status','start','restart','pause','sound','stick','thumb','actions','driver','course','speed','opponents','autoGas'].map(id=>[id,new Element(id)]));elements.speed.value='fast';elements.opponents.value='yes';
+const buttons=['drift','item','brake','gas'].map(action=>{const el=new Element(action);el.dataset.action=action;return el;});
+const globalListeners={},audio=[];
+const context={races:[],document:{getElementById:id=>elements[id],createElement:()=>new Element(),querySelectorAll:()=>buttons,querySelector:()=>buttons[3],addEventListener(name,fn){globalListeners[name]=fn;},hidden:false},addEventListener(name,fn){globalListeners[name]=fn;},Audio:class{constructor(){this.played=0;audio.push(this);}play(){this.played++;return Promise.resolve();}pause(){this.stopped=true;}},console};
+vm.createContext(context);vm.runInContext(result.outputFiles[0].text,context);elements.start.onclick();let race=context.races[0];assert.ok(race.started&&race.opts.practice);assert.equal(race.opts.players.length,1);assert.equal(race.opts.autopilot,undefined,'player has direct control');assert.equal(elements.setup.hidden,true);
+elements.stick.fire('pointerdown',{pointerId:1,clientX:180});buttons[0].fire('pointerdown',{pointerId:2});assert.ok(race.inputs.at(-1).drift&&race.inputs.at(-1).steer<0,'simultaneous touch steering and drift reach engine');
+buttons[0].fire('pointercancel',{pointerId:2});assert.equal(race.inputs.at(-1).drift,false);assert.ok(race.inputs.at(-1).steer<0);elements.stick.fire('lostpointercapture',{pointerId:1});assert.equal(race.inputs.at(-1).steer,0);
+globalListeners.keydown({code:'KeyA',preventDefault(){}});assert.equal(race.inputs.at(-1).steer,1);globalListeners.blur();assert.equal(race.paused,true);assert.equal(race.inputs.at(-1).gas,false);elements.pause.onclick();assert.equal(race.paused,false);assert.equal(race.inputs.at(-1).steer,0,'no stuck steering on resume');
+race.opts.onCelebration();assert.equal(audio[0].loop,true);race.opts.onFinish();assert.ok(race.disposed);assert.equal(audio[0].stopped,undefined,'victory music continues on results/setup');assert.equal(elements.setup.hidden,false);
+elements.start.onclick();assert.equal(audio[0].stopped,true,'new race stops prior victory music');race=context.races.at(-1);elements.restart.onclick();assert.equal(race.disposed,true);assert.equal(elements.setup.hidden,false);
+assert.ok(fs.readFileSync('public/play.html','utf8').includes('href="/kart-solo"'));
+console.log('PASS local multi-touch/keyboard state, actual solo page event wiring, pause/blur/reset, finish music and restart cleanup');

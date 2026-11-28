@@ -11,7 +11,7 @@ export class CourseFeatures {
   readonly hazards: Hazard[] = [];
   active = false;
   time = 0;
-  onEvent?: (racer: RacerState, event: 'jump' | 'glide' | 'trick' | 'landing' | 'hazard') => void;
+  onEvent?: (racer: RacerState, event: 'jump' | 'glide' | 'trick' | 'landing' | 'touchdown' | 'hazard') => void;
   private flights = new Map<string, Flight>();
   private drift = new Map<string, boolean>();
   private hitUntil = new Map<string, number>();
@@ -91,7 +91,7 @@ export class CourseFeatures {
         state.airHeight=Math.max(0,1.6*(1-t)+Math.sin(Math.PI*t)*f.peak);
         state.isGliding=f.glide&&t<1;state.trickRoll=f.trick?Math.min(1,(f.time-f.trickAt)/Math.max(.15,Math.min(.65,f.duration-f.trickAt)))*Math.PI*2:0;
         state.isDrifting=false;state.hopT=0;
-        if(f.time>=f.duration){state.airHeight=0;state.isGliding=false;state.trickRoll=0;
+        if(f.time>=f.duration){state.airHeight=0;state.isGliding=false;state.trickRoll=0;this.onEvent?.(state,'touchdown');
           if(f.trick){state.boostTimer=Math.max(state.boostTimer,1.3);state.boostMultiplier=Math.max(state.boostMultiplier,1.4);state.speed=Math.max(state.speed,state.config.topSpeed*1.14);this.onEvent?.(state,'landing');}}
       }
       if(f.time>=f.duration&&f.cooldown<=0){this.flights.delete(id);f=undefined;}

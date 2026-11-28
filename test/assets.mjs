@@ -4,7 +4,7 @@ const ref='024f426ec9924013a2a03cce523ffb6777fd908e';
 process.env.PAGES_REF=ref;
 const requests=[];
 globalThis.fetch=async url=>{requests.push(url);return new Response('asset bytes');};
-for(const [path,type] of [['web-dist/kart.js','text/javascript'],['web-dist/kart-art-review.js','text/javascript'],['audio/kart-victory.mp3','audio/mpeg'],['public/art-review/four-player-lighting-study.png','image/png'],['public/art-review/presentation-study.png','image/png']]){
+for(const [path,type] of [['web-dist/kart.js','text/javascript'],['web-dist/kart-art-review.js','text/javascript'],['web-dist/kart-solo.js','text/javascript'],['audio/kart-instrumental-preview.wav','audio/wav'],['audio/kart-victory.mp3','audio/mpeg'],['public/art-review/four-player-lighting-study.png','image/png'],['public/art-review/presentation-study.png','image/png']]){
   const r=await gameAsset(new URL('https://game.test/game-assets/'+path+'?ref='+ref));
   assert.equal(r.status,200);assert.ok(r.headers.get('content-type').startsWith(type));
   assert.match(r.headers.get('cache-control'),/immutable/);assert.equal(await r.text(),'asset bytes');

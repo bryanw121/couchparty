@@ -6,6 +6,13 @@ const WAIT = (msg) => '<!doctype html><html><head><meta name="viewport" content=
 const FALLBACK = { tv: WAIT('CouchParty is starting…'), play: WAIT('CouchParty is starting…') };
 let cache = { ref: null, pages: null };
 let artCache={ref:null,page:null};
+let soloCache={ref:null,page:null};
+export async function getSolo(){
+  const ref=String(process.env.PAGES_REF||'').trim();
+  if(!/^[0-9a-f]{7,40}$/.test(ref))return FALLBACK.tv;
+  if(soloCache.ref===ref&&soloCache.page)return soloCache.page;
+  try{const response=await fetch(CDN+ref+'/web-dist/pages/kart-solo.html');if(!response.ok)return WAIT('Solo mode is loading…');const page=await response.text();soloCache={ref,page};return page;}catch{return WAIT('Solo mode is loading…');}
+}
 export async function getArtReview(){
   const ref=String(process.env.PAGES_REF||'').trim();
   if(!/^[0-9a-f]{7,40}$/.test(ref))return FALLBACK.tv;

@@ -48,7 +48,7 @@ export function createHeroDriver(body:THREE.Group){
     const parent=role.startsWith('eye')?head:body,g=new THREE.Group();g.name='mario-'+role;g.position.set(...pivot as [number,number,number]);parent.add(g);
     const pieces=addHeroAsset(g,'mario',role);for(const p of pieces)p.position.set(-pivot[0],-pivot[1],-pivot[2]);rig[role]=g;
   }
-  head.userData.heroRig=rig;head.userData.heroTime=0;return head;
+  head.userData.heroRig=rig;head.userData.character='mario';head.userData.heroTime=0;return head;
 }
 export function animateHeroDriver(head:THREE.Group,delta:number,steer:number,speed:number,drifting:boolean,celebrating=false){
   const rig=head.userData.heroRig as Record<string,THREE.Group>|undefined;if(!rig)return;

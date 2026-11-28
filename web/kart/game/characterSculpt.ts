@@ -36,9 +36,11 @@ export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'r
     const o=new THREE.Mesh(new THREE.ConeGeometry(r,h,16),m); o.position.set(x,y,z); o.rotation.z=tilt; o.castShadow=true; p.add(o); return o;
   };
   const head=new THREE.Group(); head.name=who+'-head'; head.position.set(0,1.05,-.14); body.add(head);
+  head.userData.character=who;head.userData.blinkEyes=[];
   const eye=(p:THREE.Group,x:number,y:number,z:number,sx=.074,sy=.103,color=0x246dc9)=>{
-    add(p,white,x,y,z,sx,sy,.047); add(p,mat(color,.22),x+.005,y,z+.043,sx*.47,sy*.65,.015);
-    add(p,ink,x+.006,y,z+.057,sx*.25,sy*.46,.009); add(p,white,x-.005,y+sy*.3,z+.066,sx*.14,sy*.16,.005);
+    const g=new THREE.Group();g.name=who+'-blink-eye';g.position.set(x,y,z);p.add(g);head.userData.blinkEyes.push(g);
+    add(g,white,0,0,0,sx,sy,.047); add(g,mat(color,.22),.005,0,.043,sx*.47,sy*.65,.015);
+    add(g,ink,.006,0,.057,sx*.25,sy*.46,.009); add(g,white,-.005,sy*.3,.066,sx*.14,sy*.16,.005);
   };
   const smile=(p:THREE.Group,y:number,z:number,w:number)=>tube(p,mat(0x9b3c2d),[[-w,y+.018,z],[-w*.5,y-.015,z+.018],[0,y-.028,z+.024],[w*.6,y-.01,z+.014],[w,y+.025,z]],.009);
   const limbs=(cloth:THREE.Material,glove=white)=>{
@@ -106,7 +108,7 @@ export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'r
     add(head,mat(0xf13e69,.15,.1),0,.356,.159,.045,.055,.018);
   }else if(who==='toad'){
     add(body,white,0,.64,-.13,.26,.29,.22);for(const s of [-1,1]){add(body,blue,s*.185,.74,-.04,.1,.22,.22);tube(body,gold,[[s*.13,.89,.12],[s*.12,.73,.17],[s*.13,.57,.12]],.016);}limbs(skin,skin);
-    add(head,skin,0,-.07,.015,.28,.27,.24);for(const s of [-1,1]){add(head,ink,s*.092,-.045,.243,.026,.066,.012);add(head,white,s*.092-.006,-.02,.255,.008,.015,.005);}smile(head,-.18,.226,.072);
+    add(head,skin,0,-.07,.015,.28,.27,.24);for(const s of [-1,1]){const g=new THREE.Group();g.name='toad-blink-eye';g.position.set(s*.092,-.045,.243);head.add(g);head.userData.blinkEyes.push(g);add(g,ink,0,0,0,.026,.066,.012);add(g,white,-.006,.025,.012,.008,.015,.005);}smile(head,-.18,.226,.072);
     add(head,white,0,.24,-.025,.48,.34,.41);
     for(const [a,e]of [[0,.2],[Math.PI/2,.45],[-Math.PI/2,.45],[Math.PI,.3],[0,1.2]]){
       const n=new THREE.Vector3(Math.sin(a)*Math.cos(e),Math.sin(e),Math.cos(a)*Math.cos(e));

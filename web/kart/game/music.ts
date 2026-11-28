@@ -1,3 +1,4 @@
+import {instrumentSamples,Instrument} from './instruments';
 import { soundEngine } from './audio';
 
 // Original course music, synthesized live with Web Audio.
@@ -48,6 +49,8 @@ const SONGS: Record<string, Song> = {
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
 export class CourseMusic {
+  private paused=false;
+  setPaused(value:boolean){this.paused=value;if(this.ctx&&this.bus){this.bus.gain.setTargetAtTime(value?0:.55,this.ctx.currentTime,.08);if(!value)this.nextAt=this.ctx.currentTime+.05;}}
   private song: Song;
   private ctx: AudioContext | null = null;
   private bus: GainNode | null = null;
@@ -58,7 +61,9 @@ export class CourseMusic {
   private tempo = 1;
   private noise: AudioBuffer | null = null;
 
-  constructor(course: string) { this.song = SONGS[course] || SONGS.meadow; }
+  private buffers=new Map<string,AudioBuffer>();
+  private instrument:Instrument;
+  constructor(course: string) { this.song = SONGS[course] || SONGS.meadow;this.instrument=course==='sunset'?'marimba':course==='neon'?'brass':course==='frosty'?'marimba':'piano'; }
 
   start() {
     const o = soundEngine.output();
@@ -103,7 +108,7 @@ export class CourseMusic {
   }
 
   private pump() {
-    if (!this.ctx) return;
+    if (!this.ctx || this.paused) return;
     const stepDur = 60 / (this.song.bpm * this.tempo) / 4;
     while (this.nextAt < this.ctx.currentTime + 0.15) {
       const sw = this.song.swing && this.step % 2 ? stepDur * this.song.swing : 0;
@@ -155,52 +160,19 @@ export class CourseMusic {
     g.gain.exponentialRampToValueAtTime(peak, t + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a + 0.02, len));
   }
-  private voice(f: number, t: number, len: number, wave: OscillatorType, vol: number, fx: boolean) {
-    const c = this.ctx!, o = c.createOscillator(), g = c.createGain();
-    o.type = wave; o.frequency.value = f;
-    this.env(g, t, 0.005, vol, len);
-    o.connect(g); g.connect(this.bus!); if (fx) g.connect(this.fxSend!);
-    o.start(t); o.stop(t + len + 0.05);
-  }
-  private lead(f: number, t: number, len: number, bright: boolean) {
-    const c = this.ctx!, g = c.createGain(), lp = c.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = bright ? 3800 : 2400; lp.Q.value = 2;
-    const vib = c.createOscillator(), vibAmt = c.createGain();
-    vib.frequency.value = 5.5; vibAmt.gain.value = f * 0.006;
-    vib.connect(vibAmt);
-    for (const det of [-6, 6]) {
-      const o = c.createOscillator();
-      o.type = this.song.lead; o.frequency.value = f; o.detune.value = det;
-      vibAmt.connect(o.frequency);
-      o.connect(lp); o.start(t); o.stop(t + len + 0.1);
+  private sample(kind:Instrument,f:number,t:number,len:number,volume:number,fx=true){
+    const c=this.ctx!,key=kind+':'+f.toFixed(2)+':'+len.toFixed(3);
+    if(!this.buffers.has(key)){
+      const samples=instrumentSamples(kind,f,len,c.sampleRate),buffer=c.createBuffer(1,samples.length,c.sampleRate);buffer.copyToChannel(samples,0);
+      if(this.buffers.size>=96)this.buffers.delete(this.buffers.keys().next().value!);this.buffers.set(key,buffer);
     }
-    vib.start(t); vib.stop(t + len + 0.1);
-    this.env(g, t, 0.015, this.song.lead === 'sawtooth' ? 0.07 : 0.1, len);
-    lp.connect(g); g.connect(this.bus!); g.connect(this.fxSend!);
+    const source=c.createBufferSource(),gain=c.createGain();source.buffer=this.buffers.get(key)!;gain.gain.value=volume;
+    source.connect(gain);gain.connect(this.bus!);if(fx)gain.connect(this.fxSend!);source.onended=()=>{source.disconnect();gain.disconnect();};source.start(t);
   }
-  private bassNote(f: number, t: number, len: number) {
-    const c = this.ctx!, o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
-    o.type = 'sawtooth'; o.frequency.value = f;
-    lp.type = 'lowpass'; lp.Q.value = 6;
-    lp.frequency.setValueAtTime(1200, t); lp.frequency.exponentialRampToValueAtTime(220, t + len);
-    this.env(g, t, 0.005, 0.22, len);
-    o.connect(lp).connect(g).connect(this.bus!);
-    o.start(t); o.stop(t + len + 0.05);
-  }
-  private pad(f: number, t: number, len: number) {
-    const c = this.ctx!, g = c.createGain(), lp = c.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 1100;
-    for (const det of [-9, 9]) {
-      const o = c.createOscillator();
-      o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det;
-      o.connect(lp); o.start(t); o.stop(t + len + 0.3);
-    }
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.025, t + 0.25);
-    g.gain.setValueAtTime(0.025, t + len * 0.8);
-    g.gain.linearRampToValueAtTime(0.0001, t + len + 0.25);
-    lp.connect(g); g.connect(this.bus!); g.connect(this.fxSend!);
-  }
+  private voice(f:number,t:number,len:number,wave:OscillatorType,vol:number,fx:boolean){this.sample('marimba',f,t,len,vol,fx);}
+  private lead(f:number,t:number,len:number,bright:boolean){this.sample(this.instrument,f,t,len,bright?.2:.17);}
+  private bassNote(f:number,t:number,len:number){this.sample('bass',f,t,len,.24,false);}
+  private pad(f:number,t:number,len:number){this.sample('strings',f,t,len,.035);}
   private kick(t: number) {
     const c = this.ctx!, o = c.createOscillator(), g = c.createGain();
     o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14);
@@ -225,90 +197,14 @@ export class CourseMusic {
   private hat(t: number, open: boolean) { this.noiseHit(t, open ? 0.22 : 0.045, open ? 0.08 : 0.06, 8000, 'highpass'); }
 }
 
-// Recorded CC0 tracks (OpenGameArt), streamed from this repo's audio/ folder.
-// Falls back to the synthesized CourseMusic if the file can't load.
-const TRACK_BASE = '/game-assets/audio/';
-const bufCache: Record<string, Promise<AudioBuffer>> = {};
-function loadTrack(ctx: AudioContext, name: string): Promise<AudioBuffer> {
-  if (!bufCache[name]) {
-    bufCache[name] = fetch(TRACK_BASE + name + '.mp3')
-      .then((r) => { if (!r.ok) throw new Error('http ' + r.status); return r.arrayBuffer(); })
-      .then((a) => new Promise<AudioBuffer>((res, rej) => ctx.decodeAudioData(a, res, rej)));
-    bufCache[name].catch(() => delete bufCache[name]);
-  }
-  return bufCache[name];
-}
-export function preloadCourseTrack(course: string) {
-  const o = soundEngine.output();
-  if (o) loadTrack(o.ctx, 'kart-' + course).catch(() => {});
-}
-
+// The race soundtrack now uses the original fuller instrumental arrangement.
+// Existing recorded menu/victory tracks and their credits remain unchanged.
+export function preloadCourseTrack(course:string) { /* Instrument buffers are created lazily after audio unlock. */ }
 export class TrackMusic {
-  private course: string;
-  private ctx: AudioContext | null = null;
-  private gain: GainNode | null = null;
-  private src: AudioBufferSourceNode | null = null;
-  private synth: CourseMusic | null = null;
-  private stopped = false;
-  private fast = false;
-
-  constructor(course: string) { this.course = SONGS[course] ? course : 'meadow'; }
-
-  start() {
-    const o = soundEngine.output();
-    if (!o) return;
-    this.ctx = o.ctx;
-    this.gain = o.ctx.createGain();
-    this.gain.gain.value = 0.42;
-    this.gain.connect(o.out);
-    const fallback = setTimeout(() => this.useSynth(), 6000);
-    loadTrack(o.ctx, 'kart-' + this.course).then((buf) => {
-      clearTimeout(fallback);
-      if (this.stopped || this.synth || !this.ctx || !this.gain) return;
-      const s = this.ctx.createBufferSource();
-      s.buffer = buf; s.loop = true;
-      if (this.fast) s.playbackRate.value = 1.12;
-      s.connect(this.gain);
-      this.gain.gain.setValueAtTime(0, this.ctx.currentTime);
-      this.gain.gain.linearRampToValueAtTime(0.42, this.ctx.currentTime + 0.6);
-      s.start();
-      this.src = s;
-    }).catch(() => { clearTimeout(fallback); this.useSynth(); });
-  }
-  private useSynth() {
-    if (this.stopped || this.src || this.synth) return;
-    this.synth = new CourseMusic(this.course);
-    this.synth.start();
-    if (this.fast) this.synth.finalLap();
-  }
-  // Final lap: short fanfare, then the track speeds up (like the classic "hurry" music)
-  finalLap() {
-    this.fast = true;
-    if (this.synth) { this.synth.finalLap(); return; }
-    if (!this.ctx || !this.src || !this.gain) return;
-    const c = this.ctx, t = c.currentTime;
-    this.gain.gain.setValueAtTime(0.42, t);
-    this.gain.gain.linearRampToValueAtTime(0.12, t + 0.15);
-    [0, 4, 7, 12, 16].forEach((st, i) => {
-      const o = c.createOscillator(), g = c.createGain();
-      o.type = 'square'; o.frequency.value = hz(72 + st);
-      g.gain.setValueAtTime(0.0001, t + i * 0.09);
-      g.gain.linearRampToValueAtTime(0.1, t + i * 0.09 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + (i === 4 ? 0.5 : 0.14));
-      o.connect(g).connect(soundEngine.output()!.out); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.6);
-    });
-    this.src.playbackRate.setValueAtTime(1, t + 0.7);
-    this.src.playbackRate.linearRampToValueAtTime(1.12, t + 1.2);
-    this.gain.gain.linearRampToValueAtTime(0.46, t + 1.2);
-  }
-  stop() {
-    this.stopped = true;
-    this.synth?.stop();
-    if (this.gain && this.ctx) {
-      const g = this.gain, s = this.src;
-      g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.25);
-      setTimeout(() => { try { s?.stop(); } catch (e) {} g.disconnect(); }, 1500);
-    }
-    this.gain = null; this.src = null;
-  }
+  private synth:CourseMusic;
+  constructor(course:string){this.synth=new CourseMusic(course);}
+  start(){this.synth.start();}
+  finalLap(){this.synth.finalLap();}
+  stop(){this.synth.stop();}
+  setPaused(value:boolean){this.synth.setPaused(value);}
 }

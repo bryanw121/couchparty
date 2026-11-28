@@ -12,7 +12,7 @@ const db = process.env.DATABASE_URL ? neonHttp(process.env.DATABASE_URL) : null;
 const relay = db ? createRelay({ sql: db, game, log: console.error }) : null;
 const attach = relay ? relay.attach : game.handleSocket;
 const tvApi = relay ? relay.tvApi : memTvApi;
-import { getPages,getArtReview } from './pages.js';
+import { getPages,getArtReview,getSolo } from './pages.js';
 
 function publicUrl(request) {
   const url = new URL(request.url);
@@ -27,6 +27,7 @@ const handler = {
   async fetch(request) {
     const url = publicUrl(request);
     if(url.pathname.startsWith('/game-assets/'))return gameAsset(url);
+    if(url.pathname.replace(/\/+$/,'')==='/kart-solo')return new Response(await getSolo(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
     if(url.pathname.replace(/\/+$/,'')==='/kart-art')return new Response(await getArtReview(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
     if (url.pathname === '/ws') {
       if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket') {

@@ -1,7 +1,7 @@
 import { playCountdownCue } from './countdownAudio';
 /**
- * Procedural Web Audio Engine for Low-Poly Arcade Kart Racer
- * Zero external audio files — 100% synthesized in real time.
+ * Shared Web Audio effects bus: quiet layered motor, surface noise and cues.
+ * Recorded victory/menu playback is owned by the host page.
  */
 
 class SoundEngine {
@@ -14,6 +14,8 @@ class SoundEngine {
   private engineOsc1: OscillatorNode | null = null;
   private engineOsc2: OscillatorNode | null = null;
   private engineFilter: BiquadFilterNode | null = null;
+  private rollingGain: GainNode | null = null;
+  private rollingFilter: BiquadFilterNode | null = null;
 
   // Drift screech nodes
   private screechGain: GainNode | null = null;
@@ -21,6 +23,13 @@ class SoundEngine {
   private screechSource: AudioBufferSourceNode | null = null;
 
   private masterGain: GainNode | null = null;
+  private connectMaster(){
+    if(!this.ctx||!this.masterGain)return;
+    if(typeof this.ctx.createDynamicsCompressor==='function'){
+      const compressor=this.ctx.createDynamicsCompressor();compressor.threshold.value=-8;compressor.knee.value=12;compressor.ratio.value=4;compressor.attack.value=.004;compressor.release.value=.18;
+      this.masterGain.connect(compressor).connect(this.ctx.destination);
+    }else this.masterGain.connect(this.ctx.destination);
+  }
 
   // For the course music: the shared context and master output (null until audio starts)
   public output(): { ctx: AudioContext; out: GainNode } | null { this.init(); return this.ctx && this.masterGain ? { ctx: this.ctx, out: this.masterGain } : null; }
@@ -36,7 +45,7 @@ class SoundEngine {
     this.ctx = ctx;
     this.masterGain = ctx.createGain();
     this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, ctx.currentTime);
-    this.masterGain.connect(ctx.destination);
+    this.connectMaster();
     this.setupEngineSynth();
     this.setupScreechSynth();
     this.isInitialized = true;
@@ -57,7 +66,7 @@ class SoundEngine {
       
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1.0, this.ctx.currentTime);
-      this.masterGain.connect(this.ctx.destination);
+      this.connectMaster();
 
       this.setupEngineSynth();
       this.setupScreechSynth();
@@ -71,17 +80,17 @@ class SoundEngine {
   private setupEngineSynth() {
     if (!this.ctx || !this.masterGain) return;
 
-    // Dual-oscillator engine model (sawtooth + square for throaty kart 2-stroke tone)
+    // Rounded low motor pulse plus a quiet harmonic layer.
     this.engineGain = this.ctx.createGain();
     this.engineGain.gain.setValueAtTime(0.0, this.ctx.currentTime);
 
     this.engineFilter = this.ctx.createBiquadFilter();
     this.engineFilter.type = 'lowpass';
     this.engineFilter.frequency.setValueAtTime(600, this.ctx.currentTime);
-    this.engineFilter.Q.setValueAtTime(2.5, this.ctx.currentTime);
+    this.engineFilter.Q.setValueAtTime(0.55, this.ctx.currentTime);
 
     this.engineOsc1 = this.ctx.createOscillator();
-    this.engineOsc1.type = 'sawtooth';
+    this.engineOsc1.type = 'sine';
     this.engineOsc1.frequency.setValueAtTime(55, this.ctx.currentTime);
 
     this.engineOsc2 = this.ctx.createOscillator();
@@ -115,7 +124,7 @@ class SoundEngine {
     this.screechFilter = this.ctx.createBiquadFilter();
     this.screechFilter.type = 'bandpass';
     this.screechFilter.frequency.setValueAtTime(1400, this.ctx.currentTime);
-    this.screechFilter.Q.setValueAtTime(3.0, this.ctx.currentTime);
+    this.screechFilter.Q.setValueAtTime(1.2, this.ctx.currentTime);
 
     this.screechGain = this.ctx.createGain();
     this.screechGain.gain.setValueAtTime(0.0, this.ctx.currentTime);
@@ -124,6 +133,9 @@ class SoundEngine {
     this.screechFilter.connect(this.screechGain);
     this.screechGain.connect(this.masterGain);
 
+    this.rollingFilter=this.ctx.createBiquadFilter();this.rollingFilter.type='lowpass';this.rollingFilter.frequency.value=700;
+    this.rollingGain=this.ctx.createGain();this.rollingGain.gain.value=0;
+    this.screechSource.connect(this.rollingFilter).connect(this.rollingGain).connect(this.masterGain);
     this.screechSource.start();
   }
 
@@ -131,28 +143,26 @@ class SoundEngine {
    * Updates continuous engine pitch and volume based on kart speed and throttle.
    */
   public updateEngine(speedNormalized: number, throttle: boolean, isBoosted: boolean) {
-    // Engine hum removed (players found it annoying); keep it silent.
-    if (this.ctx && this.engineGain) this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-    return;
     if (!this.ctx || !this.engineGain || !this.engineOsc1 || !this.engineOsc2 || !this.engineFilter) return;
-
-    const t = this.ctx.currentTime;
-    const absSpeed = Math.abs(speedNormalized);
-
-    // RPM mapping: idle ~65Hz, redline ~340Hz, boosted ~480Hz
-    let targetFreq = 65 + absSpeed * 220;
-    if (throttle) targetFreq += 25;
-    if (isBoosted) targetFreq += 80;
-
-    // Frequency filter expands as throttle opens
-    const filterFreq = 400 + absSpeed * 1200 + (throttle ? 400 : 0);
-
-    const targetGain = (0.05 + absSpeed * 0.15 + (throttle ? 0.08 : 0)) * 0.4; // engine hum sits under the music
-
-    this.engineOsc1.frequency.setTargetAtTime(targetFreq, t, 0.08);
-    this.engineOsc2.frequency.setTargetAtTime(targetFreq * 1.5, t, 0.08);
-    this.engineFilter.frequency.setTargetAtTime(filterFreq, t, 0.08);
-    this.engineGain.gain.setTargetAtTime(targetGain, t, 0.08);
+    const t=this.ctx.currentTime,speed=Math.min(1.5,Math.abs(speedNormalized));
+    const frequency=48+speed*62+(throttle?7:0)+(isBoosted?12:0);
+    this.engineOsc1.frequency.setTargetAtTime(frequency,t,.12);
+    this.engineOsc2.frequency.setTargetAtTime(frequency*2.005,t,.15);
+    this.engineFilter.frequency.setTargetAtTime(220+speed*420,t,.14);
+    this.engineGain.gain.setTargetAtTime(speed<.01&&!throttle?0:.012+speed*.016+(throttle?.006:0),t,.12);
+  }
+  public updateRoadSound(speed:number,surface:'road'|'rough'|'air'){
+    if(!this.ctx||!this.rollingGain||!this.rollingFilter)return;
+    const ratio=Math.min(1.5,Math.abs(speed)/43),t=this.ctx.currentTime;
+    this.rollingGain.gain.setTargetAtTime(surface==='air'?ratio*.006:ratio*(surface==='rough'?.025:.009),t,.1);
+    this.rollingFilter.frequency.setTargetAtTime(surface==='air'?1800:surface==='rough'?550:950,t,.12);
+  }
+  public playLanding(intensity=1){
+    if(!this.ctx||!this.masterGain||this.isMuted)return;
+    const c=this.ctx,t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';
+    o.frequency.setValueAtTime(105,t);o.frequency.exponentialRampToValueAtTime(42,t+.18);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.13*Math.min(1,intensity),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.23);
+    o.connect(g).connect(this.masterGain);o.start(t);o.stop(t+.25);
   }
 
   /**
@@ -163,8 +173,8 @@ class SoundEngine {
 
     const t = this.ctx.currentTime;
     if (isDrifting && Math.abs(speed) > 5) {
-      const targetGain = 0.05 + driftLevel * 0.04;
-      const targetFreq = 1200 + driftLevel * 500;
+      const targetGain = 0.012 + driftLevel * 0.009;
+      const targetFreq = 850 + driftLevel * 250;
       this.screechGain.gain.setTargetAtTime(targetGain, t, 0.05);
       this.screechFilter.frequency.setTargetAtTime(targetFreq, t, 0.05);
     } else {
@@ -175,6 +185,7 @@ class SoundEngine {
   public stopEngine() {
     if (!this.ctx || !this.engineGain) return;
     this.engineGain.gain.setTargetAtTime(0.0, this.ctx.currentTime, 0.1);
+    this.rollingGain?.gain.setTargetAtTime(0,this.ctx.currentTime,.1);
     if (this.screechGain) {
       this.screechGain.gain.setTargetAtTime(0.0, this.ctx.currentTime, 0.1);
     }

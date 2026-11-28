@@ -110,6 +110,34 @@ Without `DATABASE_URL` (local `npm start`) everything stays in memory. Test with
 
 ## Kario Mart (3D)
 
+### Play and test on one device
+
+Open `/kart-solo` (also linked from the TV home and phone join pages). It is a CouchParty practice
+mode using the same CouchEngine, courses, drivers, items, graphics and audio. No room, phone relay or
+separate TV is required. Choose a driver/course/speed and opponents, then tap **LET’S RACE** to unlock
+audio. The game appears above a touch steering pad and drift/item/brake buttons. Auto acceleration
+can be disabled to show a gas button. Desktop keys: A/D or arrows to steer, Space to drift, E/Enter
+for items, S/Down to brake, W/Up for gas, Shift to aim backward and Escape to pause.
+
+Solo mode pauses and clears held inputs when the tab loses focus. Pause/resume also controls the
+instrumental music; Setup disposes the race before starting another. Victory music loops on the
+post-race setup/results screen and stops for the next race. Practice never writes Time Trial records.
+The existing TV + phone party flow is unchanged. `npm run test:kart-solo` checks simultaneous pointer
+input, keyboard input, cancellation, blur/pause, restart and victory playback with an event-capable DOM
+fixture, not browser screenshots or on-device playtesting.
+
+Race audio now uses a quiet sine/triangle motor, softer tire friction, road/rough-surface/air layers,
+landing thumps and a compressor on the Web Audio bus. Original fuller instrumental arrangements use
+procedurally synthesized piano, mallet, brass-like, string and bass sounds with percussion/room/echo.
+These are synthesized instruments, not recorded acoustic performances. Recorded victory/menu music
+is retained; see `audio/MUSIC-CREDITS.md`. `audio/kart-instrumental-preview.wav` is a dry arrangement
+preview, rendered with `node scripts/render-instrumental-preview.mjs`.
+
+All eight drivers now have independently blinking eyes and character-specific hit/boost/airborne/
+celebration head reactions. Mario retains his separate arm controls. These are group-based animation
+rigs, not complete skeletal animation packs. `npm run test:kart-audio-upgrades` checks synthesis,
+audio-node targets, four arrangements, music pause/final lap and all driver reactions.
+
 Split-screen 3D kart racing for up to 4 phones; extra players watch. Phones steer by tilting (or with ◀ ▶ buttons),
 with drift, item and brake buttons; gas is automatic by default. Items: banana, green/red/blue shells, boost, star, lightning.
 

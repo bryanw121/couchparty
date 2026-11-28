@@ -8,6 +8,7 @@ import { KartMeshHandles } from './kartModel';
 import {animateHeroDriver} from './heroAssets';
 import {response} from './motion';
 import {animateKartMotion} from './kartMotion';
+import {animateDriverReaction} from './driverAnimation';
 
 export class KartPhysicsEngine {
   public totalLaps = 3;
@@ -53,6 +54,7 @@ export class KartPhysicsEngine {
         state.rotation.roll = 0;
       }
       state.position.y = closest.point.y + .1 + (state.airHeight || 0);
+      if(state.config.isPlayer&&state.config.audioLead!==false){soundEngine.updateEngine(state.speed/state.config.topSpeed,false,false);soundEngine.updateDriftScreech(false,0,0);soundEngine.updateRoadSound(0,'road');}
       this.syncMesh(state, meshHandles, delta);
       return;
     }
@@ -327,6 +329,7 @@ export class KartPhysicsEngine {
         state.boostTimer > 0
       );
       soundEngine.updateDriftScreech(state.isDrifting, state.driftLevel, state.speed);
+      soundEngine.updateRoadSound(state.speed,!isGrounded?'air':isOffTrack||onDirt?'rough':'road');
     }
   }
 
@@ -492,5 +495,6 @@ export class KartPhysicsEngine {
     driverHead.rotation.y = THREE.MathUtils.lerp(driverHead.rotation.y, targetSteer * 0.8, delta * 10);
     animateHeroDriver(driverHead,delta,targetSteer,Math.abs(state.speed),state.isDrifting,state.isFinished);
     animateKartMotion(state,meshHandles,delta);
+    animateDriverReaction(driverHead,delta,{hit:state.spinOutTimer>0,boost:state.boostTimer>0,air:(state.airHeight||0)>.3,steer:state.angularVelocity});
   }
 }

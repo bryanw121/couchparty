@@ -24,6 +24,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200,{'content-type':type});fs.createReadStream(file).pipe(res);return;
   }
   if(url.pathname==='/kart-art'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});res.end(inc(read('kart-art-review.html')));return;}
+  if(url.pathname==='/kart-solo'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});res.end(inc(read('kart-solo.html')));return;}
   const r = url.pathname.startsWith('/api/tv/') ? await tvApi(url, req.method) : await route(url, pages());
   res.writeHead(r.status, r.headers);
   res.end(r.body);
