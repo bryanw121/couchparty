@@ -31,6 +31,13 @@ for (const kind of [...ITEM_KINDS, 'box']) {
   assert.ok(art.KA.item(kind).includes(images[kind]), 'phone uses same rendered model');
 }
 assert.equal(ITEM_NAMES.green, 'Green Shell'); assert.equal(ITEM_NAMES.ride, 'Bullet Bill');
+// The inflated star uses custom surfaces; reversed winding would disappear on GPU
+// even though the two-sided offline preview could still paint its triangles.
+const starModel=createItemModel('star');let frontNormal=0,frontVertices=0;
+starModel.traverse(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position,n=o.geometry.attributes.normal;
+  for(let i=0;i<p.count;i++)if(p.getZ(i)>.22&&Math.abs(p.getX(i))<.3){frontNormal+=n.getZ(i);frontVertices++;}
+});
+assert.ok(frontVertices>0&&frontNormal/frontVertices>.4,'inflated star faces outward for GPU culling');
 console.log('PASS all 15 item models, question box, shared icons and bounded draw calls');
 
 for(const menuCourse of MENU_COURSES) {

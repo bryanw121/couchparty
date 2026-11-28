@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { build } from 'esbuild';
 import * as THREE from 'three';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 
 
 fs.mkdirSync('dist', { recursive: true });
@@ -92,6 +93,19 @@ for(const [index,d] of DRIVERS.entries()) {
 }
 fs.writeFileSync(`${outputDir}/roster.png`,encodePNG(SIZE*4,SIZE*4,atlas));
 fs.writeFileSync('public/kart-items.json',JSON.stringify(embedded)+'\n');
+// A phone-readable review sheet of the actual runtime meshes, not generated concept art.
+const board=createCanvas(1024,1220),ctx=board.getContext('2d');
+const bg=ctx.createLinearGradient(0,0,0,1220);bg.addColorStop(0,'#cceaf7');bg.addColorStop(1,'#edf6fc');ctx.fillStyle=bg;ctx.fillRect(0,0,1024,1220);
+ctx.textAlign='center';ctx.fillStyle='#23364f';ctx.font='bold 42px sans-serif';ctx.fillText('KARIO MART',512,64);
+ctx.font='23px sans-serif';ctx.fillText('B / SOFT COLLECTIBLE — IMPLEMENTED MODELS',512,106);
+for(const [i,d] of DRIVERS.entries()) {
+  const x=22+i%4*250,y=140+Math.floor(i/4)*250;
+  ctx.fillStyle='rgba(255,255,255,.65)';ctx.beginPath();ctx.roundRect(x,y,230,234,22);ctx.fill();
+  ctx.drawImage(await loadImage(`${outputDir}/${d.id}.png`),x+10,y+1,210,210);
+  ctx.fillStyle='#23364f';ctx.font='bold 19px sans-serif';ctx.fillText(d.name,x+115,y+219);
+}
+ctx.font='20px sans-serif';ctx.fillText('Actual 3D meshes • shared TV + phone icons',512,1180);
+fs.writeFileSync(`${outputDir}/soft-collectible-models.png`,board.toBuffer('image/png'));
 
 function encodePNG(width,height,pixels) {
   const table=Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
