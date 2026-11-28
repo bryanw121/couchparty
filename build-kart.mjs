@@ -10,3 +10,4 @@ await build({
   legalComments: 'eof',
   logLevel: 'info',
 });
+await build({entryPoints:['web/kart/artReview.ts'],bundle:true,minify:true,format:'iife',target:'es2020',outfile:'web-dist/kart-art-review.js',legalComments:'eof',logLevel:'info'});

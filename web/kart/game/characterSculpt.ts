@@ -1,17 +1,24 @@
 import * as THREE from 'three';
 import { RacerConfig } from '../types';
+import { applySculptAssets, markSculptSources } from './sculptAssets';
+import {surfaceTexture} from './artDirection';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const CHARACTER_FOR_TOPPER: Record<string, string> = { cap: 'mario', cat: 'luigi', bow: 'peach', bunny: 'daisy', horns: 'yoshi', antenna: 'toad', crown: 'bowser', bear: 'donkeykong' };
 
 // Shared by the race and offline portrait renderer. Stable toppers preserve existing rooms.
-export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'race' | 'portrait' = 'race'): THREE.Group {
+export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'race' | 'portrait' = 'race', sculpted=true): THREE.Group {
+  const existingParts=new Set(body.children);
+  const materials=new Map<string,THREE.MeshPhysicalMaterial>();
   const who = CHARACTER_FOR_TOPPER[config.topper || 'cap'] || 'mario';
   const mat = (color: THREE.ColorRepresentation, roughness = .48, metalness = 0) => {
-    const m = new THREE.MeshStandardMaterial({ color, roughness, metalness }); m.userData.preserveShading = true; return m;
+    const key=[color,roughness,metalness].join(':');if(materials.has(key))return materials.get(key)!;
+    const m = new THREE.MeshPhysicalMaterial({ color, roughness, metalness,clearcoat:metalness>.3?.45:.08,clearcoatRoughness:.4 }); m.userData.preserveShading = true;materials.set(key,m);return m;
   };
   const skin = mat(0xffc59a), white = mat(0xfff9eb,.3), ink = mat(0x171c28,.3), brown = mat(0x4a2416);
   const gold = mat(0xffc52e,.25,.55), red = mat(0xe22c30), green = mat(0x1caa46), blue = mat(0x2452c9);
-  const sphere = new THREE.SphereGeometry(1,quality === 'portrait' ? 28 : 20,quality === 'portrait' ? 20 : 14);
+  for(const cloth of [red,green,blue]){cloth.roughness=.7;cloth.sheen=.22;cloth.sheenColor.copy(cloth.color);cloth.roughnessMap=surfaceTexture('fabric');}
+  const sphere = new THREE.SphereGeometry(1,32,24);
   const add = (p: THREE.Group, m: THREE.Material, x: number, y: number, z: number, sx: number, sy: number, sz: number) => {
     const o = new THREE.Mesh(sphere,m); o.position.set(x,y,z); o.scale.set(sx,sy,sz); o.castShadow = o.receiveShadow = true; p.add(o); return o;
   };
@@ -129,6 +136,20 @@ export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'r
     add(head,muzzle,0,-.15,.24,.31,.2,.19);add(head,fur,0,-.045,.4,.105,.059,.035);for(const s of [-1,1])add(head,ink,s*.035,-.053,.431,.016,.012,.008);smile(head,-.22,.38,.18);
     for(let i=0;i<3;i++)cone(head,fur,(i-1)*.085,.415-Math.abs(i-1)*.025,-.06,.09,.21,-(i-1)*.3);
     tube(body,red,[[-.19,.86,.03],[0,.78,.2],[.19,.86,.03]],.034);shape(body,red,[[0,.78],[-.085,.62],[0,.4],[.085,.62]],.225,.018);
+  }
+  markSculptSources(body,head,who,existingParts);
+  if(sculpted)applySculptAssets(body,head,who);
+  if(sculpted)for(const parent of [body,head]){
+    const batches=new Map<THREE.Material,THREE.BufferGeometry[]>();
+    for(const child of [...parent.children]){
+      const mesh=child as THREE.Mesh;if(!mesh.isMesh||mesh.name==='princess-face'||existingParts.has(child))continue;
+      mesh.updateMatrix();const geo=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();geo.applyMatrix4(mesh.matrix);
+      const normal=geo.attributes.normal,position=geo.attributes.position,uv=new Float32Array(position.count*2),normals=new Float32Array(position.count*3);
+      for(let i=0;i<position.count;i++){normals.set([normal.getX(i),normal.getY(i),normal.getZ(i)],i*3);uv[i*2]=position.getX(i)*2;uv[i*2+1]=position.getY(i)*2;}
+      geo.setAttribute('normal',new THREE.BufferAttribute(normals,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+      const material=mesh.material as THREE.Material;if(!batches.has(material))batches.set(material,[]);batches.get(material)!.push(geo);mesh.removeFromParent();
+    }
+    for(const [material,parts] of batches){const geo=mergeGeometries(parts);if(!geo)throw new Error('Unable to batch driver sculpt');const mesh=new THREE.Mesh(geo,material);mesh.name=who+'-sculpted-'+(parent===head?'head':'body');mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);parts.forEach(p=>p.dispose());}
   }
   return head;
 }

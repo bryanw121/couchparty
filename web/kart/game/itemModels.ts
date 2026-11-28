@@ -11,7 +11,7 @@ export const ITEM_NAMES: Record<ItemKind, string> = {
   golden: 'Golden Mushroom', ride: 'Bullet Bill', ghost: 'Boo',
 };
 function material(color: number, metalness = .02) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: .48, metalness });
+  const m = new THREE.MeshPhysicalMaterial({ color, roughness: .46, metalness,clearcoat:.22,clearcoatRoughness:.42 });
   m.userData.preserveShading = true; return m;
 }
 export function createItemModel(kind: ItemKind | 'box'): THREE.Group {
@@ -65,15 +65,23 @@ export function createItemModel(kind: ItemKind | 'box'): THREE.Group {
     ball(yellow, 0, .25, 0, .56, .22, .62, body);
     const undersideSeam=material(0xe9ad2c);
     for (let i=0;i<8;i++) { const a=i*Math.PI/4;ball(undersideSeam,Math.sin(a)*.43,.22,Math.cos(a)*.48,.025,.12,.025,body); }
-    const dome=add(new THREE.SphereGeometry(1,32,20,0,Math.PI*2,0,Math.PI/2),shell,0,.4,0,body);dome.scale.set(.59,.51,.65);
+    const dome=add(new THREE.SphereGeometry(1,32,20,0,Math.PI*2,0,Math.PI/2),seam,0,.4,0,body);dome.scale.set(.59,.51,.65);
     const rim = add(new THREE.TorusGeometry(.58, .12, 16, 48), white, 0, .33, 0, body); rim.rotation.x = Math.PI / 2; rim.scale.y = 1.1;
-    // Seams follow the dome surface; the previous straight chords sank into it.
-    const surface=(r:number,a:number)=>[Math.sin(a)*.595*r,.4+.515*Math.sqrt(1-r*r),Math.cos(a)*.655*r];
-    for (let i=0;i<6;i++) { const a=i*Math.PI/3;
-      tube(seam,Array.from({length:12},(_,j)=>surface(.39+j*.6/11,a)),.019,body);
-      const aa=surface(.39,a),bb=surface(.39,a+Math.PI/3);
-      tube(seam,Array.from({length:8},(_,j)=>{const t=j/7,x=aa[0]*(1-t)+bb[0]*t,z=aa[2]*(1-t)+bb[2]*t;return[x,.4+.515*Math.sqrt(1-(x/.595)**2-(z/.655)**2),z];}),.019,body);
-    }
+    // Seven separately modeled convex plates over a recessed dark shell.
+    const plate=(start:number,end:number,center=false)=>{
+      const vertices:number[]=[],indices:number[]=[],n=24,rings=10;
+      for(let j=0;j<=rings;j++)for(let k=0;k<=n;k++){
+        const t=j/rings,a=start+(end-start)*k/n;
+        const sector=((a+Math.PI/6)%(Math.PI/3)+Math.PI/3)%(Math.PI/3)-Math.PI/6;
+        const boundary=.38*Math.cos(Math.PI/6)/Math.cos(sector);
+        const r=center?t*(boundary-.012):(boundary+.012)*(1-t)+.985*t;
+        const height=.4+.51*Math.sqrt(1-r*r)+.012+.014*Math.sin(Math.PI*t);
+        vertices.push(Math.sin(a)*.59*r,height,Math.cos(a)*.65*r);
+        if(j<rings&&k<n){const q=j*(n+1)+k;indices.push(q,q+n+1,q+1,q+1,q+n+1,q+n+2);}
+      }
+      const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();add(geo,shell,0,0,0,body);
+    };
+    plate(0,Math.PI*2,true);for(let i=0;i<6;i++)plate(i*Math.PI/3+.018,(i+1)*Math.PI/3-.018);
     if (kind === 'blue') {
       for (let i=0;i<5;i++) { const a=i*Math.PI*2/5; add(new THREE.ConeGeometry(.12,.36,24),white,Math.sin(a)*.37,.94,Math.cos(a)*.4,body); }
       add(new THREE.ConeGeometry(.14,.43,24),white,0,1.1,0,body);
@@ -167,6 +175,7 @@ export function createItemModel(kind: ItemKind | 'box'): THREE.Group {
     const fake=kind==='fake';
     const frame=white;
     const glass=material(fake?0xed7796:0x87deeb,.08);glass.transparent=true;glass.opacity=.56;glass.depthWrite=false;
+    glass.iridescence=fake?.2:.6;glass.iridescenceIOR=1.25;glass.iridescenceThicknessRange=[100,350];glass.clearcoat=.65;
     add(new RoundedBoxGeometry(1.1,1.1,1.1,5,.14),glass,0,.6,0);
     const edgeMaterials=[material(fake?0xffa4b8:0xb8faff),material(fake?0xff7eab:0xc5b7ff),material(fake?0xffc0b1:0xa7f2d5)];
     for(let axis=0;axis<3;axis++)for(const s of [-1,1])for(const t of [-1,1]) {

@@ -12,9 +12,11 @@ const inc = (html) => html.replace('/*KART_ART*/', () => kartArt);
 const kartRef = (process.env.KART_REF || (fs.existsSync('web-dist/KART_REF') ? fs.readFileSync('web-dist/KART_REF', 'utf8') : 'main')).trim();
 fs.writeFileSync('dist/tv.html', mini(inc(fs.readFileSync('public/tv.html', 'utf8')).replace('__KART_REF__', kartRef).replace('__MUSIC_REF__', kartRef), 'es5'));
 fs.writeFileSync('dist/play.html', mini(inc(fs.readFileSync('public/play.html', 'utf8')), 'es2018'));
+fs.writeFileSync('dist/kart-art-review.html',mini(fs.readFileSync('public/kart-art-review.html','utf8').replace('__KART_REF__',kartRef),'es2018'));
 // Same pages go to web-dist/pages for the public repo; the server fetches them at PAGES_REF.
 fs.mkdirSync('web-dist/pages', { recursive: true });
 for (const n of ['tv', 'play']) fs.copyFileSync(`dist/${n}.html`, `web-dist/pages/${n}.html`);
+fs.copyFileSync('dist/kart-art-review.html','web-dist/pages/kart-art-review.html');
 await build({
   entryPoints: ['src/function.js'], bundle: true, minify: true, legalComments: 'none',
   platform: 'node', target: 'node24', format: 'esm', outfile: 'dist/index.mjs',

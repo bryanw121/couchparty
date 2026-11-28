@@ -11,7 +11,7 @@ const db = process.env.DATABASE_URL ? neonHttp(process.env.DATABASE_URL) : null;
 const relay = db ? createRelay({ sql: db, game, log: console.error }) : null;
 const attach = relay ? relay.attach : game.handleSocket;
 const tvApi = relay ? relay.tvApi : memTvApi;
-import { getPages } from './pages.js';
+import { getPages,getArtReview } from './pages.js';
 
 function publicUrl(request) {
   const url = new URL(request.url);
@@ -25,6 +25,7 @@ function publicUrl(request) {
 const handler = {
   async fetch(request) {
     const url = publicUrl(request);
+    if(url.pathname.replace(/\/+$/,'')==='/kart-art')return new Response(await getArtReview(),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-cache'}});
     if (url.pathname === '/ws') {
       if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket') {
         return new Response('WebSocket endpoint', { status: 426 });

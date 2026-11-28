@@ -5,6 +5,17 @@ const WAIT = (msg) => '<!doctype html><html><head><meta name="viewport" content=
   '<body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0E1020;color:#F4F5FA;font:600 22px sans-serif">' + msg + '</body></html>';
 const FALLBACK = { tv: WAIT('CouchParty is starting…'), play: WAIT('CouchParty is starting…') };
 let cache = { ref: null, pages: null };
+let artCache={ref:null,page:null};
+export async function getArtReview(){
+  const ref=String(process.env.PAGES_REF||'').trim();
+  if(!/^[0-9a-f]{7,40}$/.test(ref))return FALLBACK.tv;
+  if(artCache.ref===ref&&artCache.page)return artCache.page;
+  try{
+    const response=await fetch(CDN+ref+'/web-dist/pages/kart-art-review.html');
+    if(!response.ok)return WAIT('The art studio is loading…');
+    const page=await response.text();artCache={ref,page};return page;
+  }catch{return WAIT('The art studio is loading…');}
+}
 
 export async function getPages() {
   const ref = String(process.env.PAGES_REF || '').trim();

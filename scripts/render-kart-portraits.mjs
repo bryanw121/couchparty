@@ -4,6 +4,8 @@ import zlib from 'node:zlib';
 import { build } from 'esbuild';
 import * as THREE from 'three';
 import { DRIVERS } from '../src/games/kart.js';
+import {createCanvas} from '@napi-rs/canvas';
+globalThis.document={createElement:()=>createCanvas(128,128)};
 
 fs.mkdirSync('dist', { recursive: true });
 await build({ stdin: { contents: "export { createDriver } from './web/kart/game/driverModel'; export { createKartMesh } from './web/kart/game/kartModel'; export { createGlider } from './web/kart/game/courseFeatures';", resolveDir: process.cwd(), loader: 'ts' }, bundle: true, platform: 'node', format: 'esm', packages: 'external', outfile: 'dist/portrait-model.mjs' });

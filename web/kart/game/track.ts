@@ -3,11 +3,14 @@ import { Course, courseById } from './tracks';
 import { TrackPoint } from '../types';
 import { createItemModel } from './itemModels';
 import { CourseFeatures } from './courseFeatures';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {
   createRoadTexture,
   createCurbTexture,
   createCheckeredTexture,
   createSponsorBannerTexture,
+  createTerrainTexture,
 } from './proceduralTextures';
 
 export class TrackSystem {
@@ -123,7 +126,7 @@ export class TrackSystem {
       vertices.push(leftPt.x, leftPt.y + 0.05, leftPt.z);
       vertices.push(rightPt.x, rightPt.y + 0.05, rightPt.z);
 
-      const vProg = (i / segments) * 60; // 60 repeats along loop
+      const vProg = (i / segments) * this.totalLength / 24;
       uvs.push(0, vProg);
       uvs.push(1, vProg);
 
@@ -160,11 +163,11 @@ export class TrackSystem {
     roadGeo.setIndex(indices);
     roadGeo.computeVertexNormals();
 
-    const roadTex = createRoadTexture();
+    const roadTex = createRoadTexture(this.course.id);
     const roadMat = new THREE.MeshStandardMaterial({
       map: roadTex,
       roughness: 0.85,
-      metalness: 0.1,
+      metalness: 0.02,
     });
     this.trackMesh = new THREE.Mesh(roadGeo, roadMat);
     this.trackMesh.receiveShadow = true;
@@ -232,8 +235,9 @@ export class TrackSystem {
 
     const grassMat = new THREE.MeshStandardMaterial({
       color: 0x4d7c0f, // Lush natural green
+      map:createTerrainTexture(this.course.id),
       roughness: 0.9,
-      flatShading: true,
+      flatShading: false,
     });
     const groundMesh = new THREE.Mesh(groundGeo, grassMat);
     groundMesh.receiveShadow = true;
@@ -511,6 +515,10 @@ export class TrackSystem {
     const baseMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5 });
     const roofMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.4 });
     const seatMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.6 });
+    const crowdParts=new Map<number,THREE.BufferGeometry[]>();
+    const crowdPiece=(color:number,x:number,y:number,z:number,sx:number,sy:number,sz:number)=>{
+      const geo=new THREE.SphereGeometry(1,12,8);geo.scale(sx,sy,sz);geo.translate(x,y,z);if(!crowdParts.has(color))crowdParts.set(color,[]);crowdParts.get(color)!.push(geo);
+    };
 
     // Tiered seating steps
     const tiers = 5;
@@ -521,21 +529,19 @@ export class TrackSystem {
       step.castShadow = true;
       stand.add(step);
 
-      // Low-poly crowd cubes
+      // Modeled mushroom spectators, batched by color rather than crowd cubes.
       for (let c = 0; c < 12; c++) {
-        const crowdGeo = new THREE.BoxGeometry(0.7, 0.9, 0.6);
         const crowdColors = [0xef4444, 0x3b82f6, 0xeab308, 0x10b981, 0xa855f7, 0xffffff];
-        const crowdMat = new THREE.MeshStandardMaterial({
-          color: crowdColors[Math.floor(Math.random() * crowdColors.length)],
-        });
-        const person = new THREE.Mesh(crowdGeo, crowdMat);
-        person.position.set(-10 + c * 1.8 + (Math.random() - 0.5) * 0.3, (t + 1) * 0.8 + 0.7, t * 1.4);
-        stand.add(person);
+        const color=crowdColors[(c+t*3)%crowdColors.length],x=-10+c*1.8,y=(t+1)*.8+.6,z=t*1.4;
+        crowdPiece(color,x,y,z,.32,.38,.24);crowdPiece(0xffe5bd,x,y+.48,z,.29,.28,.25);crowdPiece(color,x,y+.77,z,.47,.28,.39);
+        crowdPiece(0xfff8e8,x,y+.9,z-.31,.16,.1,.06);
+        for(const s of [-1,1]){crowdPiece(0x26344c,x+s*.09,y+.51,z-.24,.035,.065,.025);crowdPiece(0xffe5bd,x+s*.35,y+.14,z,.1,.19,.11);}
       }
     }
 
     // Roof
-    const roofGeo = new THREE.BoxGeometry(26, 0.4, 9);
+    for(const [color,parts] of crowdParts){const geo=mergeGeometries(parts)!;const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.6}));mesh.castShadow=true;mesh.name='mushroom-spectators';stand.add(mesh);parts.forEach(p=>p.dispose());}
+    const roofGeo = new RoundedBoxGeometry(26, 0.4, 9,3,.16);
     const roof = new THREE.Mesh(roofGeo, roofMat);
     roof.position.set(0, 8, 3);
     roof.rotation.x = 0.15;

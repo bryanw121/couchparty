@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { TrackSystem } from './track';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {surfaceTexture} from './artDirection';
 
 export function courseTree(id:string,scale:number){
   const g=new THREE.Group();g.scale.setScalar(scale);
@@ -25,11 +27,11 @@ export function courseTree(id:string,scale:number){
 // Fixed landmarks give each course its own identity. No collision geometry touches the road.
 export function addCourseScenery(track: TrackSystem) {
   const root=new THREE.Group();root.name='course-landmarks-'+track.course.id;track.sceneryGroup.add(root);
-  const mat=(color:number,glow=false)=>{const m=new THREE.MeshStandardMaterial({color,roughness:.65,emissive:glow?color:0,emissiveIntensity:glow?.55:0});m.userData.preserveShading=true;return m;};
+  const mat=(color:number,glow=false)=>{const m=new THREE.MeshStandardMaterial({color,roughness:.65,emissive:glow?color:0,emissiveIntensity:glow?.55:0});m.roughnessMap=surfaceTexture('stone');m.userData.preserveShading=true;return m;};
   const cream=mat(0xffefd6),gold=mat(0xffcd56),wood=mat(0x9b5c37),red=mat(0xf26a77),snow=mat(0xf3fbff),navy=mat(0x192c53);
   function add(p:THREE.Group,geo:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number){const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;}
-  const box=(p:THREE.Group,m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number)=>add(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
-  const ball=(p:THREE.Group,m:THREE.Material,x:number,y:number,z:number,r:number)=>add(p,new THREE.SphereGeometry(r,14,10),m,x,y,z);
+  const box=(p:THREE.Group,m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number)=>add(p,new RoundedBoxGeometry(w,h,d,2,Math.min(.12,w*.15,h*.15,d*.15)),m,x,y,z);
+  const ball=(p:THREE.Group,m:THREE.Material,x:number,y:number,z:number,r:number)=>add(p,new THREE.SphereGeometry(r,24,16),m,x,y,z);
   function clear(x:number,z:number,r:number){
     if(track.trackPoints.some(p=>Math.hypot(p.x-x,p.z-z)<track.roadWidth/2+r+4))return false;
     const s=track.shortcut;
@@ -86,7 +88,11 @@ export function addCourseScenery(track: TrackSystem) {
       box(p,walls,0,4,0,8,7,7);
       box(p,cream,0,3.8,3.6,8.3,.35,.3);
       const shape=new THREE.Shape();shape.moveTo(-4.8,0);shape.lineTo(0,3);shape.lineTo(4.8,0);shape.closePath();
-      add(p,new THREE.ExtrudeGeometry(shape,{depth:8.5,bevelEnabled:false}),roof,0,7.4,-4.25);
+      add(p,new THREE.ExtrudeGeometry(shape,{depth:8.5,bevelEnabled:true,bevelSize:.12,bevelThickness:.12,bevelSegments:3}),roof,0,7.4,-4.25);
+      // Separate ceramic ridge tiles and eaves catch the key light from the road.
+      for(let tile=0;tile<9;tile++){
+        const ridge=add(p,new THREE.CylinderGeometry(.19,.19,.86,12),roof,0,10.38,-3.8+tile*.92);ridge.rotation.x=Math.PI/2;
+      }
       box(p,wood,2.3,9,-1,1.1,2.6,1.1);box(p,cream,2.3,10.3,-1,1.4,.3,1.4);
       for(const x of [-2.3,2.3]) for(const y of [2.2,5.6]) {
         box(p,cream,x,y,3.6,1.8,2,.25);box(p,window,x,y,3.75,1.4,1.55,.08);

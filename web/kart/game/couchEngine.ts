@@ -17,6 +17,7 @@ import { courseById } from './tracks';
 import { sfx } from './sfx';
 import { TrackMusic, preloadCourseTrack } from './music';
 import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
+import { configureArtRenderer, addArtLighting } from './artDirection';
 
 // One TV, up to four players on phones, split screen like a console kart racer.
 // The race runs here on the TV; phones only send their controls.
@@ -93,6 +94,7 @@ export class CouchEngine {
   private firstHumanFinishAt = -1;
   private elapsed = 0;
   private disposed = false;
+  private artLighting?: {dispose:()=>void};
   private finalLapMusic = false;
   private music: any = null;
   private trial: TimeTrial | null = null;
@@ -105,26 +107,17 @@ export class CouchEngine {
     if (!opts.autopilot || opts.music) preloadCourseTrack(opts.course || 'meadow');
     this.laps = opts.laps || 3;
     const many = Math.min(opts.players.length, 4) > 1;
-    this.renderer = new THREE.WebGLRenderer({ antialias: !many, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(opts.quality === 'high' ? Math.min(window.devicePixelRatio, 1.5) : 1);
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.shadowMap.enabled = !many && opts.quality === 'high';
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.shadowMap.enabled = !many && opts.quality !== 'low';
+    configureArtRenderer(this.renderer);
     this.renderer.setScissorTest(true);
     container.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.display = 'block';
 
     const th = courseById(opts.course).theme;
-    this.scene.add(new THREE.AmbientLight(0xffffff, th.ambient));
-    const sun = new THREE.DirectionalLight(th.sunColor, th.sun);
-    sun.position.set(100, 150, 80);
-    sun.castShadow = this.renderer.shadowMap.enabled;
-    sun.shadow.mapSize.set(1024, 1024);
-    const d = 160;
-    Object.assign(sun.shadow.camera, { left: -d, right: d, top: d, bottom: -d, near: 10, far: 400 });
-    this.scene.add(sun);
-    this.scene.add(new THREE.HemisphereLight(th.hemiSky, th.ground, 0.55));
+    this.artLighting=addArtLighting(this.scene,this.renderer,th);
 
     this.track = new TrackSystem(this.scene, opts.course);
     this.track.features.onEvent = (state, event) => {
@@ -267,6 +260,7 @@ export class CouchEngine {
     this.music?.stop();
     window.removeEventListener('resize', this.onResize);
     this.trial?.dispose();
+    this.artLighting?.dispose();
     this.renderer.dispose();
     this.container.innerHTML = '';
   }

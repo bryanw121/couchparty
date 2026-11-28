@@ -2,29 +2,41 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { CHARACTER_FOR_TOPPER } from './driverModel';
 import { RacerConfig } from '../types';
+import {surfaceTexture} from './artDirection';
 
 // Visual bodies use the same wheelbase and attachment points, keeping driving consistent.
 export function createKartBody(body: THREE.Group, config: RacerConfig) {
   const character=CHARACTER_FOR_TOPPER[config.topper||'cap']||'mario';
   const royal=character==='peach'||character==='daisy',heavy=character==='bowser'||character==='donkeykong';
   const mat=(color:THREE.ColorRepresentation,roughness=.32,metalness=.15)=>{
-    const m=new THREE.MeshStandardMaterial({color,roughness,metalness});m.userData.preserveShading=true;return m;
+    const m=new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat:metalness<.3?.55:.25,clearcoatRoughness:.3});m.userData.preserveShading=true;return m;
   };
   const paint=mat(config.color),cream=mat(0xfff4de),dark=mat(0x202634,.66,.05),chrome=mat(0xc7deeb,.2,.7),gold=mat(0xffc642,.25,.6);
   const secondary=mat(character==='mario'||character==='luigi'?0x2855ce:character==='toad'?0xf0443e:character==='yoshi'?0xfff3cf:character==='bowser'?0x288c4c:character==='donkeykong'?0x9d5d28:0xffd875);
+  dark.roughnessMap=surfaceTexture('rubber');
   const trim=royal?gold:chrome;
-  const sphere=new THREE.SphereGeometry(1,20,14);
+  const sphere=new THREE.SphereGeometry(1,32,24);
   function mesh(geometry:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number){const o=new THREE.Mesh(geometry,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;body.add(o);return o;}
-  function rounded(m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number,r=.08){return mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(r,h/2-.001,w/2-.001,d/2-.001)),m,x,y,z);}
+  function rounded(m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number,r=.08){return mesh(new RoundedBoxGeometry(w,h,d,4,Math.min(r,h/2-.001,w/2-.001,d/2-.001)),m,x,y,z);}
   function ellipsoid(m:THREE.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number){const o=mesh(sphere,m,x,y,z);o.scale.set(sx,sy,sz);return o;}
   const floor=rounded(dark,0,.23,0,1.25,.14,2.35,.06);floor.name='chassis';
   // A rounded cockpit with flared pods, a padded seat and a separate front fairing.
-  rounded(paint,0,.38,-.24,1.12,.28,1.52,.13);
+  // A continuous swept body shell, with sculpted waist and a rounded nose.
+  const sections=new THREE.CatmullRomCurve3([new THREE.Vector3(.03,.38,-1.04),new THREE.Vector3(.48,.39,-.84),new THREE.Vector3(.57,.4,-.3),new THREE.Vector3(.47,.38,.25),new THREE.Vector3(.54,.39,.75),new THREE.Vector3(.05,.36,1.22)]);
+  const bodyPositions:number[]=[],bodyUV:number[]=[],bodyIndices:number[]=[];
+  for(let i=0;i<=48;i++){const p=sections.getPoint(i/48);for(let j=0;j<=32;j++){const a=j/32*Math.PI*2;bodyPositions.push(Math.cos(a)*p.x,p.y+Math.sin(a)*.17,p.z);bodyUV.push(j/32,i/48);if(i<48&&j<32){const k=i*33+j;bodyIndices.push(k,k+33,k+1,k+1,k+33,k+34);}}}
+  for(let i=0;i<bodyIndices.length;i+=3){const b=bodyIndices[i+1];bodyIndices[i+1]=bodyIndices[i+2];bodyIndices[i+2]=b;}
+  const bodyGeometry=new THREE.BufferGeometry();bodyGeometry.setAttribute('position',new THREE.Float32BufferAttribute(bodyPositions,3));bodyGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(bodyUV,2));bodyGeometry.setIndex(bodyIndices);bodyGeometry.computeVertexNormals();mesh(bodyGeometry,paint,0,0,0).name='sculpted-body-shell';
   const seat=rounded(dark,0,.67,-.39,.62,.64,.2,.085);seat.rotation.x=.12;
   rounded(secondary,0,.83,-.45,.5,.19,.12,.05);
+  for(const x of [-.17,0,.17])rounded(secondary,x,.64,-.27,.025,.35,.022,.01);
   for(const s of [-1,1]){
     const pod=ellipsoid(secondary,s*.64,.4,-.12,.22,heavy?.25:.19,.71);pod.name='side-pod';
     rounded(trim,s*.68,.36,-.08,.075,.065,1.03,.03);
+    const frontFender=mesh(new THREE.TorusGeometry(.3,.055,12,32,Math.PI),paint,s*.72,.29,.85);frontFender.rotation.y=Math.PI/2;
+    // Visible suspension arms and collars anchor the wheels to the chassis.
+    const arm=mesh(new THREE.CylinderGeometry(.028,.028,.65,12),chrome,s*.43,.24,.85);arm.rotation.z=Math.PI/2;
+    const spring=mesh(new THREE.TorusGeometry(.055,.014,6,12),trim,s*.53,.29,.85);spring.rotation.y=Math.PI/2;
     // Rear fenders follow the wheel arc rather than covering it with rectangular blocks.
     const fender=mesh(new THREE.TorusGeometry(.37,.075,8,20,Math.PI),paint,s*.77,.34,-.85);fender.rotation.y=Math.PI/2;
   }

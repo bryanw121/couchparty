@@ -157,6 +157,28 @@ checks trick/glider/hazard behavior and validates ghost playback and saved-recor
 
 ## Deploying page changes
 
+The full art pass uses Blender-remeshed character surfaces in `sculpt-assets.json`, swept kart bodywork,
+separate shell plates, fabric/rubber roughness maps, rounded village buildings, tiled roof ridges,
+modeled spectators and paved track verges. `artDirection.ts` supplies the shared physical lighting,
+reflection environment and tone mapping. `/kart-art` is a phone-friendly WebGL studio using the same
+runtime models, proportions and light rig; it includes every character, kart, item and course.
+
+To rebuild the continuous sculpts, run `node scripts/prepare-sculpt-assets.mjs`, then Blender in background
+mode with `--python-exit-code 1 --python scripts/sculpt-assets.py`. Blender is an authoring dependency only;
+players receive the compact sculpt meshes in the game bundle, with no Blender or model downloads at runtime.
+`npm run test:kart-art` checks sculpt coverage, body preservation, mesh orientation, geometry/draw budgets,
+track materials, road texture repetition and paving. Existing race/audio tests cover retained behavior.
+
+`node scripts/export-art-scenes.mjs` followed by Blender `--python scripts/render-art-studio.py`
+(append `-- --items` for items) produces independent studio studies of the runtime meshes in `public/art-review/`.
+Those are Blender renders with studio lights, **not gameplay screenshots**. The older PNG course and portrait
+renderers are also offline asset previews. Browser rendering must be checked separately; disabled browser
+access must never be worked around or described as a successful live visual test.
+The shipped menu portraits and item icons are rendered with Blender using `render-game-icons.py`
+(`-- --portraits` for the character portraits), then embedded using `node scripts/pack-rendered-icons.mjs`.
+The simpler CPU scripts remain useful for geometry inspection; rebuilding them alone will replace the
+studio UI artwork, so rerun the Blender icon render and pack step before an art release.
+
 The server fetches the TV and phone pages from this repo at the commit in its `PAGES_REF` setting.
 After changing a page: `npm run build`, commit `web-dist/pages`, push, then set `PAGES_REF` to that commit.
 Server code changes still need a function deploy.

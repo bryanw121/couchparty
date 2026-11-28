@@ -34,42 +34,41 @@ export function createCheckeredTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-export function createRoadTexture(): THREE.CanvasTexture {
+export function createRoadTexture(course='meadow'): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
   // Dark asphalt base
-  ctx.fillStyle = '#27272a';
+  ctx.fillStyle = course==='frosty'?'#526b87':course==='neon'?'#293252':course==='sunset'?'#746879':'#596575';
   ctx.fillRect(0, 0, 512, 512);
 
   // Subtle asphalt grain
   for (let i = 0; i < 6000; i++) {
-    const x = Math.random() * 512;
-    const y = Math.random() * 512;
-    const shade = Math.floor(35 + Math.random() * 15);
-    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
-    ctx.fillRect(x, y, 2, 2);
+    const x = (i*97.23)%512;
+    const y = (i*61.71)%512;
+    ctx.fillStyle = i%2?'rgba(255,255,255,.045)':'rgba(0,0,0,.045)';
+    ctx.fillRect(x, y, 1, 1);
   }
 
   // White dashed center line
   ctx.fillStyle = '#f8fafc';
-  const dashCount = 8;
+  const dashCount = 2;
   const dashH = 512 / dashCount;
   for (let i = 0; i < dashCount; i++) {
-    ctx.fillRect(256 - 6, i * dashH + 12, 12, dashH - 24);
+    ctx.fillRect(256 - 3, i * dashH + 45, 6, dashH - 90);
   }
 
   // Solid outer edge lines (yellow rumble edge)
-  ctx.fillStyle = '#eab308';
-  ctx.fillRect(24, 0, 8, 512);
-  ctx.fillRect(512 - 32, 0, 8, 512);
+  ctx.fillStyle = course==='neon'?'#a8e8ff':'#f1e8d6';
+  ctx.fillRect(12, 0, 5, 512);
+  ctx.fillRect(512 - 17, 0, 5, 512);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 40);
+  texture.colorSpace=THREE.SRGBColorSpace;
   return texture;
 }
 
@@ -90,8 +89,19 @@ export function createCurbTexture(a = '#dc2626', b = '#ffffff'): THREE.CanvasTex
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 22);
+  texture.colorSpace=THREE.SRGBColorSpace;
   return texture;
+}
+
+export function createTerrainTexture(course:string):THREE.CanvasTexture {
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const g=canvas.getContext('2d')!;
+  g.fillStyle='#ffffff';g.fillRect(0,0,256,256);
+  for(let i=0;i<1300;i++){
+    const x=(i*43.73)%256,y=(i*91.19)%256;
+    g.fillStyle=i%3?'rgba(255,255,255,.06)':'rgba(45,73,61,.055)';
+    g.fillRect(x,y,course==='sunset'?12:course==='frosty'?5:2,course==='sunset'?1:3);
+  }
+  const t=new THREE.CanvasTexture(canvas);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(60,60);t.colorSpace=THREE.SRGBColorSpace;return t;
 }
 
 export function createSponsorBannerTexture(text: string, bgColor: string, textColor: string): THREE.CanvasTexture {

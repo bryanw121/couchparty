@@ -25,6 +25,7 @@ export function createKartMesh(config: RacerConfig): KartMeshHandles {
   const appearance=createKartBody(bodyGroup,config);
   rootGroup.name=appearance.character+'-kart';
   const driverHead=createDriver(bodyGroup,config);
+  driverHead.scale.setScalar(1.18);
   // The same steering and head handles are animated by the existing physics engine.
   const steeringWheel=new THREE.Mesh(new THREE.TorusGeometry(.15,.025,8,20),appearance.dark);
   steeringWheel.position.set(0,.64,.27);steeringWheel.rotation.x=-.5;bodyGroup.add(steeringWheel);

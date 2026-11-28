@@ -16,6 +16,7 @@ const pages = () => ({ tv: inc(read('tv.html')), play: inc(read('play.html')) })
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if(url.pathname==='/kart-art'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});res.end(inc(read('kart-art-review.html')));return;}
   const r = url.pathname.startsWith('/api/tv/') ? await tvApi(url, req.method) : await route(url, pages());
   res.writeHead(r.status, r.headers);
   res.end(r.body);

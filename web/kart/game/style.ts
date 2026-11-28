@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { addCourseScenery, courseTree } from './courseScenery';
 import { TrackSystem } from './track';
 import { CourseTheme } from './tracks';
+import {addTrackDress} from './trackDress';
 
 // Cartoon look for the whole scene: toon shading, a bright gradient sky with puffy clouds,
 // round candy-colored trees, and glowing boost pads on the road.
@@ -25,23 +26,10 @@ export function toonify(root: THREE.Object3D, gradient: THREE.Texture, cache = n
       if (m.userData.preserveShading) return m;
       const sm = m as THREE.MeshStandardMaterial;
       if (!(sm as any).isMeshStandardMaterial) return m;
-      let t = cache.get(m);
-      if (!t) {
-        t = new THREE.MeshToonMaterial({
-          color: sm.color.clone().offsetHSL(0, 0.12, 0.02), // a little more saturated
-          map: sm.map,
-          emissive: sm.emissive.clone(),
-          emissiveIntensity: sm.emissiveIntensity,
-          transparent: sm.transparent,
-          opacity: sm.opacity,
-          side: sm.side,
-          polygonOffset: sm.polygonOffset,
-          polygonOffsetFactor: sm.polygonOffsetFactor,
-          gradientMap: gradient,
-        });
-        cache.set(m, t);
-      }
-      return t;
+      // Keep physically lit satin surfaces throughout the world. Hard toon bands
+      // made the same assets look flat and disconnected from the approved art.
+      sm.flatShading=false;sm.userData.preserveShading=true;sm.needsUpdate=true;
+      return sm;
     };
     mesh.material = Array.isArray(mesh.material) ? mesh.material.map(swap) : swap(mesh.material);
   });
@@ -87,7 +75,7 @@ function roundTree(scale: number, th: CourseTheme): THREE.Group {
   const leafMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8, emissive: th.glow ? color : 0x000000, emissiveIntensity: th.glow ? 0.55 : 0 });
   const blobs: Array<[number, number, number, number]> = [[0, 4.4, 0, 2.4], [1.3, 3.8, 0.3, 1.6], [-1.2, 3.9, -0.2, 1.7], [0.2, 5.6, 0.2, 1.6]];
   for (const [x, y, z, r] of blobs) {
-    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), leafMat);
+    const s = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), leafMat);
     s.position.set(x, y, z);
     g.add(s);
   }
@@ -190,6 +178,7 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
   }
 
   addCourseScenery(track);
+  addTrackDress(track);
   toonify(scene, toonGradient());
 
   return {
