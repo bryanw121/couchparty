@@ -107,11 +107,12 @@ export class CouchEngine {
   constructor(private container: HTMLElement, private opts: CouchOptions) {
     if (!opts.autopilot || opts.music) preloadCourseTrack(opts.course || 'meadow');
     this.laps = opts.laps || 3;
-    const many = Math.min(opts.players.length, 4) > 1;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(opts.quality === 'high' ? Math.min(window.devicePixelRatio, 1.5) : 1);
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.shadowMap.enabled = !many && opts.quality !== 'low';
+    this.renderer.shadowMap.enabled = opts.quality !== 'low';
+    // One shared world shadow map per frame, reused by every split-screen view.
+    this.renderer.shadowMap.autoUpdate = false;
     configureArtRenderer(this.renderer);
     this.renderer.setScissorTest(true);
     container.appendChild(this.renderer.domElement);
@@ -725,6 +726,7 @@ export class CouchEngine {
 
   // ---------- drawing ----------
   private render() {
+    this.renderer.shadowMap.needsUpdate = this.renderer.shadowMap.enabled;
     if (this.phase === 'replay' || this.phase === 'podium' || this.phase === 'intro') {
       const W = this.container.clientWidth, H = this.container.clientHeight;
       this.cine.aspect = W / H; this.cine.updateProjectionMatrix();

@@ -132,6 +132,21 @@ hold the camera direction. Exponential response keeps these transitions consiste
 `npm run test:kart-driving` checks steering and camera response at 30/60/120 FPS, while
 `npm run test:kart-spin` covers forward-facing recovery across weapons and courses.
 
+The shared race/studio light rig uses Neutral tone mapping for stronger color retention, a clearer
+sun-to-fill contrast, coated paint and reflective shop windows. Dynamic shadows work in multiplayer;
+one 2048px world shadow map is updated per frame and reused across the player views. Its projection is
+explicitly refreshed after sizing the shadow camera, so coverage reaches the whole racing surface.
+Terrain-conforming static contact decals and kart blob shadows remain on low quality; these decals
+are an approximation, not baked lightmaps. `npm run test:kart-multiplayer-art` checks course coverage,
+terrain contact shading, preview rosters and two/three/four-player rendering layouts.
+
+Open `/kart-art?view=race&players=2` or `/kart-art?view=race&players=4` for auto-driving split-screen demos
+using the actual race renderer, cameras and HUD; no phones or shared rooms are needed.
+The static `public/art-review/four-player-lighting-study.png` is an **offline Blender study**, not a
+browser screenshot: geometry and poses come from the game, but material shading, lighting and HUD
+differ. Reproduce it with `node scripts/export-split-scene.mjs`, Blender in background mode running
+`scripts/render-split-scene.py`, and `node scripts/pack-split-preview.mjs`.
+
 Items use `itemModels.ts`: shells, mushrooms, Super Star, Bob-omb, Blooper, Boo, Bullet Bill and question boxes.
 The TV HUD and phone controller use transparent icons rendered from those meshes (`public/kart-items.json`).
 Bullet Bill also replaces the visible kart while that power-up is active.

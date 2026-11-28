@@ -10,7 +10,7 @@ export function createKartBody(body: THREE.Group, config: RacerConfig) {
   const character=CHARACTER_FOR_TOPPER[config.topper||'cap']||'mario';
   const royal=character==='peach'||character==='daisy',heavy=character==='bowser'||character==='donkeykong';
   const mat=(color:THREE.ColorRepresentation,roughness=.32,metalness=.15)=>{
-    const m=new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat:metalness<.3?.55:.25,clearcoatRoughness:.3});m.userData.preserveShading=true;return m;
+    const m=new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat:roughness<.5?(metalness<.3?.72:.25):0,clearcoatRoughness:.22});m.userData.preserveShading=true;return m;
   };
   const paint=mat(config.color),cream=mat(0xfff4de),dark=mat(0x202634,.66,.05),chrome=mat(0xc7deeb,.2,.7),gold=mat(0xffc642,.25,.6);
   const secondary=mat(character==='mario'||character==='luigi'?0x2855ce:character==='toad'?0xf0443e:character==='yoshi'?0xfff3cf:character==='bowser'?0x288c4c:character==='donkeykong'?0x9d5d28:0xffd875);

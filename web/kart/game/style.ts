@@ -3,6 +3,7 @@ import { addCourseScenery, courseTree } from './courseScenery';
 import { TrackSystem } from './track';
 import { CourseTheme } from './tracks';
 import {addTrackDress} from './trackDress';
+import {addSceneryContactShadows} from './sceneryShadows';
 
 // Cartoon look for the whole scene: toon shading, a bright gradient sky with puffy clouds,
 // round candy-colored trees, and glowing boost pads on the road.
@@ -179,6 +180,7 @@ export function applyCartoonStyle(scene: THREE.Scene, track: TrackSystem): { pad
 
   addCourseScenery(track);
   addTrackDress(track);
+  addSceneryContactShadows(track);
   toonify(scene, toonGradient());
 
   return {

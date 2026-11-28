@@ -5,21 +5,28 @@ import type {CourseTheme} from './tracks';
 // Race and art-review studio use the same tone mapping, reflections and light rig.
 export function configureArtRenderer(renderer:THREE.WebGLRenderer){
   renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.12;
+  renderer.toneMapping=THREE.NeutralToneMapping;
+  renderer.toneMappingExposure=1.02;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+}
+export function createArtLightRig(theme:CourseTheme,shadows=true){
+  const ambient=new THREE.HemisphereLight(theme.hemiSky,theme.glow?0x302b52:0x968878,theme.glow?.42:.36);
+  const sun=new THREE.DirectionalLight(theme.sunColor,theme.sun*1.3);sun.position.set(-250,390,230);
+  sun.name='course-sun';sun.castShadow=shadows;
+  sun.shadow.mapSize.set(shadows ? 2048 : 1024,shadows ? 2048 : 1024);
+  sun.shadow.bias=-.00008;sun.shadow.normalBias=.06;
+  Object.assign(sun.shadow.camera,{left:-330,right:330,top:330,bottom:-330,near:1,far:1100});
+  sun.shadow.camera.updateProjectionMatrix();
+  const fill=new THREE.DirectionalLight(0xdceeff,.28);fill.position.set(80,35,55);
+  const rim=new THREE.DirectionalLight(theme.glow?0xb7a2ff:0xffefd4,.55);rim.position.set(15,70,-95);
+  return {sun,ambient,fill,rim};
 }
 export function addArtLighting(scene:THREE.Scene,renderer:THREE.WebGLRenderer,theme:CourseTheme){
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
   const environment=pmrem.fromScene(room,.05);room.dispose();pmrem.dispose();
-  scene.environment=environment.texture;scene.environmentIntensity=theme.glow?.7:.55;
-  const ambient=new THREE.HemisphereLight(theme.hemiSky,theme.ground,.65);scene.add(ambient);
-  const sun=new THREE.DirectionalLight(theme.sunColor,theme.sun*1.15);sun.position.set(-70,110,65);
-  sun.castShadow=renderer.shadowMap.enabled;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.00015;sun.shadow.normalBias=.035;
-  Object.assign(sun.shadow.camera,{left:-175,right:175,top:175,bottom:-175,near:1,far:460});scene.add(sun);
-  const fill=new THREE.DirectionalLight(0xdceeff,.8);fill.position.set(80,35,55);scene.add(fill);
-  const rim=new THREE.DirectionalLight(theme.glow?0xb7a2ff:0xffefd4,1.1);rim.position.set(15,70,-95);scene.add(rim);
-  return {dispose(){environment.dispose();scene.environment=null;scene.remove(sun,ambient,fill,rim);}};
+  scene.environment=environment.texture;scene.environmentIntensity=theme.glow?.5:.38;
+  const {sun,ambient,fill,rim}=createArtLightRig(theme,renderer.shadowMap.enabled);scene.add(sun,ambient,fill,rim);
+  return {dispose(){sun.shadow.dispose();environment.dispose();scene.environment=null;scene.remove(sun,ambient,fill,rim);}};
 }
 
 const clothTextures=new Map<string,THREE.CanvasTexture>();

@@ -10,6 +10,7 @@ import {configureArtRenderer,addArtLighting} from './game/artDirection';
 import {DRIVERS} from '../../src/games/kart.js';
 import {animateHeroDriver} from './game/heroAssets';
 import {CouchEngine} from './game/couchEngine';
+import {previewPlayers} from './game/previewPlayers';
 
 const view=document.getElementById('view')!,status=document.getElementById('status')!;
 const collection=document.getElementById('collection') as HTMLSelectElement,model=document.getElementById('model') as HTMLSelectElement,lighting=document.getElementById('lighting') as HTMLSelectElement;
@@ -46,12 +47,15 @@ try{
  }
  collection.onchange=()=>choices();model.onchange=show;lighting.onchange=show;document.getElementById('shortcut')!.onclick=shortcutView;
  document.getElementById('rotate')!.onclick=()=>{controls.autoRotate=!controls.autoRotate;document.getElementById('rotate')!.textContent=controls.autoRotate?'Pause rotation':'Rotate model';};
- function startRacePreview(){
+ function startRacePreview(count=1){
   viewingRace=true;removeEventListener('resize',resize);controls.dispose();rig.dispose();renderer.dispose();renderer.forceContextLoss();scene.clear();view.replaceChildren();document.querySelector('header')!.hidden=true;document.getElementById('controls')!.hidden=true;status.hidden=true;
   const exit=document.createElement('button');exit.textContent='Back to art studio';exit.style.cssText='position:fixed;right:12px;top:12px;z-index:20;background:#fffffff0';exit.onclick=()=>{location.href='/kart-art?collection=kart&model=ace';};document.body.appendChild(exit);
-  try{racePreview=new CouchEngine(view,{players:[{id:'art-preview',name:'Mario',driver:'ace',topper:'cap',color:'#E22C30'}],course:'meadow',cpus:false,laps:99,items:true,autopilot:true,quality:'high',music:false});racePreview.start();}catch(e){status.hidden=false;status.textContent='The race preview could not start on this device. '+String(e);}
+  const label=document.createElement('div');label.textContent=count+'-PLAYER DEMO · AUTO-DRIVING';label.style.cssText='position:fixed;left:12px;top:12px;z-index:20;font:800 12px sans-serif;background:#14233ddd;color:white;padding:10px;border-radius:10px';document.body.appendChild(label);
+  try{racePreview=new CouchEngine(view,{players:previewPlayers(count),course:COURSES[params.get('course')||'']?params.get('course')!:'meadow',cpus:false,laps:99,items:true,autopilot:true,quality:'high',music:false});racePreview.start();}catch(e){status.hidden=false;status.textContent='The race preview could not start on this device. '+String(e);}
  }
- document.getElementById('race-preview')!.onclick=startRacePreview;
+ document.getElementById('race-preview')!.onclick=()=>startRacePreview(1);
+ document.getElementById('split-preview')!.onclick=()=>startRacePreview(4);
+ document.getElementById('duo-preview')!.onclick=()=>startRacePreview(2);
  function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}addEventListener('resize',resize);resize();if(['course','kart','character','item'].includes(params.get('collection')||''))collection.value=params.get('collection')!;choices(params.get('model')||undefined);
- let last=performance.now();function frame(now:number){if(viewingRace)return;const dt=Math.min(.05,(now-last)/1000);last=now;controls.update();if(heroHead)animateHeroDriver(heroHead,dt,Math.sin(now/1500)*.35,20,false);if(track){track.features.active=true;track.update(now/1000,dt);}style?.update(now/1000);renderer.render(scene,camera);requestAnimationFrame(frame);}if(params.get('view')==='race')startRacePreview();else requestAnimationFrame(frame);
+ let last=performance.now();function frame(now:number){if(viewingRace)return;const dt=Math.min(.05,(now-last)/1000);last=now;controls.update();if(heroHead)animateHeroDriver(heroHead,dt,Math.sin(now/1500)*.35,20,false);if(track){track.features.active=true;track.update(now/1000,dt);}style?.update(now/1000);renderer.render(scene,camera);requestAnimationFrame(frame);}if(params.get('view')==='race')startRacePreview(Math.max(1,Math.min(4,Number(params.get('players'))||1)));else requestAnimationFrame(frame);
 }catch(e){status.textContent='This device could not open the 3D studio. '+String(e);}

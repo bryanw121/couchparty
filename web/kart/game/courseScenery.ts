@@ -73,7 +73,7 @@ export function addCourseScenery(track: TrackSystem) {
   function shop(p:THREE.Group, index:number, mushroom=false) {
     const walls=mat([0xffe5a8,0xf9b6c8,0xa3e4d2,0xa9c9f3][index%4]);
     const roof=mat(id==='frosty'?0xe9f8ff:[0xe95064,0x51a2cd,0xf4ab42,0x9162c5][index%4]);
-    const window=mat(id==='neon'?0x61ebf4:0xffd77d,id==='neon'||id==='frosty');
+    const window=new THREE.MeshPhysicalMaterial({color:id==='neon'?0x61ebf4:0x3f8dba,roughness:.2,metalness:.18,clearcoat:.8,clearcoatRoughness:.15,emissive:id==='frosty'?0xffb759:0,emissiveIntensity:.25});
     const dark=mat(0x3c536b),leaf=mat(0x299e67);
     box(p,cream,0,.4,0,10,.8,9);
     if(mushroom) {
@@ -232,7 +232,8 @@ export function addCourseScenery(track: TrackSystem) {
   root.traverse(o=>{
     const mesh=o as THREE.Mesh;if(!mesh.isMesh)return;
     const m=mesh.material as THREE.MeshStandardMaterial;
-    const key=[m.color.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.roughness,m.metalness,m.side,m.map?.uuid,m.roughnessMap?.uuid,m.aoMap?.uuid].join(':');
+    const physical=m as THREE.MeshPhysicalMaterial;
+    const key=[m.type,m.color.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.roughness,m.metalness,physical.clearcoat,physical.clearcoatRoughness,m.side,m.map?.uuid,m.roughnessMap?.uuid,m.aoMap?.uuid].join(':');
     if(!batches.has(key))batches.set(key,{material:m,geometry:[]});
     const geo=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();
     geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,mesh.matrixWorld));batches.get(key)!.geometry.push(geo);original.push(mesh);
