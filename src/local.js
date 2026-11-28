@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT) || 8000;
 const dir = process.env.DIST ? '../dist/' : '../public/'; // DIST=1 serves the minified build
 const read = (f) => fs.readFileSync(new URL(dir + f, import.meta.url), 'utf8');
 const art = () => fs.readFileSync(new URL('../public/kart-art.js', import.meta.url), 'utf8').replace('/*KART_PORTRAITS*/', () => fs.readFileSync(new URL('../public/kart-portraits.js', import.meta.url), 'utf8')).replace('/*KART_ITEMS*/', () => 'var KART_ITEMS = ' + fs.readFileSync('public/kart-items.json', 'utf8') + ';').replace('/*KART_COURSES*/', () => fs.readFileSync('public/kart-courses.js', 'utf8'));
-const inc = (h) => h.replace('/*KART_ART*/', () => art());
+const inc = (h) => h.replace('/*KART_ART*/', () => art()).replace('__MUSIC_REF__', 'main').replace('__KART_REF__', 'main');
 const pages = () => ({ tv: inc(read('tv.html')), play: inc(read('play.html')) }); // re-read so edits show on refresh
 
 const server = http.createServer(async (req, res) => {

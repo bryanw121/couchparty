@@ -278,7 +278,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   /* Recorded sounds (open-licensed), streamed from the couchparty-audio repo via jsDelivr.
      Synth sounds above stay as the fallback if a file can't load. */
   var AUDIO_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty-audio@main/';
-  var MUSIC_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@main/audio/';
+  var MUSIC_BASE = 'https://cdn.jsdelivr.net/gh/bryanw121/couchparty@__MUSIC_REF__/audio/';
   var SAMPLES = { shuffle: ['cardShuffle'], deal: ['cardSlide1', 'cardSlide2', 'cardSlide3'], place: ['cardPlace1', 'cardPlace2'], fold: ['cardShove1'], fan: ['cardFan1'] };
   var buffers = {}, samplesLoading = false, musicEl = null;
   function loadSamples() {
@@ -307,15 +307,20 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   // Background music: upbeat CC0 chiptune in the lobby and kart menus, the CC BY lounge loop at the poker table.
   // Starts after the first remote press.
   var musicWant = 'lobby', musicOn = false, musicTracks = {};
+  var kartCelebrating = false, victoryRaceId = null;
   function musicFor(s) {
     var g = s && s.phase !== 'lobby' && s.g;
-    var t = g && g.kind === 'poker' ? 'airport-lounge' : g && g.kind === 'kart' ? 'kart-menu' : 'lobby';
+    if (!g || g.kind !== 'kart' || g.phase === 'menu' || (g.phase === 'race' && g.raceId !== victoryRaceId)) kartCelebrating = false;
+    var kartResults = s && s.phase === 'final' && s.selected === 'kart' && s.results && s.results.length;
+    var victory = kartResults || (g && g.kind === 'kart' && (g.phase === 'standings' || kartCelebrating));
+    var t = victory ? 'kart-victory' : g && g.kind === 'poker' ? 'airport-lounge' : g && g.kind === 'kart' ? 'kart-menu' : 'lobby';
+    $('musicCredit').style.display = victory ? 'block' : 'none';
     if (t !== musicWant) { musicWant = t; if (musicOn) { music(false); music(true); } }
   }
   function music(on) {
     var el = musicTracks[musicWant];
     if (!el) {
-      try { el = musicTracks[musicWant] = new Audio((musicWant === 'airport-lounge' ? AUDIO_BASE : MUSIC_BASE) + musicWant + '.mp3'); el.loop = true; el.volume = musicWant === 'airport-lounge' ? 0.22 : 0.16; } catch (e) { return; }
+      try { el = musicTracks[musicWant] = new Audio((musicWant === 'airport-lounge' ? AUDIO_BASE : MUSIC_BASE) + musicWant + '.mp3'); el.loop = true; el.volume = musicWant === 'airport-lounge' ? 0.22 : musicWant === 'kart-victory' ? 0.26 : 0.16; } catch (e) { return; }
     }
     musicOn = on;
     for (var k in musicTracks) if (k !== musicWant && !musicTracks[k].paused) musicTracks[k].pause();
@@ -511,6 +516,12 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
         return;
       }
       kartMsg('');
+      // Fetch the results track during the race, ready for the finish callback.
+      if (!musicTracks['kart-victory']) {
+        musicTracks['kart-victory'] = new Audio(MUSIC_BASE + 'kart-victory.mp3');
+        musicTracks['kart-victory'].loop = true; musicTracks['kart-victory'].volume = 0.26;
+        musicTracks['kart-victory'].preload = 'auto'; musicTracks['kart-victory'].load();
+      }
       music(false);
       var raceId = g.raceId;
       KART.engine = window.CouchKart.start($('kartView'), {
@@ -520,6 +531,13 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
           if (e.racer.indexOf('cpu-') !== 0) gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.racer, e: e.type, item: e.item || null, rank: e.rank || 0, level: e.level || 0, fin: e.final ? 1 : 0 });
           // the attacker hears about a hit too
           if (e.type === 'hit' && e.by && e.by !== e.racer && e.by.indexOf('cpu-') !== 0) gameMsg({ t: 'tv:game', k: 'ev', raceId: raceId, p: e.by, e: 'landed', item: e.item || null, rank: 0, level: 0, fin: 0 });
+        },
+        onCelebration: function () {
+          if (KART.raceId !== raceId) return;
+          kartCelebrating = true; victoryRaceId = raceId;
+          var victoryTrack = musicTracks['kart-victory'];
+          if (victoryTrack) victoryTrack.currentTime = 0;
+          musicFor(S); music(true);
         },
         onFinish: function (res) {
           var order = [];
@@ -703,5 +721,6 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
   connect();
 })();
 </script>
+<div id="musicCredit" style="display:none;position:fixed;bottom:5px;left:12px;z-index:20;font:11px sans-serif;color:#c7cce0;background:#101529c9;padding:4px 8px;border-radius:5px">Music: <a href="https://opengameart.org/content/victory-1" target="_blank" rel="noopener" style="color:inherit">“Victory!” — Viktor Kraus</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener" style="color:inherit">CC BY 3.0</a></div>
 </body>
 </html>

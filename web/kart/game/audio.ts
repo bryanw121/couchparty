@@ -1,3 +1,4 @@
+import { playCountdownCue } from './countdownAudio';
 /**
  * Procedural Web Audio Engine for Low-Poly Arcade Kart Racer
  * Zero external audio files — 100% synthesized in real time.
@@ -182,43 +183,9 @@ class SoundEngine {
   /**
    * Countdown tone (3, 2, 1, GO!)
    */
-  public playCountdownBeep(isGo: boolean = false) {
+  public playCountdownBeep(isGo: boolean = false, stage = 1) {
     if (!this.ctx || !this.masterGain || this.isMuted) return;
-
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    if (isGo) {
-      // High pitch triumphant GO tone (C6 chord)
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(1046.5, t); // C6
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-
-      const osc2 = this.ctx.createOscillator();
-      const gain2 = this.ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1318.5, t); // E6
-      gain2.gain.setValueAtTime(0.2, t);
-      gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-
-      osc2.connect(gain2);
-      gain2.connect(this.masterGain);
-      osc2.start(t);
-      osc2.stop(t + 0.6);
-    } else {
-      // Low crisp beep (A4)
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(440, t);
-      gain.gain.setValueAtTime(0.2, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    }
-
-    osc.connect(gain);
-    gain.connect(this.masterGain);
-    osc.start(t);
-    osc.stop(t + (isGo ? 0.6 : 0.25));
+    playCountdownCue(this.ctx, this.masterGain, isGo, stage);
   }
 
   /**

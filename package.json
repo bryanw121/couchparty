@@ -8,7 +8,9 @@
     "build": "node build.mjs",
     "test:kart-models": "node test/kart-models.mjs",
     "test:kart-world": "node test/kart-items-courses.mjs",
-    "build:kart-art": "node scripts/render-item-previews.mjs && node scripts/render-course-previews.mjs"
+    "build:kart-art": "node scripts/render-item-previews.mjs && node scripts/render-course-previews.mjs",
+    "test:kart-audio": "node test/kart-audio.mjs",
+    "build:countdown-preview": "node scripts/render-countdown-preview.mjs"
   },
   "keywords": [],
   "author": "",

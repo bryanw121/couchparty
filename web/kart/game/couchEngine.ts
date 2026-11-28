@@ -33,6 +33,7 @@ export interface CouchOptions {
   music?: boolean; // force music in autopilot/demo
   autopilot?: boolean; // demo / attract mode: the computer drives the player karts too
   onFinish?: (results: CouchResult[]) => void;
+  onCelebration?: () => void; // TV owns victory music so it survives engine disposal
   onEvent?: (e: ItemEvent | { type: string; racer: string; lap?: number; rank?: number; final?: boolean; level?: number }) => void;
 }
 
@@ -486,7 +487,7 @@ export class CouchEngine {
     this.banner.style.color = step === 4 ? '#5ee6c8' : '#ffffff';
     this.banner.style.transform = 'translate(-50%,-50%) scale(1.25)';
     setTimeout(() => { this.banner.style.transform = 'translate(-50%,-50%) scale(1)'; }, 120);
-    if (step >= 1 && step <= 3) { soundEngine.playCountdownBeep(false); this.track.setStartingLights(step); }
+    if (step >= 1 && step <= 3) { soundEngine.playCountdownBeep(false, step); this.track.setStartingLights(step); }
     if (step === 4) {
       soundEngine.playCountdownBeep(true);
       this.track.setStartingLights(4);
@@ -512,10 +513,11 @@ export class CouchEngine {
     this.finalOrder = sorted;
     this.music?.stop();
     soundEngine.stopEngine();
+    if (!this.opts.autopilot || this.opts.music) this.opts.onCelebration?.();
     // Short replay of the winner crossing the line, then the podium, then results
     setTimeout(() => this.startReplay(), 1800);
     setTimeout(() => this.startPodium(), 1800 + 6500);
-    setTimeout(() => { this.phase = 'done'; this.opts.onFinish?.(results); }, 1800 + 6500 + 7000);
+    setTimeout(() => { if (this.disposed) return; this.phase = 'done'; this.opts.onFinish?.(results); }, 1800 + 6500 + 7000);
   }
 
   // ---------- replay + podium ----------
@@ -577,7 +579,7 @@ export class CouchEngine {
   private startPodium() {
     if (this.disposed) return;
     this.phase = 'podium';
-    soundEngine.playFinishFanfare();
+    if (!this.opts.onCelebration) soundEngine.playFinishFanfare();
     const top = this.finalOrder.slice(0, 3);
     const p0 = this.track.trackPoints[Math.floor(this.track.trackPoints.length * 0.06)];
     const base = new THREE.Vector3(p0.x, p0.y, p0.z);
