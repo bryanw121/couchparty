@@ -400,7 +400,7 @@ export class CouchEngine {
             if (this.firstHumanFinishAt < 0) this.firstHumanFinishAt = this.elapsed;
             this.opts.onEvent?.({ type: 'finish', racer: r.state.config.id, rank: r.state.finishRank });
             this.say(r, r.state.finishRank === 1 ? '1ST PLACE!' : 'FINISH!', r.state.finishRank === 1 ? '#ffc83d' : '#ffffff', 2200);
-            this.voice(r,'finish');
+            this.voice(r,r.state.finishRank===1?'win':'finish');
             soundEngine.playFinishFanfare();
             if(this.trial?.finish(r.state))this.say(r,this.trial.saved?'NEW RECORD SAVED!':'NEW BEST THIS SESSION!', '#69f1ec',3000);
           }

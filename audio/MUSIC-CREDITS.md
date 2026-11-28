@@ -15,13 +15,13 @@ It is an original synthesized recreation of the arcade countdown pattern, not a 
 
 ## Original instrumental race arrangement
 
-Driver reactions in `web/kart/game/driverVoice.ts` are original synthesized,
-nonverbal calls for all eight drivers. Each has its own resonance, pitch, rhythm,
-roughness and breath, with three delivery variants for starts, boosts, tricks,
-hits, item use, overtakes and finishes. They are not Nintendo samples or recorded
-voice performances. `kart-driver-voices-preview.wav` uses the same sample generator
-and playback level: Luigi, Daisy, Bowser, Yoshi, Peach, Toad, Mario, Donkey Kong;
-each demonstrates boost, hit and finish in that order.
+Driver calls now use recorded spoken clips and human impact/celebration recordings,
+replacing the previous oscillator voices. See [recording sources and CC0 terms](human/CREDITS.md).
+The source page for the spoken Voiceover Pack does not identify its performers.
+The hurt and group-cheer contributors explicitly describe recording their voices.
+`kart-driver-voices-preview.wav` uses the live recording playback code: Luigi,
+Daisy, Bowser, Yoshi, Peach, Toad, Mario, Donkey Kong; each demonstrates boost,
+hit and finish in that order. These are not Nintendo voice recordings.
 
 Current races use the original melodies/arrangements in `web/kart/game/music.ts` with
 original piano, marimba, brass-like, string and bass sample synthesis from

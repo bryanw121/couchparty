@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {DRIVERS} from '../src/games/kart-roster.js';
-await build({stdin:{contents:`export * from './web/kart/game/driverVoice';export {soundEngine} from './web/kart/game/audio';export {CouchEngine} from './web/kart/game/couchEngine';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'esm',packages:'external',outfile:'dist/driver-voice-tests.mjs'});
-const {driverVoiceSamples,DriverVoiceDirector,soundEngine,CouchEngine}=await import('../dist/driver-voice-tests.mjs');
+await build({stdin:{contents:`export * from './web/kart/game/driverVoice';export {humanVoiceClip} from './web/kart/game/humanVoice';export {soundEngine} from './web/kart/game/audio';export {CouchEngine} from './web/kart/game/couchEngine';`,resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'esm',packages:'external',outfile:'dist/driver-voice-tests.mjs'});
+const {humanVoiceClip,driverVoiceSamples,DriverVoiceDirector,soundEngine,CouchEngine}=await import('../dist/driver-voice-tests.mjs');
 const signatures=new Set();
 for(const driver of DRIVERS){
- for(const call of ['start','boost','trick','hit','item','overtake','finish']){
+ for(const call of ['start','boost','trick','hit','item','overtake','finish','win']){
   const pcm=driverVoiceSamples(driver.topper,call,22050);
   assert.ok(pcm.every(Number.isFinite));assert.equal(pcm[0],0);assert.equal(pcm.at(-1),0);
   let peak=0,energy=0;for(const sample of pcm){peak=Math.max(peak,Math.abs(sample));energy+=sample*sample;}
@@ -13,8 +13,9 @@ for(const driver of DRIVERS){
   assert.notDeepEqual(pcm,driverVoiceSamples(driver.topper,call,22050,1));
  }
  signatures.add(Buffer.from(driverVoiceSamples(driver.topper,'boost',22050).buffer).toString('base64'));
- console.log('PASS',driver.name,'seven event calls and delivery variation');
+ console.log('PASS',driver.name,'eight recorded event calls and delivery variation');
 }
+assert.equal(humanVoiceClip('cap','win'),'male-you_win');assert.equal(humanVoiceClip('bow','finish'),'female-congratulations');assert.equal(humanVoiceClip('cap','hit',0),'hurt-01');assert.equal(humanVoiceClip('cap','hit',1),'hurt-03');
 assert.equal(signatures.size,8,'all drivers have distinct PCM');
 const nodes=[],param=()=>({value:0}),node=()=>({gain:param(),connect(dest){return dest;},disconnect(){this.disconnected=true;},start(){},stop(){this.stopped=true;}});
 const ctx={state:'running',currentTime:0,sampleRate:22050,createBuffer:(channels,length)=>({length,copyToChannel(){}}),createGain:node,createBufferSource(){const s=node();nodes.push(s);return s;}};
