@@ -563,7 +563,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     }
     $('players').innerHTML = html || '<div class="muted" style="font-size:1rem;margin:0.3rem">Nobody yet — scan the code</div>';
     $('lobbyCount').textContent = s.players.length + ' joined';
-    $('startHint').innerHTML = host ? esc(host.name) + ' (host) picks on their phone — or use ◀ ▶ and OK on the remote' : 'Waiting for players to join…';
+    $('startHint').innerHTML = host ? esc(host.name) + ' (host) picks and starts the game on their phone' : 'Waiting for players to join…';
   }
 
   function renderFinal(s) {
