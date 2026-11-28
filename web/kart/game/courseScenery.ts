@@ -3,6 +3,7 @@ import { TrackSystem } from './track';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {surfaceTexture} from './artDirection';
+import {hasHeroAsset,addHeroAsset} from './heroAssets';
 
 export function courseTree(id:string,scale:number){
   const g=new THREE.Group();g.scale.setScalar(scale);
@@ -126,7 +127,8 @@ export function addCourseScenery(track: TrackSystem) {
     const x=p.x+p.normalX*31*side,z=p.z+p.normalZ*31*side;
     const town=site(id+'-village-house',x,z,12);if(!town)continue;
     town.rotation.y=Math.atan2(p.x-x,p.z-z);towns.push(town);
-    shop(town,index,id==='meadow'&&index%3!==0);
+    if(id==='meadow'&&index<4&&hasHeroAsset('village'))addHeroAsset(town,'village');
+    else shop(town,index,id==='meadow'&&index%3!==0);
     if(index===8&&side===1) {
       town.name=id+'-clock-tower';
       box(town,cream,0,12,0,4.5,8,4.5);
@@ -230,7 +232,7 @@ export function addCourseScenery(track: TrackSystem) {
   root.traverse(o=>{
     const mesh=o as THREE.Mesh;if(!mesh.isMesh)return;
     const m=mesh.material as THREE.MeshStandardMaterial;
-    const key=[m.color.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.roughness,m.metalness,m.side].join(':');
+    const key=[m.color.getHex(),m.emissive.getHex(),m.emissiveIntensity,m.roughness,m.metalness,m.side,m.map?.uuid,m.roughnessMap?.uuid,m.aoMap?.uuid].join(':');
     if(!batches.has(key))batches.set(key,{material:m,geometry:[]});
     const geo=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();
     geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,mesh.matrixWorld));batches.get(key)!.geometry.push(geo);original.push(mesh);

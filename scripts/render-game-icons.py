@@ -4,7 +4,7 @@ These are offline UI artwork; /kart-art uses the actual WebGL race renderer.
 import bpy,json,array,base64,os,sys
 from mathutils import Vector
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-kind='character' if '--portraits' in sys.argv else 'item';models=[o for o in json.load(open('dist/art-scenes.json')) if o['kind']==kind];materials={}
+kind='character' if '--portraits' in sys.argv else 'item';hero='--hero' in sys.argv;models=[o for o in json.load(open('dist/art-scenes.json')) if o['kind']==kind and (not hero or (o['id']=='ace' if kind=='character' else o['id'] in ['boost','green']))];materials={}
 def decode(text,kind):
  a=array.array(kind);a.frombytes(base64.b64decode(text));return a
 for model in models:
@@ -14,11 +14,17 @@ for model in models:
   mesh=bpy.data.meshes.new(model['name']);mesh.from_pydata(vertices,[],[idx[i:i+3] for i in range(0,len(idx),3)]);mesh.update()
   for poly in mesh.polygons:poly.use_smooth=True
   mesh.normals_split_custom_set_from_vertices([(n[i],-n[i+2],n[i+1]) for i in range(0,len(n),3)])
+  if part.get('uv'):
+   uv=decode(part['uv'],'f');layer=mesh.uv_layers.new(name='UVMap')
+   for loop in mesh.loops:layer.data[loop.index].uv=(uv[loop.vertex_index*2],uv[loop.vertex_index*2+1])
   obj=bpy.data.objects.new(model['name']+str(j),mesh);bpy.context.collection.objects.link(obj);model['objects'].append(obj);obj.hide_render=True
-  key=tuple(part['color'])+(part['roughness'],part['metalness'],part['opacity'])
+  key=tuple(part['color'])+(part['roughness'],part['metalness'],part['opacity'],part.get('atlas'))
   if key not in materials:
    mat=bpy.data.materials.new('satin');mat.use_nodes=True;node=mat.node_tree.nodes.get('Principled BSDF');node.inputs['Base Color'].default_value=(*part['color'],1);node.inputs['Roughness'].default_value=part['roughness'];node.inputs['Metallic'].default_value=part['metalness'];node.inputs['Coat Weight'].default_value=.2;node.inputs['Coat Roughness'].default_value=.4
    if part['opacity']<1:node.inputs['Transmission Weight'].default_value=.35;node.inputs['IOR'].default_value=1.3
+   if part.get('atlas'):
+    for channel,input_name in [('color','Base Color'),('roughness','Roughness')]:
+     image=bpy.data.images.load(os.path.abspath('public/hero-assets/'+part['atlas']+'-'+channel+'.png'),check_existing=True);image.colorspace_settings.name='sRGB' if channel=='color' else 'Non-Color';tex=mat.node_tree.nodes.new('ShaderNodeTexImage');tex.image=image;mat.node_tree.links.new(tex.outputs['Color'],node.inputs[input_name])
    materials[key]=mat
   mesh.materials.append(materials[key])
 def area(location,power,size,color):

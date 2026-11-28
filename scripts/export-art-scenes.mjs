@@ -17,7 +17,7 @@ function pack(group,name,kind,id){
   const normals=new Float32Array(norm.count*3);for(let i=0;i<norm.count;i++)normals.set([norm.getX(i),norm.getY(i),norm.getZ(i)],i*3);
   const m=o.material;if(Array.isArray(m))throw new Error('Review export requires single-material parts');
   const index=geo.index?Uint32Array.from(geo.index.array):Uint32Array.from({length:pos.count},(_,i)=>i);
-  meshes.push({position:encode(pos.array),normal:encode(normals),index:encode(index),color:[m.color.r,m.color.g,m.color.b],roughness:m.roughness??.5,metalness:m.metalness??0,opacity:m.opacity??1});
+  meshes.push({position:encode(pos.array),normal:encode(normals),index:encode(index),uv:geo.attributes.uv?encode(geo.attributes.uv.array):null,atlas:m.userData.heroAtlas||null,color:[m.color.r,m.color.g,m.color.b],roughness:m.roughness??.5,metalness:m.metalness??0,opacity:m.opacity??1});
  });objects.push({name,kind,id,meshes});
 }
 for(const d of DRIVERS){pack(createKartMesh({...d,number:1}).rootGroup,d.name,'kart',d.id);const group=new THREE.Group();const head=createDriver(group,{...d,number:1});head.scale.setScalar(1.18);pack(group,d.name,'character',d.id);}

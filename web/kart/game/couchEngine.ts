@@ -18,6 +18,7 @@ import { sfx } from './sfx';
 import { TrackMusic, preloadCourseTrack } from './music';
 import { applyCartoonStyle, blobShadow, toonify, toonGradient, BoostPad } from './style';
 import { configureArtRenderer, addArtLighting } from './artDirection';
+import {animateHeroDriver} from './heroAssets';
 
 // One TV, up to four players on phones, split screen like a console kart racer.
 // The race runs here on the TV; phones only send their controls.
@@ -679,6 +680,7 @@ export class CouchEngine {
       g.position.y = k.y + hop;
       if (k.i === 0) g.rotation.y += delta * (Math.sin(t * 0.7) > 0.6 ? 6 : 0);
       k.r.handles.driverHead.rotation.z = Math.sin(t * 8 + k.i) * 0.25;
+      animateHeroDriver(k.r.handles.driverHead,delta,0,0,false,true);
       const v = g.position.clone(); v.y += 3.2; v.project(this.cine);
       const W = this.container.clientWidth, H = this.container.clientHeight;
       const lab = this.labels[k.i];

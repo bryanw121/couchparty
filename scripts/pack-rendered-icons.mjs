@@ -15,3 +15,8 @@ for(const kind of ['character','item']){
   g.font='18px sans-serif';g.fillText('Offline studio renders of the runtime game meshes',540,1210);fs.mkdirSync('public/art-review',{recursive:true});const bytes=sheet.toBuffer('image/png');fs.writeFileSync('public/art-review/items.png',bytes);fs.writeFileSync('public/item-previews/soft-collectible-models.png',bytes);
  }
 }
+for(const dir of ['public/kart-models','public/kart-models/rear']){
+ const size=384,board=createCanvas(size*4,size*2),g=board.getContext('2d');
+ for(const [i,d]of DRIVERS.entries())g.drawImage(await loadImage(dir+'/'+d.id+'.png'),i%4*size,Math.floor(i/4)*size,size,size);
+ fs.writeFileSync(dir+'/roster.png',board.toBuffer('image/png'));
+}

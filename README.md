@@ -157,6 +157,24 @@ checks trick/glider/hazard behavior and validates ghost playback and saved-recor
 
 ## Deploying page changes
 
+The first focused art benchmark is Mario, his kart, the Mushroom/Green Shell and the first four
+Mushroom Village shop sites. `scripts/build-hero-slice.py` authors the meshes through Blender's Python API,
+UV unwraps each asset and bakes color, ambient occlusion and roughness atlases. These are explicitly designed
+surfaces and details authored by script, not a claim of manual sculpting or Nintendo-equivalent production art.
+The editable scene is `art-source/hero-slice.blend`; portable textured GLBs and PNG atlases are in
+`public/hero-assets/`. `hero-assets.json` bundles compact geometry and the atlases for reliable loading.
+Browser textures upgrade from a small embedded preview to the full baked image during the race intro.
+`heroAssets.ts` preserves independent arm/eye controls for steering, blinking and a podium pose, and batches
+the static pieces by material. Other drivers retain the previously approved models and faces.
+
+Rebuild with Blender `--background --python-exit-code 1 --python scripts/build-hero-slice.py`.
+Re-export edits to the baked source with `--background art-source/hero-slice.blend --python-exit-code 1
+--python scripts/export-hero-slice.py`. `npm run test:kart-hero` validates topology, UVs, atlas bytes, textured
+GLBs and live mesh/animation assembly. `/kart-art?view=race` runs the actual CouchEngine with an AI-driven
+Mario on Mushroom Village; it creates no shared room and writes no Time Trial records. This is the racing
+camera view for judging the benchmark. `/kart-art?collection=course&model=meadow&feature=market` focuses
+the authored shop district. Offline Blender asset studies remain labeled separately from gameplay views.
+
 Each course now has an interactive mushroom route (`shortcutAdventure.ts`): Garden Dash has a boost-opened
 garden gate; Tideway alternates dry and flooded sand; Crystal Cut has slippery ice and snowdrifts that boosts
 flatten briefly; Metro Express opens on a 9-second signal cycle and boosts override a red gate for 6 seconds.

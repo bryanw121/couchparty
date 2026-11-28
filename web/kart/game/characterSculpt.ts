@@ -3,6 +3,7 @@ import { RacerConfig } from '../types';
 import { applySculptAssets, markSculptSources } from './sculptAssets';
 import {surfaceTexture} from './artDirection';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {hasHeroAsset,createHeroDriver} from './heroAssets';
 
 export const CHARACTER_FOR_TOPPER: Record<string, string> = { cap: 'mario', cat: 'luigi', bow: 'peach', bunny: 'daisy', horns: 'yoshi', antenna: 'toad', crown: 'bowser', bear: 'donkeykong' };
 
@@ -11,6 +12,7 @@ export function createDriver(body: THREE.Group, config: RacerConfig, quality: 'r
   const existingParts=new Set(body.children);
   const materials=new Map<string,THREE.MeshPhysicalMaterial>();
   const who = CHARACTER_FOR_TOPPER[config.topper || 'cap'] || 'mario';
+  if(who==='mario'&&sculpted&&hasHeroAsset('mario'))return createHeroDriver(body);
   const mat = (color: THREE.ColorRepresentation, roughness = .48, metalness = 0) => {
     const key=[color,roughness,metalness].join(':');if(materials.has(key))return materials.get(key)!;
     const m = new THREE.MeshPhysicalMaterial({ color, roughness, metalness,clearcoat:metalness>.3?.45:.08,clearcoatRoughness:.4 }); m.userData.preserveShading = true;materials.set(key,m);return m;

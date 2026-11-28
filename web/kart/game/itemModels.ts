@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { ItemKind } from './items';
+import {hasHeroAsset,addHeroAsset} from './heroAssets';
 
 // Shared geometry for thrown/held items, power-up effects and rendered HUD icons.
 export const ITEM_NAMES: Record<ItemKind, string> = {
@@ -16,6 +17,8 @@ function material(color: number, metalness = .02) {
 }
 export function createItemModel(kind: ItemKind | 'box'): THREE.Group {
   const g = new THREE.Group(); g.name = 'item-' + kind;
+  const asset=kind==='boost'?'mushroom':kind==='green'?'shell':null;
+  if(asset&&hasHeroAsset(asset)){addHeroAsset(g,asset);return g;}
   const white = material(0xfff7e8), ink = material(0x182238), yellow = material(0xffd429, .12);
   const add = (geo: THREE.BufferGeometry, m: THREE.Material, x = 0, y = 0, z = 0, parent: THREE.Object3D = g) => {
     const mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh); return mesh;

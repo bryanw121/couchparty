@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { CHARACTER_FOR_TOPPER } from './driverModel';
 import { RacerConfig } from '../types';
 import {surfaceTexture} from './artDirection';
+import {hasHeroAsset,addHeroAsset} from './heroAssets';
 
 // Visual bodies use the same wheelbase and attachment points, keeping driving consistent.
 export function createKartBody(body: THREE.Group, config: RacerConfig) {
@@ -15,6 +16,7 @@ export function createKartBody(body: THREE.Group, config: RacerConfig) {
   const secondary=mat(character==='mario'||character==='luigi'?0x2855ce:character==='toad'?0xf0443e:character==='yoshi'?0xfff3cf:character==='bowser'?0x288c4c:character==='donkeykong'?0x9d5d28:0xffd875);
   dark.roughnessMap=surfaceTexture('rubber');
   const trim=royal?gold:chrome;
+  if(character==='mario'&&hasHeroAsset('kart')){addHeroAsset(body,'kart');body.userData.character=character;return {paint,secondary,dark,chrome,trim,character,heavy};}
   const sphere=new THREE.SphereGeometry(1,32,24);
   function mesh(geometry:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number){const o=new THREE.Mesh(geometry,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;body.add(o);return o;}
   function rounded(m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number,r=.08){return mesh(new RoundedBoxGeometry(w,h,d,4,Math.min(r,h/2-.001,w/2-.001,d/2-.001)),m,x,y,z);}

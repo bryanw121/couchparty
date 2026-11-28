@@ -13,7 +13,8 @@
     "build:countdown-preview": "node scripts/render-countdown-preview.mjs",
     "test:kart-features": "node test/kart-race-features.mjs",
     "test:kart-art": "node test/kart-art.mjs",
-    "test:kart-shortcuts": "node test/kart-shortcuts.mjs"
+    "test:kart-shortcuts": "node test/kart-shortcuts.mjs",
+    "test:kart-hero": "node test/kart-hero.mjs"
   },
   "keywords": [],
   "author": "",

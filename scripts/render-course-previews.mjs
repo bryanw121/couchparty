@@ -16,6 +16,7 @@ const linear=x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4;
 const srgb=x=>Math.round(255*(x<=.0031308?x*12.92:1.055*Math.pow(Math.min(1,x),1/2.4)-.055));
 const textures=new Map();
 function getTexture(map){
+  if(ArrayBuffer.isView(map?.image?.data))return [{data:map.image.data,w:map.image.width,h:map.image.height}];
   if(!map?.image?.getContext)return null;
   if(!textures.has(map)){const image=map.image;try{
     const levels=[];for(let w=image.width,h=image.height;;w=Math.max(1,w>>1),h=Math.max(1,h>>1)){const c=createCanvas(w,h),g=c.getContext('2d');g.drawImage(image,0,0,w,h);levels.push({data:g.getImageData(0,0,w,h).data,w,h});if(w===1&&h===1)break;}
