@@ -13,13 +13,14 @@ for(const samples of [...cues,go]) {
   assert.ok(Math.abs(samples.at(-1)) < .001, 'smooth release avoids clicks');
 }
 function crossings(a){let n=0;for(let i=1;i<6600;i++)if(a[i-1]<0&&a[i]>=0)n++;return n;}
-assert.ok(crossings(cues[0]) < crossings(cues[1]) && crossings(cues[1]) < crossings(cues[2]), 'three ascending pitches');
-assert.ok(go.length > cues[0].length * 2, 'GO resolves as a longer chord');
+assert.deepEqual(cues[0],cues[1]);assert.deepEqual(cues[1],cues[2]);
+assert.ok(Math.abs(crossings(go)/crossings(cues[0])-2)<.06,'GO is an octave above the three identical ready beeps');
+assert.ok(go.length > cues[0].length * 2, 'GO is a longer single signal');
 const sources = [], makeNode = () => ({ gain: {value:0},connect(){return this;},disconnect(){} });
 const ctx = { sampleRate:44100, currentTime:2, createGain:makeNode, createBuffer:(c,n,r)=>({n,r,copyToChannel(a){this.samples=a;}}), createBufferSource:()=>{const s={...makeNode(),start(t){this.started=t;}};sources.push(s);return s;} };
-playCountdownCue(ctx,{},false,1);playCountdownCue(ctx,{},false,1);playCountdownCue(ctx,{},true);
+playCountdownCue(ctx,{},false,1);playCountdownCue(ctx,{},false,3);playCountdownCue(ctx,{},true);
 assert.equal(sources[0].buffer,sources[1].buffer,'reuse decoded cue');assert.equal(sources[2].started,2);
-console.log('PASS countdown: distinct ascending cues, longer GO chord, smooth envelopes and cached playback');
+console.log('PASS countdown: three matching ready beeps, octave-up GO, smooth envelopes and cached playback');
 
 const tv = fs.readFileSync('public/tv.html','utf8');
 const nodes = {}, tracks = [];
