@@ -6,6 +6,7 @@ import { soundEngine } from './audio';
 import { sfx } from './sfx';
 import { KartMeshHandles } from './kartModel';
 import {animateHeroDriver} from './heroAssets';
+import {response} from './motion';
 
 export class KartPhysicsEngine {
   public totalLaps = 3;
@@ -151,13 +152,16 @@ export class KartPhysicsEngine {
     if (input.steerLeft) rawSteer += 1;
     if (input.steerRight) rawSteer -= 1;
     rawSteer = Math.max(-1, Math.min(1, rawSteer));
-    if (Math.abs(rawSteer) < 0.05) rawSteer = 0; // dead zone
+    // Continuous dead zone: crossing its edge must not introduce a steering step.
+    rawSteer = Math.sign(rawSteer) * Math.max(0, (Math.abs(rawSteer) - .05) / .95);
     // Softer near center, full lock at the ends: small corrections stay small
-    rawSteer = Math.sign(rawSteer) * (0.35 * Math.abs(rawSteer) + 0.65 * rawSteer * rawSteer);
+    rawSteer = Math.sign(rawSteer) * (0.4 * Math.abs(rawSteer) + 0.6 * rawSteer * rawSteer);
+    // Calm small high-speed corrections while preserving full steering lock.
+    rawSteer *= 1 - .18 * THREE.MathUtils.clamp((speedRatio-.6)/.6,0,1) * (1-Math.abs(rawSteer));
     // Smooth the wheel: phone input arrives in bursts, so ease toward it instead of snapping
     const prev = state.steerSmooth || 0;
-    const rate = (Math.abs(rawSteer) < Math.abs(prev) || Math.sign(rawSteer) !== Math.sign(prev)) ? 14 : 9;
-    state.steerSmooth = prev + (rawSteer - prev) * Math.min(1, delta * rate);
+    const rate = (Math.abs(rawSteer) < Math.abs(prev) || Math.sign(rawSteer) !== Math.sign(prev)) ? 18 : 14;
+    state.steerSmooth = prev + (rawSteer - prev) * response(rate, delta);
     if (Math.abs(state.steerSmooth) < 0.002 && rawSteer === 0) state.steerSmooth = 0;
     const steerIn = rawSteer;
     rawSteer = state.steerSmooth;
@@ -208,13 +212,13 @@ export class KartPhysicsEngine {
         // Into the drift tightens the line, away from it widens it; you can't straighten out mid-drift
         const driftSteerMod = Math.max(-1, Math.min(1, rawSteer * state.driftDirection));
         const driftAngularSpeed = config.handling * 0.5 * (1.05 + driftSteerMod * 0.4) * state.driftDirection;
-        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, driftAngularSpeed, Math.min(1, delta * 8));
+        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, driftAngularSpeed, response(8, delta));
 
         // Visual roll & slide angle
         state.rotation.roll = THREE.MathUtils.lerp(
           state.rotation.roll,
           -state.driftDirection * 0.18,
-          delta * 10
+          response(10, delta)
         );
 
         // Emit drift sparks from rear tires
@@ -228,19 +232,22 @@ export class KartPhysicsEngine {
           this.particles.emitDriftSparks(sparkWorldPos, state.driftLevel, state.rotation.y);
         }
       }
-    } else {
+    }
+    if (!state.isDrifting || !isGrounded) {
       // Normal standard steering
+      const settlingDrift = Math.abs(state.slideAngle || 0) > .01;
+      const turnResponse = response(settlingDrift ? 8 : 12, delta);
       if (rawSteer !== 0 && Math.abs(state.speed) > 0.5) {
         const reverseFactor = state.speed < 0 ? -1 : 1;
-        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, rawSteer * baseSteerSpeed * reverseFactor, Math.min(1, delta * 12));
+        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, rawSteer * baseSteerSpeed * reverseFactor, turnResponse);
       } else {
-        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, 0, Math.min(1, delta * 14));
+        state.angularVelocity = THREE.MathUtils.lerp(state.angularVelocity, 0, settlingDrift ? turnResponse : response(14, delta));
       }
 
       state.rotation.roll = THREE.MathUtils.lerp(
         state.rotation.roll,
         -rawSteer * 0.08 * speedRatio,
-        delta * 8
+        response(8, delta)
       );
     }
 
@@ -249,7 +256,7 @@ export class KartPhysicsEngine {
 
     // 6. Forward Velocity & Slide Vector
     // Ease into and out of the drift slide instead of jumping sideways
-    state.slideAngle = THREE.MathUtils.lerp(state.slideAngle || 0, state.isDrifting ? state.driftDirection * 0.26 : 0, Math.min(1, delta * 6));
+    state.slideAngle = THREE.MathUtils.lerp(state.slideAngle || 0, state.isDrifting ? state.driftDirection * 0.26 : 0, response(state.isDrifting ? 6 : 8, delta));
     const heading = state.rotation.y + state.slideAngle;
 
     const vx = Math.sin(heading) * state.speed;

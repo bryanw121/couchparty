@@ -15,7 +15,8 @@
     "test:kart-art": "node test/kart-art.mjs",
     "test:kart-shortcuts": "node test/kart-shortcuts.mjs",
     "test:kart-hero": "node test/kart-hero.mjs",
-    "test:kart-spin": "node test/kart-spin-recovery.mjs"
+    "test:kart-spin": "node test/kart-spin-recovery.mjs",
+    "test:kart-driving": "node test/kart-driving.mjs"
   },
   "keywords": [],
   "author": "",

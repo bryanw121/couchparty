@@ -125,6 +125,13 @@ The TV resolves player appearance from the selected driver ID, so older room col
 add `--karts` (and optionally `--rear`) for full kart previews in `public/kart-models/`.
 Run `npm run test:kart-models` to check menu selection through race assembly, shading and wheel animation.
 
+Driving uses a continuous steering dead zone, quicker counter-steering, and gentler small corrections at
+high speed while retaining full lock. Drift release eases rotation and side-slip together and preserves
+mini-turbo rewards. Chase-camera aim, heading, drift offset and glider framing settle smoothly; spin-outs
+hold the camera direction. Exponential response keeps these transitions consistent across rendering rates.
+`npm run test:kart-driving` checks steering and camera response at 30/60/120 FPS, while
+`npm run test:kart-spin` covers forward-facing recovery across weapons and courses.
+
 Items use `itemModels.ts`: shells, mushrooms, Super Star, Bob-omb, Blooper, Boo, Bullet Bill and question boxes.
 The TV HUD and phone controller use transparent icons rendered from those meshes (`public/kart-items.json`).
 Bullet Bill also replaces the visible kart while that power-up is active.
