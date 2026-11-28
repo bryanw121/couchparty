@@ -446,7 +446,7 @@ body { margin: 0; background: #0E1020; color: #F4F5FA; font-family: "Segoe UI", 
     var cards = function (list, art, cls) {
       var o = '<div class="kcards">';
       for (var j = 0; j < list.length; j++) o += '<div class="kcard ' + (cls || '') + (j === g.cursor ? ' sel' : '') + '"><div class="art">' + art(list[j]) + '</div><div class="n">' + esc(list[j].name) + '</div><div class="d">' + esc(list[j].blurb || '') + '</div></div>';
-      return o + '</div><div class="kfoot">' + capChip() + 'picks on their phone · or ◀ ▶ then <span class="okkey">OK</span> on the remote</div>';
+      return o + '</div><div class="kfoot">' + capChip() + 'picks, then confirms on their phone · or ◀ ▶ then <span class="okkey">OK</span> on the remote</div>';
     };
     if (g.phase === 'standings') {
       var last = g.raceNo >= g.races;

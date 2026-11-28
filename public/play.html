@@ -446,16 +446,18 @@ function renderKartMenuP(g) {
     box.innerHTML = h + `<div class="kmwait">You're watching this race.<br>Up to 4 racers per race.</div>`;
     return;
   }
-  const list = (items, art, sel) => items.map((x, i) => `<button class="kmcard${x.id === sel ? ' sel' : ''}" data-kchoose="${x.id}" ${cap ? '' : 'disabled'}><div class="art">${art(x)}</div><div><div class="n">${esc(x.name)}</div><div class="d">${esc(x.blurb || '')}</div></div></button>`).join('');
+  // Tap to highlight (everyone sees it on the TV), then Confirm to move on
+  const list = (items, art) => items.map((x, i) => `<button class="kmcard${i === g.cursor ? ' sel' : ''}" data-khover="${i}" ${cap ? '' : 'disabled'}><div class="art">${art(x)}</div><div><div class="n">${esc(x.name)}</div><div class="d">${esc(x.blurb || '')}</div></div></button>`).join('');
+  const confirm = (items) => { const x = items[g.cursor] || items[0]; return `<button class="kmbig" data-kchoose="${x.id}">Confirm ${esc(x.name)} ›</button>`; };
   const waitCap = (what) => `<div class="kmwait">${capName} is ${what}…</div>`;
   if (g.phase === 'standings') {
     const last = g.raceNo >= g.races;
     h += g.standings.map((r, i) => `<div class="kmme" style="${r.id === me ? 'outline:3px solid #FFC83D' : ''}"><div class="n" style="width:28px">${i + 1}</div><span style="width:18px;height:18px;border-radius:50%;background:${r.color}"></span><div style="flex:1;font-weight:800">${esc(r.name)}</div><div style="color:#5EE6C8;font-weight:900">+${r.last || 0}</div><div class="n" style="width:46px;text-align:right">${r.pts}</div></div>`).join('');
     h += cap ? `<button class="kmbig" data-km="next">${last ? 'Finish cup' : 'Next race ›'}</button>` : waitCap(last ? 'wrapping up' : 'starting the next race');
   } else if (g.step === 'mode') {
-    h += list(L.modes, (m) => KA.mode(m.id), g.mode) + (cap ? '' : waitCap('picking a mode'));
+    h += list(L.modes, (m) => KA.mode(m.id)) + (cap ? confirm(L.modes) : waitCap('picking a mode'));
   } else if (g.step === 'speed') {
-    h += list(L.speeds, (m) => KA.speed(m.id), g.speed) + (cap ? '' : waitCap('picking the speed'));
+    h += list(L.speeds, (m) => KA.speed(m.id)) + (cap ? confirm(L.speeds) : waitCap('picking the speed'));
   } else if (g.step === 'course') {
     // Everyone votes; the TV shows who picked what and spins on a tie
     const votes = g.votes || [], rv = g.reveal, mine = (votes.find((v) => v.id === me) || {}).course;
@@ -503,6 +505,7 @@ $('kMenuP').addEventListener('click', (e) => {
   if (!b || b.disabled) return;
   if (b.dataset.km) kmSend(b.dataset.km);
   else if (b.dataset.kchoose) kmSend('choose', b.dataset.kchoose);
+  else if (b.dataset.khover) kmSend('hover', Number(b.dataset.khover));
   else if (b.dataset.kvote) kmSend('vote', b.dataset.kvote);
   else if (b.dataset.kdrv) kmSend('driver', b.dataset.kdrv);
   else if (b.dataset.klaps) kmSend('laps', Number(b.dataset.klaps));

@@ -65,7 +65,7 @@ interface Racer {
   state: RacerState;
   handles: KartMeshHandles;
   ai?: AIController;
-  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; banner: HTMLElement; ink: HTMLElement; finishedShown: boolean; lastRank?: number; lastBump?: number; driftLvl?: number; wasDrifting?: boolean; onDirt?: boolean; rankCalm?: number };
+  human?: { idx: number; cam: CameraController; pad: PadInput; itemWas: boolean; gasAt: number; hud: HTMLElement; map: HTMLCanvasElement; banner: HTMLElement; ink: HTMLElement; finishedShown: boolean; skipWas?: boolean; lastRank?: number; lastBump?: number; driftLvl?: number; wasDrifting?: boolean; onDirt?: boolean; rankCalm?: number };
 }
 
 export class CouchEngine {
@@ -298,7 +298,7 @@ export class CouchEngine {
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.elapsed += delta;
     if (this.phase === 'intro') { this.update(delta); this.introFrame(delta); }
-    else if (this.phase === 'replay') this.replayFrame();
+    else if (this.phase === 'replay') this.replayFrame(delta);
     else if (this.phase === 'podium') this.podiumFrame(delta);
     else this.update(delta);
     this.render();
@@ -513,9 +513,9 @@ export class CouchEngine {
     this.music?.stop();
     soundEngine.stopEngine();
     // Short replay of the winner crossing the line, then the podium, then results
-    setTimeout(() => this.startReplay(), 1800);
-    setTimeout(() => this.startPodium(), 1800 + 6500);
-    setTimeout(() => { this.phase = 'done'; this.opts.onFinish?.(results); }, 1800 + 6500 + 7000);
+    // (the podium starts the moment the replay ends, so there's no dead time in between)
+    this.finishResults = results;
+    setTimeout(() => this.startReplay(), 900);
   }
 
   // ---------- replay + podium ----------
@@ -528,8 +528,10 @@ export class CouchEngine {
   private confetti: THREE.Mesh[] = [];
   private labels: HTMLElement[] = [];
   private recTick = 0;
+  private lastRecAt = -1;
   private record() {
-    if (++this.recTick % 2) return; // ~30 frames a second
+    if (this.elapsed - this.lastRecAt < 1 / 30) return; // ~30 frames a second, whatever the TV's frame rate
+    this.lastRecAt = this.elapsed;
     const f = new Float32Array(this.racers.length * 5);
     this.racers.forEach((r, i) => { const s = r.state; f.set([s.position.x, s.position.y, s.position.z, s.rotation.y + (s.slideAngle || 0) * 0.6, s.rotation.roll], i * 5); });
     this.frames.push(f);
@@ -537,20 +539,25 @@ export class CouchEngine {
   private hideHud(hide: boolean) {
     for (const r of this.humans) { r.human!.hud.style.display = r.human!.map.style.display = r.human!.banner.style.display = hide ? 'none' : ''; }
   }
+  private finishResults: CouchResult[] = [];
   private startReplay() {
-    if (this.disposed || this.winnerFrame < 0) return;
+    if (this.disposed) return;
+    if (this.winnerFrame < 0 || !this.frames.length) { this.startPodium(); return; }
     this.phase = 'replay';
-    this.replayAt = Math.max(0, this.winnerFrame - 120);
+    this.replayAt = Math.max(0, this.winnerFrame - 90);
+    for (const r of this.humans) r.human!.skipWas = r.human!.pad.item || r.human!.pad.drift;
     this.hideHud(true);
-    this.banner.innerHTML = '<span style="font-size:.35em;letter-spacing:.1em;color:#ff5d5d">● REPLAY</span>';
+    this.banner.innerHTML = '<span style="font-size:.35em;letter-spacing:.1em;color:#ff5d5d">● REPLAY</span><div style="font-size:.16em;letter-spacing:.04em;color:#fff;margin-top:.4em">Tap Item or Drift to skip</div>';
     this.banner.style.top = '8%';
     this.banner.style.left = '10%';
   }
-  private replayFrame() {
-    const end = Math.min(this.frames.length - 1, this.winnerFrame + 45);
+  private replayFrame(delta = 1 / 60) {
+    const end = Math.min(this.frames.length - 1, this.winnerFrame + 30);
+    // Any phone tapping Item or Drift skips straight to the podium
+    for (const r of this.humans) { const h = r.human!, down = h.pad.item || h.pad.drift; if (down && !h.skipWas) { this.startPodium(); return; } h.skipWas = down; }
     const i = Math.min(end, Math.floor(this.replayAt));
     const f = this.frames[i];
-    if (!f) return;
+    if (!f || i >= end) { this.startPodium(); return; }
     this.racers.forEach((r, k) => {
       const g = r.handles.rootGroup;
       g.position.set(f[k * 5], f[k * 5 + 1], f[k * 5 + 2]);
@@ -561,7 +568,7 @@ export class CouchEngine {
     });
     const wi = this.racers.findIndex((r) => r.state.config.id === this.winnerId);
     const wx = f[wi * 5], wy = f[wi * 5 + 1], wz = f[wi * 5 + 2], wh = f[wi * 5 + 3];
-    const t = (i - (this.winnerFrame - 120)) / 165;
+    const t = (i - (this.winnerFrame - 90)) / 120;
     if (t < 0.5) {
       // low tracking shot from the side
       const side = 7, back = 3 - t * 6;
@@ -572,10 +579,11 @@ export class CouchEngine {
       this.cine.position.set(p0.x - p0.normalX * 15, p0.y + 3.5, p0.z - p0.normalZ * 15);
     }
     this.cine.lookAt(wx, wy + 0.8, wz);
-    this.replayAt += 0.75; // slight slow motion
+    this.replayAt += Math.min(0.1, delta) * 30 * 0.85; // frames were recorded at ~30/s; slight slow motion
   }
   private startPodium() {
-    if (this.disposed) return;
+    if (this.disposed || this.phase === 'podium') return;
+    setTimeout(() => { if (this.disposed) return; this.phase = 'done'; this.opts.onFinish?.(this.finishResults); }, 7000);
     this.phase = 'podium';
     soundEngine.playFinishFanfare();
     const top = this.finalOrder.slice(0, 3);
