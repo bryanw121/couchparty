@@ -25,12 +25,32 @@ export class KartPhysicsEngine {
     allRacers: RacerState[]
   ) {
     this.track.features?.step(state, input, delta);
-    // Spin-out recovery timer
+    // Keep the hit penalty, then settle facing the track's forward direction.
     if (state.spinOutTimer > 0) {
-      state.spinOutTimer -= delta;
+      const remaining = state.spinOutTimer;
+      state.spinOutTimer = Math.max(0, remaining - delta);
       state.speed *= Math.max(0, 1 - delta * 2);
-      state.rotation.y += delta * 12;
-      state.position.y = this.track.getClosestTrackPoint(state.position.x,state.position.z).point.y + .1 + (state.airHeight || 0);
+      const closest = this.track.getClosestTrackPoint(state.position.x,state.position.z);
+      state.rotation.y += Math.min(delta, remaining) * 12 * Math.min(1, state.spinOutTimer / .3);
+      if (state.spinOutTimer < .3) {
+        const forward = Math.atan2(closest.point.tangentX, closest.point.tangentZ);
+        const difference = Math.atan2(Math.sin(forward-state.rotation.y), Math.cos(forward-state.rotation.y));
+        state.rotation.y += difference * Math.min(1, delta / Math.min(.3, remaining));
+      }
+      // A pre-hit drift or steering impulse must not turn us back around on recovery.
+      state.angularVelocity = 0;
+      state.steerSmooth = 0;
+      state.slideAngle = 0;
+      state.isDrifting = false;
+      state.driftDirection = state.driftTime = state.driftLevel = 0;
+      state.driftHeld = input.drift;
+      state.hopT = 0;
+      state.rotation.roll *= Math.max(0, 1 - delta * 10);
+      if (state.spinOutTimer === 0) {
+        state.speed = Math.max(0, state.speed);
+        state.rotation.roll = 0;
+      }
+      state.position.y = closest.point.y + .1 + (state.airHeight || 0);
       this.syncMesh(state, meshHandles, delta);
       return;
     }
